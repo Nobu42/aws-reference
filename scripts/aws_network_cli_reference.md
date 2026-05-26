@@ -2,7 +2,7 @@
 
 ## このドキュメントの目的
 
-このドキュメントは、`01_vpc_setup.sh` で使用するAWS CLIコマンドを、現場で素早く確認できるリファレンスとして整理したものです。
+このドキュメントは、`01_vpc_setup.sh` で使用するAWS CLIコマンドを、現場で素早く確認できるリファレンスとして整理したものである。
 
 対象コマンド:
 
@@ -21,7 +21,7 @@
 - `aws ec2 describe-network-interfaces`
 - VPC調査、ネットワーク影響調査、セキュリティ確認でよく使う関連コマンド
 
-あわせて、AWS CLIで頻出する以下の共通オプションも説明します。
+あわせて、AWS CLIで頻出する以下の共通オプションも説明する。
 
 - `--profile`
 - `--region`
@@ -31,7 +31,7 @@
 
 ## AWS CLIコマンドの基本構造
 
-AWS CLIの基本形は以下です。
+AWS CLIの基本形は以下である。
 
 ```bash
 aws <service> <operation> [options]
@@ -58,9 +58,9 @@ aws ec2 create-vpc --cidr-block 10.0.0.0/16
 
 ### 説明
 
-`aws` はAWS CLIのエントリーポイントです。
+`aws` はAWS CLIのエントリーポイントである。
 
-この後ろにサービス名と操作名を続けることで、AWSリソースの作成、変更、削除、確認などを行います。
+この後ろにサービス名と操作名を続けることで、AWSリソースの作成、変更、削除、確認などを行う。
 
 ### 書式
 
@@ -97,11 +97,11 @@ aws configure list --profile learning
 
 ### 説明
 
-`sts` は、AWSの認証情報や一時認証情報を扱うサービスです。
+`sts` は、AWSの認証情報や一時認証情報を扱うサービスである。
 
-VPC作成スクリプトでは、`get-caller-identity` を使って、現在のAWS CLIがどのAWSアカウント、IAMユーザー、IAMロールとして動作しているかを確認します。
+VPC作成スクリプトでは、`get-caller-identity` を使って、現在のAWS CLIがどのAWSアカウント、IAMユーザー、IAMロールとして動作しているかを確認する。
 
-リソース作成前の安全確認としてよく使います。
+リソース作成前の安全確認としてよく使う。
 
 ## aws sts get-caller-identity
 
@@ -119,9 +119,9 @@ aws sts get-caller-identity \
 
 ### 説明
 
-現在使用しているAWS CLI認証情報が、どのAWSアカウント、IAMユーザー、IAMロールに対応しているかを表示します。
+現在使用しているAWS CLI認証情報が、どのAWSアカウント、IAMユーザー、IAMロールに対応しているかを表示する。
 
-作成系コマンドを実行する前に、操作対象のAWSアカウントを取り違えていないか確認するために使用します。
+作成系コマンドを実行する前に、操作対象のAWSアカウントを取り違えていないか確認するために使用する。
 
 ### 使用例
 
@@ -161,9 +161,9 @@ UserId: AIDAXXXXXXXXXXXXXXXX
 
 ### 説明
 
-`ec2` は、Amazon EC2だけでなく、VPC、Subnet、Route Table、Internet Gateway、NAT Gateway、Security Group、Elastic IPなど、多くのネットワーク関連リソースも扱います。
+`ec2` は、Amazon EC2だけでなく、VPC、Subnet、Route Table、Internet Gateway、NAT Gateway、Security Group、Elastic IPなど、多くのネットワーク関連リソースも扱う。
 
-VPC作成では、以下のような操作を行います。
+VPC作成では、以下のような操作を行う。
 
 - VPCの作成
 - VPC属性の変更
@@ -190,9 +190,9 @@ aws ec2 create-vpc \
 
 ### 説明
 
-指定したIPv4 CIDRブロックを持つVPCを作成します。
+指定したIPv4 CIDRブロックを持つVPCを作成する。
 
-VPCはAWSネットワークの基本単位です。EC2、ALB、RDS、ElastiCacheなどを配置するサブネットは、このVPCの中に作成します。
+VPCはAWSネットワークの基本単位である。EC2、ALB、RDS、ElastiCacheなどを配置するサブネットは、このVPCの中に作成する。
 
 ### 使用例
 
@@ -211,41 +211,41 @@ aws ec2 create-vpc \
 
 #### `--profile`
 
-使用するAWS CLIプロファイルを指定します。
+使用するAWS CLIプロファイルを指定する。
 
 ```bash
 --profile learning
 ```
 
-`~/.aws/credentials` や `~/.aws/config` に設定された認証情報を選択するために使います。
+`~/.aws/credentials` や `~/.aws/config` に設定された認証情報を選択するために使う。
 
 #### `--region`
 
-AWSリソースを作成または参照するリージョンを指定します。
+AWSリソースを作成または参照するリージョンを指定する。
 
 ```bash
 --region ap-northeast-1
 ```
 
-`ap-northeast-1` は東京リージョンです。
+`ap-northeast-1` は東京リージョンである。
 
-VPCはリージョナルリソースなので、どのリージョンに作るかを明示します。
+VPCはリージョナルリソースなので、どのリージョンに作るかを明示する。
 
 #### `--cidr-block`
 
-VPCに割り当てるIPv4 CIDRブロックを指定します。
+VPCに割り当てるIPv4 CIDRブロックを指定する。
 
 ```bash
 --cidr-block 10.0.0.0/16
 ```
 
-`10.0.0.0/16` の場合、VPC内で `10.0.0.0` から `10.0.255.255` までの範囲を利用できます。
+`10.0.0.0/16` の場合、VPC内で `10.0.0.0` から `10.0.255.255` までの範囲を利用できる。
 
-サブネットはこの範囲内から切り出して作成します。
+サブネットはこの範囲内から切り出して作成する。
 
 #### `--instance-tenancy`
 
-VPC内で起動するEC2インスタンスのテナンシーを指定します。
+VPC内で起動するEC2インスタンスのテナンシーを指定する。
 
 ```bash
 --instance-tenancy default
@@ -257,11 +257,11 @@ VPC内で起動するEC2インスタンスのテナンシーを指定します�
 | `dedicated` | 専有インスタンスとして起動する |
 | `host` | Dedicated Hostを利用する |
 
-通常の構成では `default` を指定します。
+通常の構成では `default` を指定する。
 
 #### `--tag-specifications`
 
-リソース作成時にタグを付与します。
+リソース作成時にタグを付与する。
 
 ```bash
 --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=sample-vpc}]"
@@ -279,19 +279,19 @@ VPC内で起動するEC2インスタンスのテナンシーを指定します�
 | `Key=Name` | タグキー |
 | `Value=sample-vpc` | タグ値 |
 
-タグはAWSコンソールでの識別、コスト管理、削除対象の絞り込みなどに使います。
+タグはAWSコンソールでの識別、コスト管理、削除対象の絞り込みなどに使う。
 
 #### `--query`
 
-AWS CLIの出力から必要な部分だけを取り出します。
+AWS CLIの出力から必要な部分だけを取り出す。
 
 ```bash
 --query 'Vpc.VpcId'
 ```
 
-`create-vpc` の出力にはVPC全体の情報が含まれますが、この指定によりVPC IDだけを取り出せます。
+`create-vpc` の出力にはVPC全体の情報が含まれるが、この指定によりVPC IDだけを取り出せる。
 
-シェル変数に値を入れる時によく使います。
+シェル変数に値を入れる時によく使う。
 
 ```bash
 VPC_ID=$(aws ec2 create-vpc ... --query 'Vpc.VpcId' --output text)
@@ -299,17 +299,17 @@ VPC_ID=$(aws ec2 create-vpc ... --query 'Vpc.VpcId' --output text)
 
 #### `--output`
 
-AWS CLIの出力形式を指定します。
+AWS CLIの出力形式を指定する。
 
 ```bash
 --output text
 ```
 
-`--query 'Vpc.VpcId' --output text` と組み合わせると、`vpc-xxxxxxxxxxxxxxxxx` のようなIDだけを取得できます。
+`--query 'Vpc.VpcId' --output text` と組み合わせると、`vpc-xxxxxxxxxxxxxxxxx` のようなIDだけを取得できる。
 
 ### 主な出力項目
 
-`--query` を指定しない場合、`create-vpc` は作成されたVPCの詳細を返します。
+`--query` を指定しない場合、`create-vpc` は作成されたVPCの詳細を返す。
 
 | 項目 | 意味 |
 | :--- | :--- |
@@ -354,9 +354,9 @@ aws ec2 modify-vpc-attribute \
 
 ### 説明
 
-指定したVPCの属性を変更します。
+指定したVPCの属性を変更する。
 
-`01_vpc_setup.sh` では、以下の2つのDNS関連属性を有効化しています。
+`01_vpc_setup.sh` では、以下の2つのDNS関連属性を有効化している。
 
 - `enableDnsHostnames`
 - `enableDnsSupport`
@@ -385,25 +385,25 @@ aws ec2 modify-vpc-attribute \
 
 #### `--vpc-id`
 
-変更対象のVPC IDを指定します。
+変更対象のVPC IDを指定する。
 
 ```bash
 --vpc-id vpc-xxxxxxxxxxxxxxxxx
 ```
 
-VPC IDは `create-vpc` の結果や `describe-vpcs` で確認できます。
+VPC IDは `create-vpc` の結果や `describe-vpcs` で確認できる。
 
 #### `--enable-dns-hostnames`
 
-VPC内でDNSホスト名を有効化するかどうかを指定します。
+VPC内でDNSホスト名を有効化するかどうかを指定する。
 
 ```bash
 --enable-dns-hostnames '{"Value":true}'
 ```
 
-有効にすると、条件を満たすEC2インスタンスにAWS管理のDNSホスト名が割り当てられます。
+有効にすると、条件を満たすEC2インスタンスにAWS管理のDNSホスト名が割り当てられる。
 
-値はJSON形式で渡します。
+値はJSON形式で渡する。
 
 | 値 | 意味 |
 | :--- | :--- |
@@ -412,15 +412,15 @@ VPC内でDNSホスト名を有効化するかどうかを指定します。
 
 #### `--enable-dns-support`
 
-VPC内でAWS提供DNSによる名前解決を有効化するかどうかを指定します。
+VPC内でAWS提供DNSによる名前解決を有効化するかどうかを指定する。
 
 ```bash
 --enable-dns-support '{"Value":true}'
 ```
 
-有効にすると、VPC内のリソースからDNS名を解決できるようになります。
+有効にすると、VPC内のリソースからDNS名を解決できるようになる。
 
-RDSエンドポイント、ElastiCacheエンドポイント、Private Hosted Zoneなどを使う構成では重要です。
+RDSエンドポイント、ElastiCacheエンドポイント、Private Hosted Zoneなどを使う構成では重要である。
 
 | 値 | 意味 |
 | :--- | :--- |
@@ -429,9 +429,9 @@ RDSエンドポイント、ElastiCacheエンドポイント、Private Hosted Zon
 
 ### 注意点
 
-`modify-vpc-attribute` は、成功しても詳細なレスポンスを返しません。
+`modify-vpc-attribute` は、成功しても詳細なレスポンスを返しない。
 
-設定結果を確認する場合は、`describe-vpc-attribute` を使います。
+設定結果を確認する場合は、`describe-vpc-attribute` を使う。
 
 ```bash
 aws ec2 describe-vpc-attribute \
@@ -469,9 +469,9 @@ aws ec2 describe-vpcs \
 
 ### 説明
 
-VPCの一覧や詳細情報を表示します。
+VPCの一覧や詳細情報を表示する。
 
-特定のVPC IDを指定して確認することも、タグやCIDRで絞り込むこともできます。
+特定のVPC IDを指定して確認することも、タグやCIDRで絞り込むこともできる。
 
 ### 使用例: VPC IDを指定して確認する
 
@@ -508,13 +508,13 @@ aws ec2 describe-vpcs \
 
 #### `--vpc-ids`
 
-確認したいVPC IDを指定します。
+確認したいVPC IDを指定する。
 
 ```bash
 --vpc-ids vpc-xxxxxxxxxxxxxxxxx
 ```
 
-複数指定することもできます。
+複数指定することもできる。
 
 ```bash
 --vpc-ids vpc-aaa vpc-bbb
@@ -522,7 +522,7 @@ aws ec2 describe-vpcs \
 
 #### `--filters`
 
-条件を指定してVPCを絞り込みます。
+条件を指定してVPCを絞り込む。
 
 ```bash
 --filters "Name=tag:Name,Values=sample-vpc"
@@ -539,13 +539,13 @@ aws ec2 describe-vpcs \
 
 #### `--query`
 
-出力結果から必要な項目だけを取り出します。
+出力結果から必要な項目だけを取り出す。
 
 ```bash
 --query 'Vpcs[*].{ID:VpcId,CIDR:CidrBlock,State:State}'
 ```
 
-`describe-vpcs` の出力は情報量が多いため、確認したい項目だけに絞ると見やすくなります。
+`describe-vpcs` の出力は情報量が多いため、確認したい項目だけに絞ると見やすくなる。
 
 Nameタグを取り出す例:
 
@@ -553,7 +553,7 @@ Nameタグを取り出す例:
 --query 'Vpcs[*].{Name:Tags[?Key==`Name`].Value|[0]}'
 ```
 
-この式は、`Tags` 配列の中から `Key` が `Name` のタグを探し、その `Value` の先頭要素を取り出します。
+この式は、`Tags` 配列の中から `Key` が `Name` のタグを探し、その `Value` の先頭要素を取り出す。
 
 ### 主な出力項目
 
@@ -568,15 +568,15 @@ Nameタグを取り出す例:
 
 ### 注意点
 
-`describe-vpcs` の出力には、`enableDnsHostnames` や `enableDnsSupport` は直接含まれません。
+`describe-vpcs` の出力には、`enableDnsHostnames` や `enableDnsSupport` は直接含まれない。
 
-そのため、以下のようなqueryを書いても `None` になる場合があります。
+そのため、以下のようなqueryを書いても `None` になる場合がある。
 
 ```bash
 --query 'Vpcs[*].{DNSHost:EnableDnsHostnames.Value,DNSSupport:EnableDnsSupport.Value}'
 ```
 
-DNS属性を確認する場合は、`describe-vpc-attribute` を使います。
+DNS属性を確認する場合は、`describe-vpc-attribute` を使う。
 
 ## aws ec2 describe-vpc-attribute
 
@@ -597,9 +597,9 @@ aws ec2 describe-vpc-attribute \
 
 ### 説明
 
-指定したVPCの属性を確認します。
+指定したVPCの属性を確認する。
 
-DNS関連の設定確認では、`describe-vpcs` ではなくこのコマンドを使います。
+DNS関連の設定確認では、`describe-vpcs` ではなくこのコマンドを使う。
 
 ### 使用例: DNSホスト名の確認
 
@@ -627,7 +627,7 @@ aws ec2 describe-vpc-attribute \
 
 #### `--attribute`
 
-確認したいVPC属性を指定します。
+確認したいVPC属性を指定する。
 
 ```bash
 --attribute enableDnsHostnames
@@ -656,7 +656,7 @@ EnableDnsSupport:
 
 ### 目的別早見表
 
-VPC関連の影響調査、設定変更、手順書作成では、まず `describe-*` 系コマンドで現状を確認し、その後に変更系コマンドを実行します。
+VPC関連の影響調査、設定変更、手順書作成では、まず `describe-*` 系コマンドで現状を確認し、その後に変更系コマンドを実行する。
 
 | 目的 | 主なコマンド |
 | :--- | :--- |
@@ -678,9 +678,9 @@ VPC関連の影響調査、設定変更、手順書作成では、まず `descri
 | GuardDuty Findingsを確認する | `aws guardduty list-findings` |
 | 変更履歴を確認する | `aws cloudtrail lookup-events` |
 
-金融系や重要システムの作業では、変更前後の差分確認が重要です。
+金融系や重要システムの作業では、変更前後の差分確認が重要である。
 
-作業前に `describe-*` の結果を保存し、作業後に同じコマンドで再確認すると、手順書や作業証跡として使いやすくなります。
+作業前に `describe-*` の結果を保存し、作業後に同じコマンドで再確認すると、手順書や作業証跡として使いやすくなる。
 
 ## aws ec2 describe-subnets
 
@@ -701,11 +701,11 @@ aws ec2 describe-subnets \
 
 ### 説明
 
-VPC内のサブネットを確認します。
+VPC内のサブネットを確認する。
 
-サブネットは、EC2、ALB、RDS、ElastiCache、Lambda ENIなどを配置するネットワーク単位です。
+サブネットは、EC2、ALB、RDS、ElastiCache、Lambda ENIなどを配置するネットワーク単位である。
 
-影響調査では、対象リソースがどのサブネット、どのAZ、どのCIDRに配置されているかを確認します。
+影響調査では、対象リソースがどのサブネット、どのAZ、どのCIDRに配置されているかを確認する。
 
 ### 使用例: VPC内のサブネットを一覧表示する
 
@@ -812,9 +812,9 @@ aws ec2 modify-subnet-attribute \
 
 ### 確認ポイント
 
-Public Subnetでは `MapPublicIpOnLaunch` を有効化することがあります。
+Public Subnetでは `MapPublicIpOnLaunch` を有効化することがある。
 
-Private Subnetでは、EC2にPublic IPを付けないため、通常は無効化します。
+Private Subnetでは、EC2にPublic IPを付けないため、通常は無効化する。
 
 ## aws ec2 describe-route-tables
 
@@ -835,9 +835,9 @@ aws ec2 describe-route-tables \
 
 ### 説明
 
-VPC内のルートテーブルを確認します。
+VPC内のルートテーブルを確認する。
 
-通信経路の影響調査では、対象サブネットがどのルートテーブルに関連付いているか、`0.0.0.0/0` がInternet Gateway、NAT Gateway、Transit Gateway、VPC Peeringのどれに向いているかを確認します。
+通信経路の影響調査では、対象サブネットがどのルートテーブルに関連付いているか、`0.0.0.0/0` がInternet Gateway、NAT Gateway、Transit Gateway、VPC Peeringのどれに向いているかを確認する。
 
 ### 使用例: VPC内のルートテーブルを一覧表示する
 
@@ -933,9 +933,9 @@ aws ec2 delete-route \
 
 ### 変更時の注意点
 
-ルート変更は通信断に直結します。
+ルート変更は通信断に直結する。
 
-本番系や金融系システムでは、変更前に以下を確認します。
+本番系や金融系システムでは、変更前に以下を確認する。
 
 - 対象ルートテーブルに関連付いているサブネット
 - 対象サブネット上のEC2、RDS、Lambda ENIなど
@@ -1055,7 +1055,7 @@ aws ec2 describe-nat-gateways \
 - Private Subnetのルートが同一AZのNAT Gatewayを向いているか
 - 不要なNAT Gatewayが残っていないか
 
-NAT Gatewayは稼働時間と通信量で課金されるため、検証後の削除確認が重要です。
+NAT Gatewayは稼働時間と通信量で課金されるため、検証後の削除確認が重要である。
 
 ## aws ec2 describe-addresses
 
@@ -1097,9 +1097,9 @@ aws ec2 describe-security-groups \
 
 ### 説明
 
-VPC内のSecurity Groupを確認します。
+VPC内のSecurity Groupを確認する。
 
-Security Groupはステートフルな仮想ファイアウォールです。EC2、ALB、RDS、ElastiCache、Lambda ENI、Interface VPC Endpointなどに関連付けられます。
+Security Groupはステートフルな仮想ファイアウォールである。EC2、ALB、RDS、ElastiCache、Lambda ENI、Interface VPC Endpointなどに関連付けられる。
 
 ### 使用例: VPC内のSecurity Group一覧
 
@@ -1137,9 +1137,9 @@ aws ec2 describe-security-groups \
 
 ### 説明
 
-Security GroupのルールID、方向、プロトコル、ポート、CIDR、参照先Security Groupを確認します。
+Security GroupのルールID、方向、プロトコル、ポート、CIDR、参照先Security Groupを確認する。
 
-ルール単位で変更や削除を行う場合は、`SecurityGroupRuleId` を確認しておくと安全です。
+ルール単位で変更や削除を行う場合は、`SecurityGroupRuleId` を確認しておくと安全である。
 
 ### 使用例
 
@@ -1196,9 +1196,9 @@ aws ec2 revoke-security-group-ingress \
 
 ### 変更時の注意点
 
-Security Group変更は即時反映されます。
+Security Group変更は即時反映される。
 
-変更前に、以下を確認します。
+変更前に、以下を確認する。
 
 - そのSecurity Groupが関連付いているリソース
 - 既存通信への影響
@@ -1244,9 +1244,9 @@ aws ec2 revoke-security-group-egress \
 
 ### 説明
 
-Network ACLはサブネット単位で関連付けられるステートレスなアクセス制御です。
+Network ACLはサブネット単位で関連付けられるステートレスなアクセス制御である。
 
-Security Groupとは異なり、インバウンドとアウトバウンドをそれぞれ明示的に許可する必要があります。
+Security Groupとは異なり、インバウンドとアウトバウンドをそれぞれ明示的に許可する必要がある。
 
 ### 使用例: VPC内のNetwork ACL一覧
 
@@ -1317,7 +1317,7 @@ aws ec2 delete-network-acl-entry \
   --ingress
 ```
 
-アウトバウンドルールを削除する場合は `--egress` を付けます。
+アウトバウンドルールを削除する場合は `--egress` を付ける。
 
 ```bash
 aws ec2 delete-network-acl-entry \
@@ -1336,9 +1336,9 @@ aws ec2 delete-network-acl-entry \
 
 ### 説明
 
-VPC Endpointは、VPC内からAWSサービスへプライベートに接続するためのリソースです。
+VPC Endpointは、VPC内からAWSサービスへプライベートに接続するためのリソースである。
 
-S3やDynamoDBではGateway Endpoint、Secrets ManagerやSSMなどではInterface Endpointを使うことが多いです。
+S3やDynamoDBではGateway Endpoint、Secrets ManagerやSSMなどではInterface Endpointを使うことが多い。
 
 ### 使用例
 
@@ -1414,9 +1414,9 @@ aws ec2 create-vpc-endpoint \
 
 ### 説明
 
-VPC Flow Logsは、VPC、Subnet、ENI単位でIPトラフィックのメタデータを記録する機能です。
+VPC Flow Logsは、VPC、Subnet、ENI単位でIPトラフィックのメタデータを記録する機能である。
 
-通信影響調査、セキュリティ調査、GuardDuty Findingsの裏取りでよく使います。
+通信影響調査、セキュリティ調査、GuardDuty Findingsの裏取りでよく使う。
 
 ### 使用例
 
@@ -1475,11 +1475,11 @@ aws ec2 create-flow-logs \
 
 ### 説明
 
-ENIはElastic Network Interfaceの略です。
+ENIはElastic Network Interfaceの略である。
 
-EC2だけでなく、ALB、NAT Gateway、RDS、Lambda、VPC Endpointなど、多くのAWSリソースがENIを作成します。
+EC2だけでなく、ALB、NAT Gateway、RDS、Lambda、VPC Endpointなど、多くのAWSリソースがENIを作成する。
 
-通信調査では、IPアドレスからどのAWSリソースかを特定するためによく使います。
+通信調査では、IPアドレスからどのAWSリソースかを特定するためによく使う。
 
 ### 使用例: VPC内のENIを一覧表示する
 
@@ -1540,9 +1540,9 @@ aws ec2 describe-instances \
 
 ### VPC調査での用途
 
-RDSはVPC内のDB Subnet Groupに配置されます。
+RDSはVPC内のDB Subnet Groupに配置される。
 
-ネットワーク調査では、RDSのSubnet Group、Security Group、Publicly Accessible、Endpointを確認します。
+ネットワーク調査では、RDSのSubnet Group、Security Group、Publicly Accessible、Endpointを確認する。
 
 ### 使用例
 
@@ -1578,7 +1578,7 @@ aws rds describe-db-subnet-groups \
 
 ### VPC調査での用途
 
-LambdaがVPC接続されている場合、対象SubnetとSecurity Groupを確認できます。
+LambdaがVPC接続されている場合、対象SubnetとSecurity Groupを確認できる。
 
 ### 使用例
 
@@ -1603,9 +1603,9 @@ aws lambda get-function-configuration \
 
 ### VPC調査での用途
 
-GuardDuty Findingsには、EC2、IAM、S3、Kubernetesなどさまざまな種類があります。
+GuardDuty Findingsには、EC2、IAM、S3、Kubernetesなどさまざまな種類がある。
 
-EC2関連Findingでは、疑わしい通信先IP、対象インスタンス、ENI、VPC、Security Groupなどを確認するきっかけになります。
+EC2関連Findingでは、疑わしい通信先IP、対象インスタンス、ENI、VPC、Security Groupなどを確認するきっかけになる。
 
 ### 使用例: Detector IDを取得する
 
@@ -1646,7 +1646,7 @@ aws guardduty get-findings \
 
 ### VPC調査での用途
 
-Security Group、Route Table、NACL、VPC Endpointなどの設定変更が、いつ、誰によって行われたかを確認するために使います。
+Security Group、Route Table、NACL、VPC Endpointなどの設定変更が、いつ、誰によって行われたかを確認するために使う。
 
 ### 使用例: VPC IDを含むイベントを検索する
 
@@ -1685,9 +1685,9 @@ aws cloudtrail lookup-events \
 
 ### 説明
 
-Reachability Analyzerは、送信元から宛先までのネットワーク到達性を解析する機能です。
+Reachability Analyzerは、送信元から宛先までのネットワーク到達性を解析する機能である。
 
-Security Group、NACL、Route Tableなどが複雑な環境で、通信できない原因を調査する際に役立ちます。
+Security Group、NACL、Route Tableなどが複雑な環境で、通信できない原因を調査する際に役立つ。
 
 ### 使用例: 解析パスを作成する
 
@@ -1868,7 +1868,7 @@ aws ec2 describe-network-acls \
 
 ### 説明
 
-AWS CLIの認証情報セットを指定します。
+AWS CLIの認証情報セットを指定する。
 
 例:
 
@@ -1876,7 +1876,7 @@ AWS CLIの認証情報セットを指定します。
 --profile learning
 ```
 
-プロファイルは通常、以下のファイルに保存されています。
+プロファイルは通常、以下のファイルに保存されている。
 
 ```txt
 ~/.aws/credentials
@@ -1903,7 +1903,7 @@ aws configure list --profile learning
 
 ### 説明
 
-AWSリソースを作成、変更、参照するリージョンを指定します。
+AWSリソースを作成、変更、参照するリージョンを指定する。
 
 例:
 
@@ -1934,7 +1934,7 @@ AWSリソースを作成、変更、参照するリージョンを指定しま�
 
 ### 説明
 
-AWS CLIの結果表示形式を指定します。
+AWS CLIの結果表示形式を指定する。
 
 | 値 | 用途 |
 | :--- | :--- |
@@ -1971,9 +1971,9 @@ AWS CLIの結果表示形式を指定します。
 
 ### 説明
 
-AWS CLIのレスポンスから、必要な値だけを取り出すために使います。
+AWS CLIのレスポンスから、必要な値だけを取り出すために使う。
 
-AWS CLIの出力はJSON構造になっているため、`--query` で階層を指定すると必要な項目だけを表示できます。
+AWS CLIの出力はJSON構造になっているため、`--query` で階層を指定すると必要な項目だけを表示できる。
 
 ### 使用例: VPC IDだけ取り出す
 
@@ -2017,7 +2017,7 @@ AWS CLIの出力はJSON構造になっているため、`--query` で階層を�
 
 ### 説明
 
-`describe-*` 系コマンドで、表示対象を条件で絞り込むために使います。
+`describe-*` 系コマンドで、表示対象を条件で絞り込むために使う。
 
 ### 使用例: Nameタグで絞る
 
@@ -2097,7 +2097,7 @@ aws ec2 describe-vpc-attribute \
 
 ### `Unable to locate credentials`
 
-AWS CLIの認証情報が見つからない状態です。
+AWS CLIの認証情報が見つからない状態である。
 
 確認:
 
@@ -2113,15 +2113,15 @@ aws configure --profile learning
 
 ### `The config profile (learning) could not be found`
 
-指定したプロファイルが存在しません。
+指定したプロファイルが存在しない。
 
-`--profile learning` を使う場合は、事前に `learning` プロファイルを作成しておく必要があります。
+`--profile learning` を使う場合は、事前に `learning` プロファイルを作成しておく必要がある。
 
 ### `UnauthorizedOperation`
 
-IAM権限が不足しています。
+IAM権限が不足している。
 
-VPC作成では、少なくとも以下のようなEC2権限が必要です。
+VPC作成では、少なくとも以下のようなEC2権限が必要である。
 
 - `ec2:CreateVpc`
 - `ec2:CreateTags`
@@ -2131,7 +2131,7 @@ VPC作成では、少なくとも以下のようなEC2権限が必要です。
 
 ### `InvalidVpcID.NotFound`
 
-指定したVPC IDが見つかりません。
+指定したVPC IDが見つかりない。
 
 主な原因:
 
@@ -2148,9 +2148,9 @@ aws ec2 describe-vpcs --profile learning --region ap-northeast-1 --output table
 
 ### `DNSHost` や `DNSSupport` が `None` と表示される
 
-`describe-vpcs` の `--query` で存在しない属性を参照している可能性があります。
+`describe-vpcs` の `--query` で存在しない属性を参照している可能性がある。
 
-DNS属性は以下で確認します。
+DNS属性は以下で確認する。
 
 ```bash
 aws ec2 describe-vpc-attribute \
