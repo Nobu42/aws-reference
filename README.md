@@ -6,3 +6,4 @@
 
 また、後続でTerraform化することを想定し、各AWSリソースの役割、依存関係、セキュリティ設計、削除運用を明確にする。
 
+![Network Architecture](./docs/Network_Architecture.png)
