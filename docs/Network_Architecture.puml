@@ -1,0 +1,84 @@
+@startuml
+skinparam linetype ortho
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title Network Architecture (sample-vpc)
+
+actor User
+
+cloud "Internet" as internet
+
+node "Route 53 Public Hosted Zone\nnobu-iac-lab.com" as route53
+node "ACM Certificate\nwww.nobu-iac-lab.com" as acm
+storage "S3 Bucket\nnobu-terraform-iac-lab-upload" as s3_upload
+storage "S3 Bucket\nnobu-iac-lab-mailbox" as s3_mailbox
+node "Amazon SES\nSend / Receive" as ses
+
+node "VPC: sample-vpc\n10.0.0.0/16" {
+
+    rectangle "Availability Zone: ap-northeast-1a" as az1a {
+        package "Public Subnet 01\n10.0.0.0/20" {
+            [Bastion] as bastion
+            [NAT Gateway 01] as nat1
+        }
+
+        package "Private Subnet 01\n10.0.64.0/20" {
+            [WebServer 01] as web1
+        }
+    }
+
+    rectangle "Availability Zone: ap-northeast-1c" as az1c {
+        package "Public Subnet 02\n10.0.16.0/20" {
+            [NAT Gateway 02] as nat2
+        }
+
+        package "Private Subnet 02\n10.0.80.0/20" {
+            [WebServer 02] as web2
+        }
+    }
+
+    node "Application Load Balancer\nsample-elb\nPublic Subnet 01 / 02" as alb
+
+    database "RDS MySQL\nsample-db\nPrivate DB Subnet Group" as rds
+
+    node "ElastiCache Redis\nsample-elasticache\nCluster Mode Enabled" as redis
+
+    node "Route 53 Private Hosted Zone\nhome" as private_dns
+}
+
+User --> route53
+route53 --> alb : www.nobu-iac-lab.com
+route53 --> bastion : bastion.nobu-iac-lab.com
+
+acm --> alb : HTTPS Certificate
+User --> alb : HTTPS 443
+User --> bastion : SSH 22
+
+alb --> web1 : HTTP 3000
+alb --> web2 : HTTP 3000
+
+bastion -[#blue]-> web1 : SSH
+bastion -[#blue]-> web2 : SSH
+
+web1 --> rds : MySQL 3306 / db.home
+web2 --> rds : MySQL 3306 / db.home
+
+web1 --> redis : Redis 6379
+web2 --> redis : Redis 6379
+
+web1 --> s3_upload : IAM Role
+web2 --> s3_upload : IAM Role
+
+web1 --> ses : SMTP 587
+ses --> s3_mailbox : Received mail
+
+private_dns --> web1 : web01.home
+private_dns --> web2 : web02.home
+private_dns --> rds : db.home
+
+web1 --> nat1 : outbound
+web2 --> nat2 : outbound
+
+@enduml
+
