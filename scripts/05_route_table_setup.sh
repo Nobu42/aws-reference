@@ -43,6 +43,21 @@ get_required_id() {
   echo "$value"
 }
 
+# 検索結果が1件だけであることを確認するための関数。
+# 0件なら前提不足、2件以上なら誤変更の危険があるため停止する。
+require_single_match() {
+  local label="$1"
+  local count="$2"
+
+  if [ "$count" -eq 0 ]; then
+    echo "Error: $label not found. Please check previous setup scripts."
+    exit 1
+  elif [ "$count" -gt 1 ]; then
+    echo "Error: multiple resources found for $label. Please investigate duplicates before changing routes."
+    exit 1
+  fi
+}
+
 # Route Tableを作成または再利用するための関数。
 # 同じVPC内に同じNameタグのRoute Tableがあれば、それを使う。
 # 案件作業では、再実行や途中失敗後のリカバリで重複Route Tableを作らないことが重要。
@@ -255,6 +270,14 @@ VPC_ID=$(get_required_id "VPC" "$VPC_ID")
 # Public Subnet用Route Tableのデフォルトルートに設定する。
 # Nameタグだけで探すと、別VPCに同名IGWがある場合に誤取得する可能性がある。
 # attachment.vpc-id でも絞り込み、対象VPCに接続済みのIGWだけを取得する。
+IGW_COUNT=$(aws ec2 describe-internet-gateways \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --filters Name=attachment.vpc-id,Values="$VPC_ID" Name=tag:Name,Values="$IGW_NAME" \
+  --query 'length(InternetGateways)' \
+  --output text)
+require_single_match "Internet Gateway" "$IGW_COUNT"
+
 IGW_ID=$(aws ec2 describe-internet-gateways \
   --profile "$PROFILE" \
   --region "$REGION" \
@@ -267,6 +290,14 @@ IGW_ID=$(get_required_id "Internet Gateway" "$IGW_ID")
 # available 状態のものだけを対象にする。
 # Private Subnet 01の外向き通信に使う。
 # NAT GatewayもVPC IDで絞り込み、別VPCの同名NAT Gatewayを使わないようにする。
+NGW01_COUNT=$(aws ec2 describe-nat-gateways \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --filter Name=vpc-id,Values="$VPC_ID" Name=tag:Name,Values="$NGW01_NAME" Name=state,Values=available \
+  --query 'length(NatGateways)' \
+  --output text)
+require_single_match "NAT Gateway 01" "$NGW01_COUNT"
+
 NGW01_ID=$(aws ec2 describe-nat-gateways \
   --profile "$PROFILE" \
   --region "$REGION" \
@@ -278,6 +309,14 @@ NGW01_ID=$(get_required_id "NAT Gateway 01" "$NGW01_ID")
 # NAT Gateway 02のIDを取得する。
 # Private Subnet 02の外向き通信に使う。
 # こちらもVPC IDで絞り込み、対象VPC内のNAT Gatewayだけを取得する。
+NGW02_COUNT=$(aws ec2 describe-nat-gateways \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --filter Name=vpc-id,Values="$VPC_ID" Name=tag:Name,Values="$NGW02_NAME" Name=state,Values=available \
+  --query 'length(NatGateways)' \
+  --output text)
+require_single_match "NAT Gateway 02" "$NGW02_COUNT"
+
 NGW02_ID=$(aws ec2 describe-nat-gateways \
   --profile "$PROFILE" \
   --region "$REGION" \
@@ -289,6 +328,14 @@ NGW02_ID=$(get_required_id "NAT Gateway 02" "$NGW02_ID")
 # Public Subnet 01のIDを取得する。
 # Public用Route Tableに関連付ける。
 # SubnetはNameタグだけでなくVPC IDでも絞り込み、別VPCの同名Subnetを誤って使わないようにする。
+PUB01_COUNT=$(aws ec2 describe-subnets \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --filters Name=vpc-id,Values="$VPC_ID" Name=tag:Name,Values="$PUB01_NAME" \
+  --query 'length(Subnets)' \
+  --output text)
+require_single_match "Public Subnet 01" "$PUB01_COUNT"
+
 PUB01_ID=$(aws ec2 describe-subnets \
   --profile "$PROFILE" \
   --region "$REGION" \
@@ -299,6 +346,14 @@ PUB01_ID=$(get_required_id "Public Subnet 01" "$PUB01_ID")
 
 # Public Subnet 02のIDを取得する。
 # Public用Route Tableに関連付ける。
+PUB02_COUNT=$(aws ec2 describe-subnets \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --filters Name=vpc-id,Values="$VPC_ID" Name=tag:Name,Values="$PUB02_NAME" \
+  --query 'length(Subnets)' \
+  --output text)
+require_single_match "Public Subnet 02" "$PUB02_COUNT"
+
 PUB02_ID=$(aws ec2 describe-subnets \
   --profile "$PROFILE" \
   --region "$REGION" \
@@ -309,6 +364,14 @@ PUB02_ID=$(get_required_id "Public Subnet 02" "$PUB02_ID")
 
 # Private Subnet 01のIDを取得する。
 # Private用Route Table 01に関連付ける。
+PRI01_COUNT=$(aws ec2 describe-subnets \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --filters Name=vpc-id,Values="$VPC_ID" Name=tag:Name,Values="$PRI01_NAME" \
+  --query 'length(Subnets)' \
+  --output text)
+require_single_match "Private Subnet 01" "$PRI01_COUNT"
+
 PRI01_ID=$(aws ec2 describe-subnets \
   --profile "$PROFILE" \
   --region "$REGION" \
@@ -319,6 +382,14 @@ PRI01_ID=$(get_required_id "Private Subnet 01" "$PRI01_ID")
 
 # Private Subnet 02のIDを取得する。
 # Private用Route Table 02に関連付ける。
+PRI02_COUNT=$(aws ec2 describe-subnets \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --filters Name=vpc-id,Values="$VPC_ID" Name=tag:Name,Values="$PRI02_NAME" \
+  --query 'length(Subnets)' \
+  --output text)
+require_single_match "Private Subnet 02" "$PRI02_COUNT"
+
 PRI02_ID=$(aws ec2 describe-subnets \
   --profile "$PROFILE" \
   --region "$REGION" \

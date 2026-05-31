@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# /Users/nobu/aws-reference/scripts 直下の 01 〜 04 の作成系スクリプトで
+# /Users/nobu/aws-reference/scripts 直下の 01 〜 06 の作成系スクリプトで
 # 作成したネットワークリソースを削除する。
 #
 # 対象スクリプト:
@@ -9,10 +9,14 @@ set -euo pipefail
 # - 02_subnet_setup.sh
 # - 03_internetgateway_setup.sh
 # - 04_nat_gateway_setup.sh
+# - 05_route_table_setup.sh
+# - 06_security_group_setup.sh
 #
 # 削除対象:
 # - NAT Gateway
 # - NAT Gateway用Elastic IP
+# - Custom Route Table
+# - Security Group
 # - Internet Gateway
 # - Subnet
 # - VPC
@@ -21,15 +25,17 @@ set -euo pipefail
 # 1. NAT Gatewayを削除する
 # 2. NAT Gatewayがdeletedになるまで待つ
 # 3. Elastic IPを解放する
-# 4. Internet GatewayをVPCからdetachして削除する
-# 5. Subnetを削除する
-# 6. VPCを削除する
+# 4. Custom Route Tableの関連付けを解除して削除する
+# 5. Security Groupを削除する
+# 6. Internet GatewayをVPCからdetachして削除する
+# 7. Subnetを削除する
+# 8. VPCを削除する
 #
 # 注意:
 # - NAT GatewayとElastic IPは課金対象である。
 # - このスクリプトは実AWSリソースを削除する。
 # - 実行前にCaller Identityと対象VPCを必ず確認する。
-# - Route Table、EC2、ALB、RDSなど、05以降で作成する予定のリソースは対象外である。
+# - EC2、ALB、RDSなど、07以降で作成する予定のリソースは対象外である。
 
 # 使用するAWS CLIプロファイルとリージョン。
 PROFILE="learning"
@@ -58,6 +64,21 @@ EIP_NAMES=(
   "sample-eip-ngw-02"
 )
 
+# 削除対象のカスタムRoute Table名。
+# main route tableはVPC標準リソースのため、単体削除しない。
+ROUTE_TABLE_NAMES=(
+  "sample-rt-public"
+  "sample-rt-private01"
+  "sample-rt-private02"
+)
+
+# 削除対象のSecurity Group名。
+# default Security GroupはVPC標準リソースのため、単体削除しない。
+SECURITY_GROUP_NAMES=(
+  "sample-sg-bastion"
+  "sample-sg-elb"
+)
+
 # LocalStack用のaliasや環境変数が残っていると、実AWSではなくLocalStackへ接続してしまう。
 # 実AWSで削除を行うため、念のためここで無効化する。
 unalias aws 2>/dev/null || true
@@ -65,7 +86,7 @@ unset AWS_ENDPOINT_URL
 unset LOCALSTACK_HOST
 
 echo "================================================"
-echo "Cleanup network resources created by 01-04 scripts."
+echo "Cleanup network resources created by 01-06 scripts."
 echo "Profile : $PROFILE"
 echo "Region  : $REGION"
 echo "VPC Name: $VPC_NAME"
@@ -97,6 +118,19 @@ echo "=== Get VPC ID ==="
 # Nameタグが sample-vpc のVPCを探し、VPC IDだけを取得する。
 # VPCがない場合でも、タグ付きElastic IPだけ残っている可能性があるため、
 # 後続のElastic IP確認はVPC有無に関係なく実行する。
+# 同じNameタグのVPCが複数ある場合、どれを削除すべきか判断できないため停止する。
+VPC_COUNT=$(aws ec2 describe-vpcs \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --filters Name=tag:Name,Values="$VPC_NAME" \
+  --query 'length(Vpcs)' \
+  --output text)
+
+if [ "$VPC_COUNT" -gt 1 ]; then
+  echo "Error: multiple VPCs found with Name tag $VPC_NAME. Please investigate duplicates before cleanup."
+  exit 1
+fi
+
 VPC_ID=$(aws ec2 describe-vpcs \
   --profile "$PROFILE" \
   --region "$REGION" \
@@ -219,6 +253,108 @@ else
   echo "No Elastic IPs to release."
 fi
 
+echo "=== Delete Custom Route Tables ==="
+
+# 05_route_table_setup.sh で作成したカスタムRoute Tableを削除する。
+# Route TableはSubnetとの明示的な関連付けが残っていると削除できないため、
+# 先に関連付けを解除してから削除する。
+# main route tableはVPC削除時に一緒に削除されるため、ここでは削除対象にしない。
+if [ -n "$VPC_ID" ]; then
+  for route_table_name in "${ROUTE_TABLE_NAMES[@]}"; do
+    ROUTE_TABLE_IDS=$(aws ec2 describe-route-tables \
+      --profile "$PROFILE" \
+      --region "$REGION" \
+      --filters Name=vpc-id,Values="$VPC_ID" Name=tag:Name,Values="$route_table_name" \
+      --query 'RouteTables[].RouteTableId' \
+      --output text)
+
+    if [ -z "$ROUTE_TABLE_IDS" ]; then
+      echo "Route Table not found: $route_table_name"
+      continue
+    fi
+
+    for route_table_id in $ROUTE_TABLE_IDS; do
+      IS_MAIN=$(aws ec2 describe-route-tables \
+        --profile "$PROFILE" \
+        --region "$REGION" \
+        --route-table-ids "$route_table_id" \
+        --query 'length(RouteTables[0].Associations[?Main==`true`])' \
+        --output text)
+
+      if [ "$IS_MAIN" -gt 0 ]; then
+        echo "Skip main Route Table: $route_table_id"
+        continue
+      fi
+
+      ASSOCIATION_IDS=$(aws ec2 describe-route-tables \
+        --profile "$PROFILE" \
+        --region "$REGION" \
+        --route-table-ids "$route_table_id" \
+        --query 'RouteTables[0].Associations[?Main!=`true`].RouteTableAssociationId' \
+        --output text)
+
+      for association_id in $ASSOCIATION_IDS; do
+        echo "Disassociating Route Table association: $association_id"
+        aws ec2 disassociate-route-table \
+          --profile "$PROFILE" \
+          --region "$REGION" \
+          --association-id "$association_id"
+      done
+
+      echo "Deleting Route Table: $route_table_name ($route_table_id)"
+      aws ec2 delete-route-table \
+        --profile "$PROFILE" \
+        --region "$REGION" \
+        --route-table-id "$route_table_id"
+    done
+  done
+else
+  echo "Skip Route Table deletion because VPC was not found."
+fi
+
+echo "=== Delete Security Groups ==="
+
+# 06_security_group_setup.sh で作成したSecurity Groupを削除する。
+# EC2やALBなどに関連付いているSecurity Groupは削除できない。
+# このcleanupは01〜06までのネットワーク基盤だけを対象にしている。
+if [ -n "$VPC_ID" ]; then
+  for security_group_name in "${SECURITY_GROUP_NAMES[@]}"; do
+    SECURITY_GROUP_IDS=$(aws ec2 describe-security-groups \
+      --profile "$PROFILE" \
+      --region "$REGION" \
+      --filters Name=vpc-id,Values="$VPC_ID" Name=group-name,Values="$security_group_name" \
+      --query 'SecurityGroups[].GroupId' \
+      --output text)
+
+    if [ -z "$SECURITY_GROUP_IDS" ]; then
+      echo "Security Group not found: $security_group_name"
+      continue
+    fi
+
+    for security_group_id in $SECURITY_GROUP_IDS; do
+      GROUP_NAME=$(aws ec2 describe-security-groups \
+        --profile "$PROFILE" \
+        --region "$REGION" \
+        --group-ids "$security_group_id" \
+        --query 'SecurityGroups[0].GroupName' \
+        --output text)
+
+      if [ "$GROUP_NAME" = "default" ]; then
+        echo "Skip default Security Group: $security_group_id"
+        continue
+      fi
+
+      echo "Deleting Security Group: $security_group_name ($security_group_id)"
+      aws ec2 delete-security-group \
+        --profile "$PROFILE" \
+        --region "$REGION" \
+        --group-id "$security_group_id"
+    done
+  done
+else
+  echo "Skip Security Group deletion because VPC was not found."
+fi
+
 echo "=== Detach and Delete Internet Gateway ==="
 
 # Internet GatewayはVPCにアタッチされたままでは削除できない。
@@ -315,6 +451,20 @@ aws ec2 describe-addresses \
   --region "$REGION" \
   --filters Name=tag:Name,Values=sample-eip-ngw-01,sample-eip-ngw-02 \
   --query 'Addresses[*].{AllocationId:AllocationId,PublicIp:PublicIp,AssociationId:AssociationId,Name:Tags[?Key==`Name`].Value|[0]}' \
+  --output table
+
+aws ec2 describe-route-tables \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --filters Name=tag:Name,Values=sample-rt-public,sample-rt-private01,sample-rt-private02 \
+  --query 'RouteTables[*].{ID:RouteTableId,Name:Tags[?Key==`Name`].Value|[0],VpcId:VpcId}' \
+  --output table
+
+aws ec2 describe-security-groups \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --filters Name=group-name,Values=sample-sg-bastion,sample-sg-elb \
+  --query 'SecurityGroups[*].{ID:GroupId,Name:GroupName,VpcId:VpcId}' \
   --output table
 
 echo "================================================"
