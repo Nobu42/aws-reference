@@ -159,6 +159,53 @@ unalias aws 2>/dev/null || true
 unset AWS_ENDPOINT_URL
 unset LOCALSTACK_HOST
 
+# AWS CLIの --output text は、値をスペースではなくタブ区切りで返すことがある。
+# 削除対象IDをまとめる時は空白文字全般で分割し、重複を取り除く。
+normalize_id_list() {
+  printf '%s\n' "$@" | tr '[:space:]' '\n' | sed '/^$/d' | sed 's#^/hostedzone/##' | sort -u | tr '\n' ' '
+}
+
+# ALBを削除した直後は、Target GroupへのListener参照が短時間残ることがある。
+# ResourceInUse の場合だけ少し待って再試行し、伝播待ちで残るTarget Groupを減らす。
+delete_target_group_with_retry() {
+  local target_group_arn="$1"
+  local max_attempts=18
+  local attempt=1
+  local delete_output
+  local delete_status
+
+  while [ "$attempt" -le "$max_attempts" ]; do
+    set +e
+    delete_output=$(aws elbv2 delete-target-group \
+      --profile "$PROFILE" \
+      --region "$REGION" \
+      --target-group-arn "$target_group_arn" 2>&1)
+    delete_status=$?
+    set -e
+
+    if [ "$delete_status" -eq 0 ]; then
+      echo "Target Group deleted: $target_group_arn"
+      return 0
+    fi
+
+    case "$delete_output" in
+      *ResourceInUse*)
+        echo "Target Group still in use. Retrying in 10 seconds ($attempt/$max_attempts): $target_group_arn"
+        sleep 10
+        attempt=$((attempt + 1))
+        ;;
+      *)
+        echo "$delete_output"
+        echo "Skip: could not delete Target Group $target_group_arn"
+        return 0
+        ;;
+    esac
+  done
+
+  echo "Skip: Target Group is still in use after retries: $target_group_arn"
+  return 0
+}
+
 echo "================================================"
 echo "Cleanup network resources created by 01-10 and 14 scripts."
 echo "Profile : $PROFILE"
@@ -237,7 +284,7 @@ if [ -n "$VPC_ID" ]; then
     LOAD_BALANCER_ARNS="$LOAD_BALANCER_ARNS $FOUND_LB_ARNS"
   done
 
-  LOAD_BALANCER_ARNS=$(echo "$LOAD_BALANCER_ARNS" | tr ' ' '\n' | sed '/^$/d' | sort -u | tr '\n' ' ')
+  LOAD_BALANCER_ARNS=$(normalize_id_list "$LOAD_BALANCER_ARNS")
 
   if [ -n "$LOAD_BALANCER_ARNS" ]; then
     for load_balancer_arn in $LOAD_BALANCER_ARNS; do
@@ -264,31 +311,37 @@ echo "=== Delete Target Groups ==="
 
 # Target GroupはALB Listenerから参照されている間は削除できないため、
 # ALB削除完了後に削除する。
-if [ -n "$VPC_ID" ]; then
-  for target_group_name in "${TARGET_GROUP_NAMES[@]}"; do
+for target_group_name in "${TARGET_GROUP_NAMES[@]}"; do
+  if [ -n "$VPC_ID" ]; then
     TARGET_GROUP_ARNS=$(aws elbv2 describe-target-groups \
       --profile "$PROFILE" \
       --region "$REGION" \
       --names "$target_group_name" \
       --query "TargetGroups[?VpcId=='$VPC_ID'].TargetGroupArn" \
       --output text 2>/dev/null || true)
+  else
+    # VPC削除後にTarget Groupだけ残った場合でも後始末できるように、
+    # VPC IDが取れない時はTarget Group名で取得する。
+    TARGET_GROUP_ARNS=$(aws elbv2 describe-target-groups \
+      --profile "$PROFILE" \
+      --region "$REGION" \
+      --names "$target_group_name" \
+      --query 'TargetGroups[].TargetGroupArn' \
+      --output text 2>/dev/null || true)
+  fi
 
-    if [ -z "$TARGET_GROUP_ARNS" ]; then
-      echo "Target Group not found: $target_group_name"
-      continue
-    fi
+  TARGET_GROUP_ARNS=$(normalize_id_list "$TARGET_GROUP_ARNS")
 
-    for target_group_arn in $TARGET_GROUP_ARNS; do
-      echo "Deleting Target Group: $target_group_name ($target_group_arn)"
-      aws elbv2 delete-target-group \
-        --profile "$PROFILE" \
-        --region "$REGION" \
-        --target-group-arn "$target_group_arn" || echo "Skip: could not delete Target Group $target_group_arn"
-    done
+  if [ -z "$TARGET_GROUP_ARNS" ]; then
+    echo "Target Group not found: $target_group_name"
+    continue
+  fi
+
+  for target_group_arn in $TARGET_GROUP_ARNS; do
+    echo "Deleting Target Group: $target_group_name ($target_group_arn)"
+    delete_target_group_with_retry "$target_group_arn"
   done
-else
-  echo "Skip Target Group deletion because VPC was not found."
-fi
+done
 
 echo "=== Delete RDS DB Instances ==="
 
@@ -413,7 +466,7 @@ if [ -n "$VPC_ID" ]; then
   PRIVATE_HOSTED_ZONE_IDS="$PRIVATE_HOSTED_ZONE_IDS $ASSOCIATED_PRIVATE_ZONE_IDS"
 fi
 
-if [ -z "$(echo "$PRIVATE_HOSTED_ZONE_IDS" | tr ' ' '\n' | sed '/^$/d')" ]; then
+if [ -z "$(normalize_id_list "$PRIVATE_HOSTED_ZONE_IDS")" ]; then
   PRIVATE_ZONE_COUNT=$(aws route53 list-hosted-zones-by-name \
     --profile "$PROFILE" \
     --dns-name "$PRIVATE_ZONE_NAME_DOT" \
@@ -435,7 +488,7 @@ if [ -z "$(echo "$PRIVATE_HOSTED_ZONE_IDS" | tr ' ' '\n' | sed '/^$/d')" ]; then
   fi
 fi
 
-PRIVATE_HOSTED_ZONE_IDS=$(echo "$PRIVATE_HOSTED_ZONE_IDS" | tr ' ' '\n' | sed '/^$/d' | sed 's#^/hostedzone/##' | sort -u | tr '\n' ' ')
+PRIVATE_HOSTED_ZONE_IDS=$(normalize_id_list "$PRIVATE_HOSTED_ZONE_IDS")
 
 for private_hosted_zone_id in $PRIVATE_HOSTED_ZONE_IDS; do
   ZONE_NAME=$(aws route53 get-hosted-zone \
@@ -582,7 +635,7 @@ if [ -n "$VPC_ID" ]; then
     INSTANCE_IDS="$INSTANCE_IDS $FOUND_INSTANCE_IDS"
   done
 
-  INSTANCE_IDS=$(echo "$INSTANCE_IDS" | tr ' ' '\n' | sed '/^$/d' | sort -u | tr '\n' ' ')
+  INSTANCE_IDS=$(normalize_id_list "$INSTANCE_IDS")
 
   if [ -n "$INSTANCE_IDS" ]; then
     for instance_id in $INSTANCE_IDS; do
@@ -634,7 +687,7 @@ for eip_name in "${EIP_NAMES[@]}"; do
 done
 
 # 重複したAllocation IDを削除する。
-EIP_ALLOC_IDS=$(echo "$EIP_ALLOC_IDS" | tr ' ' '\n' | sed '/^$/d' | sort -u | tr '\n' ' ')
+EIP_ALLOC_IDS=$(normalize_id_list "$EIP_ALLOC_IDS")
 
 if [ -n "$EIP_ALLOC_IDS" ]; then
   echo "Elastic IP Allocation IDs: $EIP_ALLOC_IDS"
@@ -661,7 +714,7 @@ if [ -n "$VPC_ID" ]; then
     NAT_GATEWAY_IDS="$NAT_GATEWAY_IDS $FOUND_NAT_IDS"
   done
 
-  NAT_GATEWAY_IDS=$(echo "$NAT_GATEWAY_IDS" | tr ' ' '\n' | sed '/^$/d' | sort -u | tr '\n' ' ')
+  NAT_GATEWAY_IDS=$(normalize_id_list "$NAT_GATEWAY_IDS")
 
   if [ -n "$NAT_GATEWAY_IDS" ]; then
     for nat_gateway_id in $NAT_GATEWAY_IDS; do
