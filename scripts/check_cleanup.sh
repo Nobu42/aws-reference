@@ -7,16 +7,21 @@ REGION="ap-northeast-1"
 VPC_NAME="sample-vpc"
 DOMAIN_NAME="nobu-iac-lab.com"
 DOMAIN_NAME_DOT="${DOMAIN_NAME}."
+PRIVATE_ZONE_NAME="home"
+PRIVATE_ZONE_NAME_DOT="${PRIVATE_ZONE_NAME}."
 
 EC2_NAMES="sample-ec2-bastion,sample-ec2-web01,sample-ec2-web02"
 SUBNET_NAMES="sample-subnet-public01,sample-subnet-public02,sample-subnet-private01,sample-subnet-private02"
 ROUTE_TABLE_NAMES="sample-rt-public,sample-rt-private01,sample-rt-private02"
-SECURITY_GROUP_NAMES="sample-sg-bastion,sample-sg-elb,sample-sg-web"
+SECURITY_GROUP_NAMES="sample-sg-bastion,sample-sg-elb,sample-sg-web,sample-sg-db"
 NAT_GATEWAY_NAMES="sample-ngw-01,sample-ngw-02"
 EIP_NAMES="sample-eip-ngw-01,sample-eip-ngw-02"
 ALB_NAME="sample-elb"
 TARGET_GROUP_NAME="sample-tg"
 RDS_INSTANCE_ID="sample-db"
+DB_SUBNET_GROUP_NAME="sample-db-subnet"
+DB_PARAMETER_GROUP_NAME="sample-db-pg"
+DB_OPTION_GROUP_NAME="sample-db-og"
 S3_BUCKET_NAMES=(
   "nobu-terraform-iac-lab-upload"
   "nobu-iac-lab-mailbox"
@@ -116,6 +121,30 @@ aws rds describe-db-instances \
   --query "DBInstances[?DBInstanceIdentifier==\`$RDS_INSTANCE_ID\`].{ID:DBInstanceIdentifier,Status:DBInstanceStatus,Class:DBInstanceClass,Public:PubliclyAccessible}" \
   --output table
 
+echo "=== Daily Lab RDS DB Subnet Groups ==="
+aws rds describe-db-subnet-groups \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --db-subnet-group-name "$DB_SUBNET_GROUP_NAME" \
+  --query 'DBSubnetGroups[*].{Name:DBSubnetGroupName,VpcId:VpcId,Status:SubnetGroupStatus}' \
+  --output table 2>/dev/null || echo "DB Subnet Group not found: $DB_SUBNET_GROUP_NAME"
+
+echo "=== Daily Lab RDS DB Parameter Groups ==="
+aws rds describe-db-parameter-groups \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --db-parameter-group-name "$DB_PARAMETER_GROUP_NAME" \
+  --query 'DBParameterGroups[*].{Name:DBParameterGroupName,Family:DBParameterGroupFamily}' \
+  --output table 2>/dev/null || echo "DB Parameter Group not found: $DB_PARAMETER_GROUP_NAME"
+
+echo "=== Daily Lab RDS DB Option Groups ==="
+aws rds describe-option-groups \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --option-group-name "$DB_OPTION_GROUP_NAME" \
+  --query 'OptionGroupsList[*].{Name:OptionGroupName,Engine:EngineName,MajorEngineVersion:MajorEngineVersion}' \
+  --output table 2>/dev/null || echo "DB Option Group not found: $DB_OPTION_GROUP_NAME"
+
 echo "=== Daily Lab S3 Buckets ==="
 for bucket_name in "${S3_BUCKET_NAMES[@]}"; do
   if aws s3api head-bucket \
@@ -156,11 +185,34 @@ else
 fi
 
 echo "=== Private Hosted Zone home ==="
-aws route53 list-hosted-zones-by-name \
+PRIVATE_HOSTED_ZONE_IDS=$(aws route53 list-hosted-zones-by-name \
   --profile "$PROFILE" \
-  --dns-name "home." \
-  --query "HostedZones[?Name==\`home.\` && Config.PrivateZone==\`true\`].{ID:Id,Name:Name,Private:Config.PrivateZone}" \
-  --output table
+  --dns-name "$PRIVATE_ZONE_NAME_DOT" \
+  --query "HostedZones[?Name==\`$PRIVATE_ZONE_NAME_DOT\` && Config.PrivateZone==\`true\`].Id" \
+  --output text 2>/dev/null || true)
+
+if [ -z "$PRIVATE_HOSTED_ZONE_IDS" ] || [ "$PRIVATE_HOSTED_ZONE_IDS" = "None" ]; then
+  echo "Private Hosted Zone not found: $PRIVATE_ZONE_NAME_DOT"
+else
+  for private_hosted_zone_id in $PRIVATE_HOSTED_ZONE_IDS; do
+    private_hosted_zone_id="${private_hosted_zone_id#/hostedzone/}"
+    echo "Private Hosted Zone ID: $private_hosted_zone_id"
+
+    echo "=== Private Hosted Zone VPC associations ==="
+    aws route53 get-hosted-zone \
+      --profile "$PROFILE" \
+      --id "$private_hosted_zone_id" \
+      --query '{Name:HostedZone.Name,Private:HostedZone.Config.PrivateZone,VPCs:VPCs}' \
+      --output table
+
+    echo "=== Private Hosted Zone temporary records ==="
+    aws route53 list-resource-record-sets \
+      --profile "$PROFILE" \
+      --hosted-zone-id "$private_hosted_zone_id" \
+      --query "ResourceRecordSets[?Name==\`bastion.${PRIVATE_ZONE_NAME}.\` || Name==\`web01.${PRIVATE_ZONE_NAME}.\` || Name==\`web02.${PRIVATE_ZONE_NAME}.\` || Name==\`db.${PRIVATE_ZONE_NAME}.\`]" \
+      --output table
+  done
+fi
 
 echo "=== SES Active Receipt Rule Set ==="
 aws ses describe-active-receipt-rule-set \
@@ -201,6 +253,7 @@ echo "  - No available daily lab NAT Gateway"
 echo "  - No daily lab Elastic IP"
 echo "  - No daily lab ALB / Target Group"
 echo "  - No daily lab RDS instance"
+echo "  - No daily lab RDS DB Subnet Group / Parameter Group / Option Group"
 echo "  - No temporary DNS records: bastion, www, MX"
 echo "  - No Private Hosted Zone: home"
 echo "  - S3 buckets for daily lab should be deleted"
