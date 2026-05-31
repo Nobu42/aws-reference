@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# /Users/nobu/aws-reference/scripts 直下の 01 〜 06 の作成系スクリプトで
+# /Users/nobu/aws-reference/scripts 直下の 01 〜 07 の作成系スクリプトで
 # 作成したネットワークリソースを削除する。
 #
 # 対象スクリプト:
@@ -11,8 +11,10 @@ set -euo pipefail
 # - 04_nat_gateway_setup.sh
 # - 05_route_table_setup.sh
 # - 06_security_group_setup.sh
+# - 07_bastion_server_setup.sh
 #
 # 削除対象:
+# - Bastion EC2
 # - NAT Gateway
 # - NAT Gateway用Elastic IP
 # - Custom Route Table
@@ -22,20 +24,23 @@ set -euo pipefail
 # - VPC
 #
 # 削除順:
-# 1. NAT Gatewayを削除する
-# 2. NAT Gatewayがdeletedになるまで待つ
-# 3. Elastic IPを解放する
-# 4. Custom Route Tableの関連付けを解除して削除する
-# 5. Security Groupを削除する
-# 6. Internet GatewayをVPCからdetachして削除する
-# 7. Subnetを削除する
-# 8. VPCを削除する
+# 1. Bastion EC2をterminateする
+# 2. Bastion EC2がterminatedになるまで待つ
+# 3. NAT Gatewayを削除する
+# 4. NAT Gatewayがdeletedになるまで待つ
+# 5. Elastic IPを解放する
+# 6. Custom Route Tableの関連付けを解除して削除する
+# 7. Security Groupを削除する
+# 8. Internet GatewayをVPCからdetachして削除する
+# 9. Subnetを削除する
+# 10. VPCを削除する
 #
 # 注意:
 # - NAT GatewayとElastic IPは課金対象である。
 # - このスクリプトは実AWSリソースを削除する。
 # - 実行前にCaller Identityと対象VPCを必ず確認する。
-# - EC2、ALB、RDSなど、07以降で作成する予定のリソースは対象外である。
+# - ALB、RDSなど、08以降で作成する予定のリソースは対象外である。
+# - Key Pairはpemファイルとの対応が重要なため、このcleanupでは削除しない。
 
 # 使用するAWS CLIプロファイルとリージョン。
 PROFILE="learning"
@@ -50,6 +55,11 @@ SUBNET_NAMES=(
   "sample-subnet-public02"
   "sample-subnet-private01"
   "sample-subnet-private02"
+)
+
+# 削除対象のEC2 Nameタグ。
+INSTANCE_NAMES=(
+  "sample-ec2-bastion"
 )
 
 # 削除対象のNAT Gateway名。
@@ -86,7 +96,7 @@ unset AWS_ENDPOINT_URL
 unset LOCALSTACK_HOST
 
 echo "================================================"
-echo "Cleanup network resources created by 01-06 scripts."
+echo "Cleanup network resources created by 01-07 scripts."
 echo "Profile : $PROFILE"
 echo "Region  : $REGION"
 echo "VPC Name: $VPC_NAME"
@@ -143,6 +153,47 @@ if [ "$VPC_ID" = "None" ] || [ -z "$VPC_ID" ]; then
   echo "VPC not found. VPC-related resources may already be deleted."
 else
   echo "Target VPC ID: $VPC_ID"
+fi
+
+echo "=== Terminate EC2 Instances ==="
+
+# 07_bastion_server_setup.sh で作成したBastion EC2を終了する。
+# EC2が残っていると、Security GroupやSubnetを削除できないため、先にterminateする。
+if [ -n "$VPC_ID" ]; then
+  INSTANCE_IDS=""
+
+  for instance_name in "${INSTANCE_NAMES[@]}"; do
+    FOUND_INSTANCE_IDS=$(aws ec2 describe-instances \
+      --profile "$PROFILE" \
+      --region "$REGION" \
+      --filters Name=vpc-id,Values="$VPC_ID" Name=tag:Name,Values="$instance_name" Name=instance-state-name,Values=pending,running,stopping,stopped \
+      --query 'Reservations[].Instances[].InstanceId' \
+      --output text)
+
+    INSTANCE_IDS="$INSTANCE_IDS $FOUND_INSTANCE_IDS"
+  done
+
+  INSTANCE_IDS=$(echo "$INSTANCE_IDS" | tr ' ' '\n' | sed '/^$/d' | sort -u | tr '\n' ' ')
+
+  if [ -n "$INSTANCE_IDS" ]; then
+    for instance_id in $INSTANCE_IDS; do
+      echo "Terminating EC2 instance: $instance_id"
+      aws ec2 terminate-instances \
+        --profile "$PROFILE" \
+        --region "$REGION" \
+        --instance-ids "$instance_id" >/dev/null
+    done
+
+    echo "Waiting for EC2 instances to be terminated..."
+    aws ec2 wait instance-terminated \
+      --profile "$PROFILE" \
+      --region "$REGION" \
+      --instance-ids $INSTANCE_IDS
+  else
+    echo "No EC2 instances found."
+  fi
+else
+  echo "Skip EC2 termination because VPC was not found."
 fi
 
 echo "=== Collect Elastic IP Allocation IDs ==="
@@ -458,6 +509,13 @@ aws ec2 describe-route-tables \
   --region "$REGION" \
   --filters Name=tag:Name,Values=sample-rt-public,sample-rt-private01,sample-rt-private02 \
   --query 'RouteTables[*].{ID:RouteTableId,Name:Tags[?Key==`Name`].Value|[0],VpcId:VpcId}' \
+  --output table
+
+aws ec2 describe-instances \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --filters Name=tag:Name,Values=sample-ec2-bastion Name=instance-state-name,Values=pending,running,stopping,stopped \
+  --query 'Reservations[].Instances[].{ID:InstanceId,Name:Tags[?Key==`Name`].Value|[0],State:State.Name,VpcId:VpcId}' \
   --output table
 
 aws ec2 describe-security-groups \
