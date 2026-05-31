@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# /Users/nobu/aws-reference/scripts 直下の 01 〜 07 の作成系スクリプトで
+# /Users/nobu/aws-reference/scripts 直下の 01 〜 09 の作成系スクリプトで
 # 作成したネットワークリソースを削除する。
 #
 # 対象スクリプト:
@@ -12,9 +12,13 @@ set -euo pipefail
 # - 05_route_table_setup.sh
 # - 06_security_group_setup.sh
 # - 07_bastion_server_setup.sh
+# - 08_Web_server_setup.sh
+# - 09_LoadBalancer_setup.sh
 #
 # 削除対象:
-# - Bastion EC2
+# - Application Load Balancer
+# - Target Group
+# - Bastion EC2 / Web EC2
 # - NAT Gateway
 # - NAT Gateway用Elastic IP
 # - Custom Route Table
@@ -24,22 +28,24 @@ set -euo pipefail
 # - VPC
 #
 # 削除順:
-# 1. Bastion EC2をterminateする
-# 2. Bastion EC2がterminatedになるまで待つ
-# 3. NAT Gatewayを削除する
-# 4. NAT Gatewayがdeletedになるまで待つ
-# 5. Elastic IPを解放する
-# 6. Custom Route Tableの関連付けを解除して削除する
-# 7. Security Groupを削除する
-# 8. Internet GatewayをVPCからdetachして削除する
-# 9. Subnetを削除する
-# 10. VPCを削除する
+# 1. Application Load Balancerを削除する
+# 2. Target Groupを削除する
+# 3. Bastion EC2 / Web EC2をterminateする
+# 4. EC2がterminatedになるまで待つ
+# 5. NAT Gatewayを削除する
+# 6. NAT Gatewayがdeletedになるまで待つ
+# 7. Elastic IPを解放する
+# 8. Custom Route Tableの関連付けを解除して削除する
+# 9. Security Groupを削除する
+# 10. Internet GatewayをVPCからdetachして削除する
+# 11. Subnetを削除する
+# 12. VPCを削除する
 #
 # 注意:
 # - NAT GatewayとElastic IPは課金対象である。
 # - このスクリプトは実AWSリソースを削除する。
 # - 実行前にCaller Identityと対象VPCを必ず確認する。
-# - ALB、RDSなど、08以降で作成する予定のリソースは対象外である。
+# - ALB、RDSなど、09以降で作成する予定のリソースは対象外である。
 # - Key Pairはpemファイルとの対応が重要なため、このcleanupでは削除しない。
 
 # 使用するAWS CLIプロファイルとリージョン。
@@ -60,6 +66,18 @@ SUBNET_NAMES=(
 # 削除対象のEC2 Nameタグ。
 INSTANCE_NAMES=(
   "sample-ec2-bastion"
+  "sample-ec2-web01"
+  "sample-ec2-web02"
+)
+
+# 削除対象のALB名。
+LOAD_BALANCER_NAMES=(
+  "sample-elb"
+)
+
+# 削除対象のTarget Group名。
+TARGET_GROUP_NAMES=(
+  "sample-tg"
 )
 
 # 削除対象のNAT Gateway名。
@@ -85,6 +103,7 @@ ROUTE_TABLE_NAMES=(
 # 削除対象のSecurity Group名。
 # default Security GroupはVPC標準リソースのため、単体削除しない。
 SECURITY_GROUP_NAMES=(
+  "sample-sg-web"
   "sample-sg-bastion"
   "sample-sg-elb"
 )
@@ -96,7 +115,7 @@ unset AWS_ENDPOINT_URL
 unset LOCALSTACK_HOST
 
 echo "================================================"
-echo "Cleanup network resources created by 01-07 scripts."
+echo "Cleanup network resources created by 01-09 scripts."
 echo "Profile : $PROFILE"
 echo "Region  : $REGION"
 echo "VPC Name: $VPC_NAME"
@@ -155,9 +174,80 @@ else
   echo "Target VPC ID: $VPC_ID"
 fi
 
+echo "=== Delete Load Balancers ==="
+
+# 09_LoadBalancer_setup.sh で作成したALBを削除する。
+# ALBが残っていると、関連付いたSecurity GroupやVPCを削除できない。
+if [ -n "$VPC_ID" ]; then
+  LOAD_BALANCER_ARNS=""
+
+  for load_balancer_name in "${LOAD_BALANCER_NAMES[@]}"; do
+    FOUND_LB_ARNS=$(aws elbv2 describe-load-balancers \
+      --profile "$PROFILE" \
+      --region "$REGION" \
+      --names "$load_balancer_name" \
+      --query "LoadBalancers[?VpcId=='$VPC_ID'].LoadBalancerArn" \
+      --output text 2>/dev/null || true)
+
+    LOAD_BALANCER_ARNS="$LOAD_BALANCER_ARNS $FOUND_LB_ARNS"
+  done
+
+  LOAD_BALANCER_ARNS=$(echo "$LOAD_BALANCER_ARNS" | tr ' ' '\n' | sed '/^$/d' | sort -u | tr '\n' ' ')
+
+  if [ -n "$LOAD_BALANCER_ARNS" ]; then
+    for load_balancer_arn in $LOAD_BALANCER_ARNS; do
+      echo "Deleting Load Balancer: $load_balancer_arn"
+      aws elbv2 delete-load-balancer \
+        --profile "$PROFILE" \
+        --region "$REGION" \
+        --load-balancer-arn "$load_balancer_arn"
+    done
+
+    echo "Waiting for Load Balancers to be deleted..."
+    aws elbv2 wait load-balancers-deleted \
+      --profile "$PROFILE" \
+      --region "$REGION" \
+      --load-balancer-arns $LOAD_BALANCER_ARNS
+  else
+    echo "No Load Balancers found."
+  fi
+else
+  echo "Skip Load Balancer deletion because VPC was not found."
+fi
+
+echo "=== Delete Target Groups ==="
+
+# Target GroupはALB Listenerから参照されている間は削除できないため、
+# ALB削除完了後に削除する。
+if [ -n "$VPC_ID" ]; then
+  for target_group_name in "${TARGET_GROUP_NAMES[@]}"; do
+    TARGET_GROUP_ARNS=$(aws elbv2 describe-target-groups \
+      --profile "$PROFILE" \
+      --region "$REGION" \
+      --names "$target_group_name" \
+      --query "TargetGroups[?VpcId=='$VPC_ID'].TargetGroupArn" \
+      --output text 2>/dev/null || true)
+
+    if [ -z "$TARGET_GROUP_ARNS" ]; then
+      echo "Target Group not found: $target_group_name"
+      continue
+    fi
+
+    for target_group_arn in $TARGET_GROUP_ARNS; do
+      echo "Deleting Target Group: $target_group_name ($target_group_arn)"
+      aws elbv2 delete-target-group \
+        --profile "$PROFILE" \
+        --region "$REGION" \
+        --target-group-arn "$target_group_arn" || echo "Skip: could not delete Target Group $target_group_arn"
+    done
+  done
+else
+  echo "Skip Target Group deletion because VPC was not found."
+fi
+
 echo "=== Terminate EC2 Instances ==="
 
-# 07_bastion_server_setup.sh で作成したBastion EC2を終了する。
+# 07_bastion_server_setup.sh と 08_Web_server_setup.sh で作成したEC2を終了する。
 # EC2が残っていると、Security GroupやSubnetを削除できないため、先にterminateする。
 if [ -n "$VPC_ID" ]; then
   INSTANCE_IDS=""
@@ -365,9 +455,9 @@ fi
 
 echo "=== Delete Security Groups ==="
 
-# 06_security_group_setup.sh で作成したSecurity Groupを削除する。
+# 06_security_group_setup.sh と 08_Web_server_setup.sh で作成したSecurity Groupを削除する。
 # EC2やALBなどに関連付いているSecurity Groupは削除できない。
-# このcleanupは01〜06までのネットワーク基盤だけを対象にしている。
+# Web SGはBastion SG / ELB SGを参照するため、先にWeb SGを削除する。
 if [ -n "$VPC_ID" ]; then
   for security_group_name in "${SECURITY_GROUP_NAMES[@]}"; do
     SECURITY_GROUP_IDS=$(aws ec2 describe-security-groups \
@@ -514,16 +604,30 @@ aws ec2 describe-route-tables \
 aws ec2 describe-instances \
   --profile "$PROFILE" \
   --region "$REGION" \
-  --filters Name=tag:Name,Values=sample-ec2-bastion Name=instance-state-name,Values=pending,running,stopping,stopped \
+  --filters Name=tag:Name,Values=sample-ec2-bastion,sample-ec2-web01,sample-ec2-web02 Name=instance-state-name,Values=pending,running,stopping,stopped \
   --query 'Reservations[].Instances[].{ID:InstanceId,Name:Tags[?Key==`Name`].Value|[0],State:State.Name,VpcId:VpcId}' \
   --output table
 
 aws ec2 describe-security-groups \
   --profile "$PROFILE" \
   --region "$REGION" \
-  --filters Name=group-name,Values=sample-sg-bastion,sample-sg-elb \
+  --filters Name=group-name,Values=sample-sg-web,sample-sg-bastion,sample-sg-elb \
   --query 'SecurityGroups[*].{ID:GroupId,Name:GroupName,VpcId:VpcId}' \
   --output table
+
+aws elbv2 describe-load-balancers \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --names sample-elb \
+  --query 'LoadBalancers[*].{Name:LoadBalancerName,DNSName:DNSName,State:State.Code,VpcId:VpcId}' \
+  --output table 2>/dev/null || true
+
+aws elbv2 describe-target-groups \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --names sample-tg \
+  --query 'TargetGroups[*].{Name:TargetGroupName,Arn:TargetGroupArn,VpcId:VpcId,Port:Port,Protocol:Protocol}' \
+  --output table 2>/dev/null || true
 
 echo "================================================"
 echo "Network cleanup completed."
