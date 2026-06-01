@@ -1,0 +1,55 @@
+---
+# Playbook全体の名前。
+# 実行ログの PLAY [...] に表示される。
+- name: Create deploy user and application directory
+
+  # 対象ホストグループ。
+  # inventory/hosts.ini の [web] に定義した web01 / web02 が対象になる。
+  hosts: web
+
+  # true にすると sudo 付きで実行する。
+  # /var/www の作成やユーザー作成にはroot権限が必要。
+  become: true
+
+  # 実行する処理の一覧。
+  tasks:
+    # deployユーザーを作成するタスク。
+    # TASK [Create deploy user] として実行ログに表示される。
+    - name: Create deploy user
+
+      # userモジュールを使ってLinuxユーザーを管理する。
+      ansible.builtin.user:
+        # 作成するユーザー名。
+        name: deploy
+
+        # ログインシェル。
+        shell: /bin/bash
+
+        # ホームディレクトリを作成する。
+        create_home: true
+
+        # presentは「存在する状態にする」という意味。
+        # すでに存在していれば何もしない。
+        state: present
+
+    # Railsアプリケーションを配置する親ディレクトリを作成するタスク。
+    - name: Create /var/www directory
+
+      # fileモジュールを使ってファイルやディレクトリを管理する。
+      ansible.builtin.file:
+        # 作成するディレクトリのパス。
+        path: /var/www
+
+        # directoryは「ディレクトリとして存在させる」という意味。
+        state: directory
+
+        # 所有者をdeployユーザーにする。
+        owner: deploy
+
+        # 所有グループをdeployグループにする。
+        group: deploy
+
+        # パーミッション。
+        # 0755は所有者が読み書き実行、その他は読み実行。
+        mode: '0755'
+

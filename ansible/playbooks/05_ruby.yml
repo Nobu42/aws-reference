@@ -1,0 +1,141 @@
+---
+# Ruby実行環境を構築するPlaybook。
+# Railsアプリはdeployユーザーで動かすため、Rubyもdeployユーザー配下にrbenvで導入する。
+- name: Install Ruby with rbenv
+  hosts: web
+  become: true
+  serial: 1
+
+  # Playbook内で使う変数。
+  # Rubyのバージョンを変えたい場合はここだけ変更する。
+  vars:
+    ruby_version: "3.3.6"
+    deploy_user: deploy
+    deploy_home: /home/deploy
+    rbenv_root: /home/deploy/.rbenv
+
+  tasks:
+    # Rubyをソースビルドするために必要なパッケージをインストールする。
+    # 02_packages.ymlで入れているものもあるが、Rubyビルドに必要なものをここでも明示しておく。
+    - name: Install packages required to build Ruby
+      ansible.builtin.dnf:
+        name:
+          - git
+          - gcc
+          - gcc-c++
+          - make
+          - openssl-devel
+          - readline-devel
+          - zlib-devel
+          - libyaml-devel
+          - libffi-devel
+          - gdbm-devel
+          - ncurses-devel
+        state: present
+
+    # deployユーザーのホームディレクトリにrbenv本体をcloneする。
+    # createsを指定することで、すでに存在する場合は再実行しない。
+    - name: Clone rbenv
+      ansible.builtin.git:
+        repo: https://github.com/rbenv/rbenv.git
+        dest: "{{ rbenv_root }}"
+        version: master
+        update: false
+      become_user: "{{ deploy_user }}"
+
+    # rbenvのpluginsディレクトリを作成する。
+    # ruby-buildを配置するために必要。
+    - name: Create rbenv plugins directory
+      ansible.builtin.file:
+        path: "{{ rbenv_root }}/plugins"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0755'
+
+    # Rubyをインストールするためのrbenvプラグイン ruby-build をcloneする。
+    - name: Clone ruby-build
+      ansible.builtin.git:
+        repo: https://github.com/rbenv/ruby-build.git
+        dest: "{{ rbenv_root }}/plugins/ruby-build"
+        version: master
+        update: false
+      become_user: "{{ deploy_user }}"
+
+    # deployユーザーの.bashrcにrbenvの初期化設定を追加する。
+    # blockinfileを使うことで、同じ設定を重複して追記しない。
+    - name: Configure rbenv in deploy user's .bashrc
+      ansible.builtin.blockinfile:
+        path: "{{ deploy_home }}/.bashrc"
+        marker: "# {mark} ANSIBLE MANAGED RBENV"
+        block: |
+          export RBENV_ROOT="$HOME/.rbenv"
+          export PATH="$RBENV_ROOT/bin:$PATH"
+          eval "$(rbenv init - bash)"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0644'
+
+    # 指定したRubyバージョンがすでに入っているか確認する。
+    # 未インストールの場合だけ次のインストール処理を実行する。
+    - name: Check Ruby version installed by rbenv
+      ansible.builtin.stat:
+        path: "{{ rbenv_root }}/versions/{{ ruby_version }}/bin/ruby"
+      register: ruby_installed
+
+    # rbenvでRubyをインストールする。
+    # Rubyのビルドは時間がかかるため、初回実行時は数分待つ。
+    - name: Install Ruby with rbenv
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        rbenv install {{ ruby_version }}
+      args:
+        executable: /bin/bash
+      become_user: "{{ deploy_user }}"
+      when: not ruby_installed.stat.exists
+
+    # deployユーザーのglobal Rubyバージョンを設定する。
+    # これによりdeployユーザーでrubyを実行した時に指定バージョンが使われる。
+    - name: Set global Ruby version
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        rbenv global {{ ruby_version }}
+        rbenv rehash
+      args:
+        executable: /bin/bash
+      become_user: "{{ deploy_user }}"
+      changed_when: false
+
+    # Bundlerをインストールする。
+    # RailsアプリのGemを管理するために必要。
+    - name: Install bundler
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        gem install bundler
+        rbenv rehash
+      args:
+        executable: /bin/bash
+      become_user: "{{ deploy_user }}"
+      changed_when: false
+
+    # RubyとBundlerのバージョンを確認する。
+    - name: Check Ruby and Bundler versions
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        ruby -v
+        bundle -v
+      args:
+        executable: /bin/bash
+      become_user: "{{ deploy_user }}"
+      register: ruby_check
+      changed_when: false
+
+    # 確認結果をAnsibleの実行ログに表示する。
+    - name: Show Ruby and Bundler versions
+      ansible.builtin.debug:
+        var: ruby_check.stdout_lines
+

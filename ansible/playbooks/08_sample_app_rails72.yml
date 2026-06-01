@@ -1,0 +1,1343 @@
+---
+# Rails 7.2で、書籍サンプルアプリ相当の簡易SNSアプリを構築するPlaybook。
+#
+# 目的:
+# - 古いRails 5系サンプルアプリをそのまま動かすのではなく、
+#   Ruby 3.3 / Rails 7.2 系で同じような動きをするアプリを作る。
+# - EC2上のRailsアプリをPuma + nginxで起動し、ALBから確認できるようにする。
+# - RDS MySQL、S3画像アップロード、SES/Redis連携へ広げやすい構成にする。
+#
+# 前提:
+# - 01_ping.yml で web01 / web02 へ疎通できること
+# - 02_packages.yml で共通パッケージが入っていること
+# - 03_deploy_user.yml で deploy ユーザーと /var/www が作成済みであること
+# - 04_nginx.yml で nginx が /var/www/nobu-iac-lab/tmp/sockets/puma.sock を向いていること
+# - 05_ruby.yml またはカスタムAMIで Ruby 3.3.6 / Bundler が導入済みであること
+# - RDSは db.home で名前解決できること
+# - DB_MASTER_PASSWORD をAnsible実行元のMacでexportしていること
+#
+# 実行例:
+#   export DB_MASTER_PASSWORD='RDS作成時に指定したパスワード'
+#   export SECRET_KEY_BASE='openssl rand -hex 64 で生成した値'
+#   ansible-playbook playbooks/08_sample_app_rails72.yml
+#
+# 注意:
+# - 秘密情報はPlaybookへ直書きしない。
+# - DBパスワードやsecret_key_baseはEC2上の /etc/nobu-iac-lab.env に保存する。
+# - /etc/nobu-iac-lab.env はroot所有、deployグループ、0640とし、GitHubには含めない。
+- name: Deploy Rails 7.2 sample application
+  hosts: web
+  become: true
+
+  # bundle install、assets precompile、DB migrateを2台同時に走らせると
+  # 小さなEC2/RDSでは負荷が高くなりやすい。
+  # 学習環境では1台ずつ確実に進める。
+  serial: 1
+
+  vars:
+    deploy_user: deploy
+    deploy_group: deploy
+    deploy_home: /home/deploy
+    rbenv_root: /home/deploy/.rbenv
+    ruby_version: "3.3.6"
+    rails_version: "7.2.3"
+
+    app_name: nobu-iac-lab
+    app_dir: /var/www/nobu-iac-lab
+    rails_env: production
+
+    # RDSは14_private_dns_setup.shで作成するPrivate Hosted ZoneのCNAMEを使う。
+    # RDS Endpointを直接書かず db.home に寄せることで、再構築後もPlaybookを直しにくくする。
+    db_host: db.home
+    db_port: 3306
+    db_name: nobu_iac_lab_production
+    db_username: adminuser
+    db_password: "{{ lookup('env', 'DB_MASTER_PASSWORD') }}"
+
+    # Rails productionでcookie署名やCSRF token検証に使う秘密鍵。
+    # ALB配下でweb01 / web02へ振り分けるため、全Webサーバーで同じ値にする必要がある。
+    # 各サーバーで別々に生成すると、GETをweb01、POSTをweb02が処理した場合に
+    # CSRF tokenを検証できず、ActionController::InvalidAuthenticityTokenになる。
+    secret_key_base: "{{ lookup('env', 'SECRET_KEY_BASE') }}"
+
+    # Active StorageのS3保存先。
+    # 11_s3_setup.shで作成する学習用アップロードバケットを利用する。
+    # EC2にはS3アクセス用IAM Roleを付与している前提のため、アクセスキーは置かない。
+    aws_region: ap-northeast-1
+    s3_bucket: nobu-terraform-iac-lab-upload
+
+    # SES/Redisは後続でメール通知やキャッシュを追加しやすいよう、
+    # 環境変数の入口だけ先に作っておく。
+    # 現時点のアプリ本体はメール送信やRedis必須にはしない。
+    app_host: www.nobu-iac-lab.com
+    redis_url: ""
+
+    puma_service_name: puma-nobu-iac-lab
+    puma_socket: /var/www/nobu-iac-lab/tmp/sockets/puma.sock
+    puma_pid: /var/www/nobu-iac-lab/tmp/pids/puma.pid
+    puma_state: /var/www/nobu-iac-lab/tmp/pids/puma.state
+
+  pre_tasks:
+    # DB_MASTER_PASSWORDが未設定のまま進むと、database.ymlやsystemd環境ファイルは作れても
+    # db:prepareで失敗する。最初に止めることで原因を分かりやすくする。
+    - name: Require DB_MASTER_PASSWORD on Ansible controller
+      ansible.builtin.fail:
+        msg: "DB_MASTER_PASSWORD is not set. Run: export DB_MASTER_PASSWORD='your-rds-master-password'"
+      when: db_password | length == 0
+
+    - name: Require shared SECRET_KEY_BASE on Ansible controller
+      ansible.builtin.fail:
+        msg: "SECRET_KEY_BASE is not set. Run: export SECRET_KEY_BASE=$(openssl rand -hex 64)"
+      when: secret_key_base | length == 0
+      no_log: true
+
+  tasks:
+    # Railsアプリの作成とassets precompileに必要なパッケージを入れる。
+    # nodejs/npmはRails 7のフロントエンド周辺で必要になる場合があるため入れておく。
+    # curl-minimalはAmazon Linux 2023標準構成と競合しにくいhealth check用curlとして使う。
+    - name: Install packages required for Rails 7.2 sample application
+      ansible.builtin.dnf:
+        name:
+          - git
+          - nodejs
+          - npm
+          - mariadb105
+          - mariadb105-devel
+          - ImageMagick
+          - curl-minimal
+        state: present
+
+    # Railsアプリ、Puma socket、PID、ログ、アップロード一時領域を配置するディレクトリを作る。
+    # 04_nginx.ymlでも一部作っているが、このPlaybook単体再実行時にも安全なように保証する。
+    - name: Ensure application directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0755'
+      loop:
+        - "{{ app_dir }}"
+        - "{{ app_dir }}/tmp"
+        - "{{ app_dir }}/tmp/sockets"
+        - "{{ app_dir }}/tmp/pids"
+        - "{{ app_dir }}/log"
+
+    # Rails gemが既に入っているか確認する。
+    # カスタムAMIを使う場合、将来的にはここがtrueになり、Railsインストールも短縮できる。
+    - name: Check Rails gem is installed
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        gem list -i rails -v {{ rails_version }}
+      args:
+        executable: /bin/bash
+      become_user: "{{ deploy_user }}"
+      register: rails_gem_check
+      changed_when: false
+      failed_when: false
+
+    # Rails 7.2系をdeployユーザーのrbenv環境へ入れる。
+    # システムRubyではなく、05_ruby.ymlで入れたRubyを使う点が重要。
+    - name: Install Rails gem
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        gem install rails -v {{ rails_version }}
+        rbenv rehash
+      args:
+        executable: /bin/bash
+      become_user: "{{ deploy_user }}"
+      when: rails_gem_check.stdout != "true"
+
+    # GemfileがあればRailsアプリ作成済みと判断する。
+    # これにより、再実行時にアプリ全体を作り直さない。
+    - name: Check Rails application already exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}/Gemfile"
+      register: rails_app_exists
+
+    # Railsアプリを新規作成する。
+    #
+    # --database=mysql:
+    #   RDS for MySQLへ接続するため。
+    #
+    # --skip-git:
+    #   EC2上のアプリディレクトリをGit管理対象にしない。
+    #   インフラ構成やPlaybookはこのリポジトリ側で管理する。
+    #
+    # --skip-test / --skip-system-test:
+    #   まずはAWS上でのデプロイ確認を優先する。
+    #
+    # --force:
+    #   04_nginx.ymlが先にpublic/tmpを作っているため、空でないディレクトリにも作成できるようにする。
+    - name: Create Rails 7.2 application
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        rails _{{ rails_version }}_ new {{ app_dir }} \
+          --database=mysql \
+          --skip-git \
+          --skip-test \
+          --skip-system-test \
+          --force
+      args:
+        executable: /bin/bash
+      become_user: "{{ deploy_user }}"
+      when: not rails_app_exists.stat.exists
+
+    # 書籍サンプルアプリ相当の機能に必要なGemを追加する。
+    #
+    # bcrypt:
+    #   has_secure_passwordでパスワードを安全にハッシュ化するため。
+    #
+    # aws-sdk-s3:
+    #   Active StorageでS3へ投稿画像を保存するため。
+    #
+    # image_processing:
+    #   Active Storageで画像変換を使う場合に備える。
+    - name: Add gems for sample application features
+      ansible.builtin.blockinfile:
+        path: "{{ app_dir }}/Gemfile"
+        marker: "# {mark} ANSIBLE MANAGED SAMPLE APP GEMS"
+        block: |
+          gem "bcrypt", "~> 3.1.20"
+          gem "aws-sdk-s3", require: false
+          gem "image_processing", "~> 1.12"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+
+    # 追加Gemを含めてbundle installする。
+    # deployment modeはまだ使わず、学習環境で再実行しやすい通常のbundle installにしている。
+    - name: Run bundle install
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        bundle install
+      args:
+        executable: /bin/bash
+        chdir: "{{ app_dir }}"
+      become_user: "{{ deploy_user }}"
+
+    # リポジトリ直下のimagesフォルダがあるか、Ansible実行元のMacで確認する。
+    # 旧リポジトリからAnsibleディレクトリだけをコピーした場合、imagesが無いことがある。
+    - name: Check fixed application images directory on controller
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../../images"
+      delegate_to: localhost
+      become: false
+      register: fixed_images_dir
+
+    # リポジトリ直下のimagesフォルダをRailsの固定画像として配置する。
+    # 投稿画像とは別で、トップページなどに最初から表示する素材として扱う。
+    # imagesが無い場合は、Railsアプリ本体の構築を優先してこのタスクだけスキップする。
+    - name: Copy fixed application images
+      ansible.builtin.copy:
+        src: ../../images/
+        dest: "{{ app_dir }}/app/assets/images/"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+      when: fixed_images_dir.stat.exists
+
+    # RDS接続設定を作る。
+    # production環境ではdb.homeを参照し、DBパスワードは環境変数から読む。
+    # パスワードをdatabase.ymlへ直接書かないことで、ファイルを見ても秘密情報が分からない。
+    - name: Create database.yml for RDS MySQL
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/config/database.yml"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          default: &default
+            adapter: mysql2
+            encoding: utf8mb4
+            pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+            username: <%= ENV.fetch("DB_USERNAME") { "{{ db_username }}" } %>
+            password: <%= ENV.fetch("DB_PASSWORD") %>
+            host: <%= ENV.fetch("DB_HOST") { "{{ db_host }}" } %>
+            port: <%= ENV.fetch("DB_PORT") { {{ db_port }} } %>
+
+          development:
+            <<: *default
+            database: {{ db_name }}
+
+          production:
+            <<: *default
+            database: {{ db_name }}
+
+    # Active Storageの保存先を設定する。
+    # productionではS3を使う。AWSアクセスキーは書かず、EC2のIAM Roleを利用する。
+    - name: Configure Active Storage services
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/config/storage.yml"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          local:
+            service: Disk
+            root: <%= Rails.root.join("storage") %>
+
+          amazon:
+            service: S3
+            region: <%= ENV.fetch("AWS_REGION") { "{{ aws_region }}" } %>
+            bucket: <%= ENV.fetch("AWS_S3_BUCKET") { "{{ s3_bucket }}" } %>
+
+    # production設定を学習環境向けに調整する。
+    # - ALB/独自ドメインでアクセスできるようhostsを許可
+    # - Active StorageをS3へ保存
+    # - nginxから配信しやすいよう静的ファイル配信を有効化
+    # - Redis URLがある場合のみcache_storeをRedisへ切り替え
+    - name: Configure production environment for lab deployment
+      ansible.builtin.blockinfile:
+        path: "{{ app_dir }}/config/environments/production.rb"
+        marker: "  # {mark} ANSIBLE MANAGED LAB SETTINGS"
+        insertbefore: "^end$"
+        block: |
+          config.hosts << "{{ app_host }}"
+          config.hosts << "localhost"
+          config.hosts << IPAddr.new("10.0.0.0/16")
+          config.assume_ssl = true
+          config.force_ssl = true
+          config.active_storage.service = :amazon
+          config.public_file_server.enabled = true
+          if ENV["REDIS_URL"].present?
+            config.cache_store = :redis_cache_store, { url: ENV["REDIS_URL"] }
+          end
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+
+    # Active Storage用のmigrationをAnsible管理にする。
+    #
+    # bin/rails active_storage:install は実行時刻ベースのmigrationファイルを生成する。
+    # web01 / web02 がそれぞれ別々に生成すると、同じRDSに対して別バージョンの
+    # Active Storage migrationが走り、既存テーブル作成で失敗することがある。
+    #
+    # そのため、自動生成されたActive Storage migrationを削除し、
+    # 固定ファイル名のmigrationをこのPlaybookから配布する。
+    - name: Remove generated Active Storage migrations
+      ansible.builtin.shell: |
+        rm -f db/migrate/*create_active_storage_tables.active_storage.rb
+      args:
+        executable: /bin/bash
+        chdir: "{{ app_dir }}"
+      become_user: "{{ deploy_user }}"
+
+    # Rails new直後の状態や、途中でPlaybookが失敗した再実行時には、
+    # db/migrate ディレクトリがまだ存在しない場合がある。
+    # migrationファイルをcopyする前に、配置先ディレクトリを明示的に作成しておく。
+    - name: Ensure Rails migration directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}/db/migrate"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0755'
+
+    # Active Storageのテーブルを作るmigration。
+    #
+    # table_exists? で存在確認してから作成する。
+    # これにより、前回実行で既にactive_storage_blobsなどが作成済みでも、
+    # 再実行時に「Table already exists」で止まらない。
+    - name: Create deterministic Active Storage migration
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/db/migrate/20260505000050_create_active_storage_tables.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          class CreateActiveStorageTables < ActiveRecord::Migration[7.2]
+            def change
+              unless table_exists?(:active_storage_blobs)
+                create_table :active_storage_blobs do |t|
+                  t.string   :key,          null: false
+                  t.string   :filename,     null: false
+                  t.string   :content_type
+                  t.text     :metadata
+                  t.string   :service_name, null: false
+                  t.bigint   :byte_size,    null: false
+                  t.string   :checksum
+                  t.datetime :created_at,   null: false
+
+                  t.index [:key], unique: true
+                end
+              end
+
+              unless table_exists?(:active_storage_attachments)
+                create_table :active_storage_attachments do |t|
+                  t.string     :name,     null: false
+                  t.references :record,   null: false, polymorphic: true, index: false
+                  t.references :blob,     null: false
+                  t.datetime   :created_at, null: false
+
+                  t.index [:record_type, :record_id, :name, :blob_id],
+                    name: :index_active_storage_attachments_uniqueness,
+                    unique: true
+                  t.foreign_key :active_storage_blobs, column: :blob_id
+                end
+              end
+
+              unless table_exists?(:active_storage_variant_records)
+                create_table :active_storage_variant_records do |t|
+                  t.belongs_to :blob, null: false, index: false
+                  t.string :variation_digest, null: false
+
+                  t.index [:blob_id, :variation_digest],
+                    name: :index_active_storage_variant_records_uniqueness,
+                    unique: true
+                  t.foreign_key :active_storage_blobs, column: :blob_id
+                end
+              end
+            end
+          end
+
+    # Userモデルを定義する。
+    # 書籍サンプルアプリのように、名前、メールアドレス、パスワードでログインできる構成にする。
+    - name: Create User model
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/models/user.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          class User < ApplicationRecord
+            has_secure_password
+
+            has_many :posts, dependent: :destroy
+
+            before_save { self.email = email.downcase }
+
+            validates :name, presence: true, length: { maximum: 50 }
+            validates :email, presence: true,
+                              length: { maximum: 255 },
+                              format: { with: URI::MailTo::EMAIL_REGEXP },
+                              uniqueness: { case_sensitive: false }
+            validates :password, presence: true, length: { minimum: 6 }, allow_nil: true
+          end
+
+    # Postモデルを定義する。
+    # Active Storageのhas_one_attachedで投稿画像を1枚添付できるようにする。
+    - name: Create Post model
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/models/post.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          class Post < ApplicationRecord
+            belongs_to :user
+            has_one_attached :image
+
+            validates :content, presence: true, length: { maximum: 140 }
+            validate :acceptable_image
+
+            scope :recent, -> { order(created_at: :desc) }
+
+            private
+
+            def acceptable_image
+              return unless image.attached?
+
+              unless image.byte_size <= 5.megabytes
+                errors.add(:image, "は5MB以下にしてください")
+              end
+
+              acceptable_types = ["image/jpeg", "image/png", "image/gif"]
+              unless acceptable_types.include?(image.content_type)
+                errors.add(:image, "はJPEG、PNG、GIFのみ利用できます")
+              end
+            end
+          end
+
+    # セッション管理とログイン状態判定をApplicationControllerへまとめる。
+    # Deviseなどの大きなGemを使わず、学習用に仕組みが見える形にしている。
+    - name: Create ApplicationController with simple session helpers
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/controllers/application_controller.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          class ApplicationController < ActionController::Base
+            helper_method :current_user, :logged_in?
+
+            private
+
+            def current_user
+              @current_user ||= User.find_by(id: session[:user_id]) if session[:user_id]
+            end
+
+            def logged_in?
+              current_user.present?
+            end
+
+            def require_login
+              return if logged_in?
+
+              redirect_to login_path, alert: "ログインしてください"
+            end
+          end
+
+    # トップページ兼投稿一覧。
+    # ログイン済みなら投稿フォームを表示し、未ログインなら登録/ログイン導線を表示する。
+    - name: Create PostsController
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/controllers/posts_controller.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          class PostsController < ApplicationController
+            before_action :require_login, only: [:create, :destroy]
+
+            def index
+              @post = Post.new
+              @posts = Post.includes(:user, image_attachment: :blob).recent.limit(50)
+            end
+
+            def create
+              @post = current_user.posts.build(post_params)
+
+              if @post.save
+                redirect_to root_path, notice: "投稿しました"
+              else
+                @posts = Post.includes(:user, image_attachment: :blob).recent.limit(50)
+                flash.now[:alert] = "投稿できませんでした"
+                render :index, status: :unprocessable_entity
+              end
+            end
+
+            def destroy
+              post = current_user.posts.find(params[:id])
+              post.destroy
+              redirect_to root_path, notice: "投稿を削除しました"
+            end
+
+            private
+
+            def post_params
+              params.require(:post).permit(:content, :image)
+            end
+          end
+
+    # ユーザー登録とプロフィール表示。
+    - name: Create UsersController
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/controllers/users_controller.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          class UsersController < ApplicationController
+            def new
+              @user = User.new
+            end
+
+            def create
+              @user = User.new(user_params)
+
+              if @user.save
+                session[:user_id] = @user.id
+                redirect_to root_path, notice: "ユーザー登録しました"
+              else
+                render :new, status: :unprocessable_entity
+              end
+            end
+
+            def show
+              @user = User.find(params[:id])
+              @posts = @user.posts.with_attached_image.recent
+            end
+
+            private
+
+            def user_params
+              params.require(:user).permit(:name, :email, :password, :password_confirmation)
+            end
+          end
+
+    # ログイン/ログアウト。
+    - name: Create SessionsController
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/controllers/sessions_controller.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          class SessionsController < ApplicationController
+            def new
+            end
+
+            def create
+              user = User.find_by(email: params[:email].to_s.downcase)
+
+              if user&.authenticate(params[:password])
+                session[:user_id] = user.id
+                redirect_to root_path, notice: "ログインしました"
+              else
+                flash.now[:alert] = "メールアドレスまたはパスワードが違います"
+                render :new, status: :unprocessable_entity
+              end
+            end
+
+            def destroy
+              reset_session
+              redirect_to root_path, notice: "ログアウトしました"
+            end
+          end
+
+    # URL設計。
+    # rootを投稿一覧にして、ALB health checkやブラウザ確認でアプリ画面が見えるようにする。
+    - name: Create routes
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/config/routes.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          Rails.application.routes.draw do
+            root "posts#index"
+
+            resources :users, only: [:new, :create, :show]
+            resources :posts, only: [:create, :destroy]
+            resource :session, only: [:new, :create, :destroy]
+
+            get "/login", to: "sessions#new"
+            delete "/logout", to: "sessions#destroy"
+          end
+
+    # usersテーブル用マイグレーション。
+    # ファイル名を固定して、再実行時に同じマイグレーションを増やさない。
+    - name: Create users migration
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/db/migrate/20260505000100_create_users.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          class CreateUsers < ActiveRecord::Migration[7.2]
+            def change
+              create_table :users do |t|
+                t.string :name, null: false
+                t.string :email, null: false
+                t.string :password_digest, null: false
+                t.boolean :admin, null: false, default: false
+
+                t.timestamps
+              end
+
+              add_index :users, :email, unique: true
+            end
+          end
+
+    # postsテーブル用マイグレーション。
+    # 投稿本文は140文字制限にし、書籍サンプルのmicropostに近い動きにする。
+    - name: Create posts migration
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/db/migrate/20260505000200_create_posts.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          class CreatePosts < ActiveRecord::Migration[7.2]
+            def change
+              create_table :posts do |t|
+                t.references :user, null: false, foreign_key: true
+                t.text :content, null: false
+
+                t.timestamps
+              end
+
+              add_index :posts, [:user_id, :created_at]
+            end
+          end
+
+    # 初期データ。
+    # 確認時に毎回ユーザー登録から始めなくてよいように、確認用ユーザーと投稿を用意する。
+    # ただし本番運用ではseedユーザーのパスワード管理に注意が必要。
+    - name: Create seed data
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/db/seeds.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          user = User.find_or_create_by!(email: "nobu@example.com") do |u|
+            u.name = "Nobu"
+            u.password = "password"
+            u.password_confirmation = "password"
+            u.admin = true
+          end
+
+          if user.posts.count.zero?
+            user.posts.create!(content: "Rails 7.2 application deployed with Ansible on AWS.")
+            user.posts.create!(content: "Post images are stored in S3 through Active Storage.")
+          end
+
+    # 共通レイアウト。
+    # 画面上にAWSや操作説明を書きすぎず、アプリとして自然に見える程度に留める。
+    - name: Create application layout
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/views/layouts/application.html.erb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Nobu Iac Lab</title>
+              <meta name="viewport" content="width=device-width,initial-scale=1">
+              <%= csrf_meta_tags %>
+              <%= csp_meta_tag %>
+              <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+            </head>
+
+            <body>
+              <header class="site-header">
+                <%= link_to "nobu-iac-lab", root_path, class: "brand" %>
+                <nav>
+                  <% if logged_in? %>
+                    <%= link_to current_user.name, user_path(current_user) %>
+                    <%= button_to "Log out", logout_path, method: :delete, class: "link-button" %>
+                  <% else %>
+                    <%= link_to "Log in", login_path %>
+                    <%= link_to "Sign up", new_user_path, class: "button" %>
+                  <% end %>
+                </nav>
+              </header>
+
+              <main class="page">
+                <% if notice.present? %>
+                  <p class="flash notice"><%= notice %></p>
+                <% end %>
+                <% if alert.present? %>
+                  <p class="flash alert"><%= alert %></p>
+                <% end %>
+
+                <%= yield %>
+              </main>
+            </body>
+          </html>
+
+    - name: Ensure posts view directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}/app/views/posts"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0755'
+
+    - name: Ensure users view directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}/app/views/users"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0755'
+
+    - name: Ensure sessions view directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}/app/views/sessions"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0755'
+
+    # トップページ。
+    # 固定画像はリポジトリ直下images/Suneteruzu.JPGをコピーしたものを表示する。
+    # 投稿画像はActive StorageでS3に保存されるため、固定画像とは役割を分ける。
+    - name: Create posts index view
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/views/posts/index.html.erb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          <section class="hero">
+            <div>
+              <p class="eyebrow">Rails 7.2 on AWS</p>
+              <h1>Nobu IAC Lab</h1>
+              <p>Private EC2上のRailsアプリから、RDSへの保存とS3への画像アップロードを確認します。</p>
+            </div>
+            <%= image_tag "Suneteruzu.JPG", alt: "Suneteruzu", class: "hero-image" %>
+          </section>
+
+          <% if logged_in? %>
+            <section class="composer">
+              <h2>New post</h2>
+              <%= form_with model: @post, local: true do |form| %>
+                <% if @post.errors.any? %>
+                  <div class="error-box">
+                    <%= @post.errors.full_messages.join(", ") %>
+                  </div>
+                <% end %>
+
+                <%= form.text_area :content, rows: 4, maxlength: 140, placeholder: "Write a short update..." %>
+                <%= form.file_field :image, accept: "image/jpeg,image/png,image/gif" %>
+                <%= form.submit "Post", class: "button" %>
+              <% end %>
+            </section>
+          <% else %>
+            <section class="welcome">
+              <%= link_to "Create account", new_user_path, class: "button" %>
+              <%= link_to "Log in", login_path %>
+            </section>
+          <% end %>
+
+          <section class="timeline">
+            <h2>Posts</h2>
+            <% @posts.each do |post| %>
+              <article class="post">
+                <div class="post-meta">
+                  <%= link_to post.user.name, user_path(post.user) %>
+                  <span><%= time_ago_in_words(post.created_at) %> ago</span>
+                </div>
+                <p><%= post.content %></p>
+                <% if post.image.attached? %>
+                  <%= image_tag post.image, class: "post-image" %>
+                <% end %>
+                <% if logged_in? && post.user == current_user %>
+                  <%= button_to "Delete", post_path(post), method: :delete, class: "link-button danger" %>
+                <% end %>
+              </article>
+            <% end %>
+          </section>
+
+    - name: Create user signup view
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/views/users/new.html.erb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          <section class="form-panel">
+            <h1>Sign up</h1>
+            <%= form_with model: @user, local: true do |form| %>
+              <% if @user.errors.any? %>
+                <div class="error-box">
+                  <%= @user.errors.full_messages.join(", ") %>
+                </div>
+              <% end %>
+
+              <%= form.label :name %>
+              <%= form.text_field :name %>
+
+              <%= form.label :email %>
+              <%= form.email_field :email %>
+
+              <%= form.label :password %>
+              <%= form.password_field :password %>
+
+              <%= form.label :password_confirmation %>
+              <%= form.password_field :password_confirmation %>
+
+              <%= form.submit "Create account", class: "button" %>
+            <% end %>
+          </section>
+
+    - name: Create user profile view
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/views/users/show.html.erb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          <section class="profile">
+            <h1><%= @user.name %></h1>
+            <p><%= @user.email %></p>
+            <p><%= pluralize(@posts.count, "post") %></p>
+          </section>
+
+          <section class="timeline">
+            <% @posts.each do |post| %>
+              <article class="post">
+                <div class="post-meta">
+                  <span><%= time_ago_in_words(post.created_at) %> ago</span>
+                </div>
+                <p><%= post.content %></p>
+                <% if post.image.attached? %>
+                  <%= image_tag post.image, class: "post-image" %>
+                <% end %>
+              </article>
+            <% end %>
+          </section>
+
+    - name: Create login view
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/views/sessions/new.html.erb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          <section class="form-panel">
+            <h1>Log in</h1>
+            <%= form_with url: session_path, local: true do |form| %>
+              <%= form.label :email %>
+              <%= form.email_field :email %>
+
+              <%= form.label :password %>
+              <%= form.password_field :password %>
+
+              <%= form.submit "Log in", class: "button" %>
+            <% end %>
+          </section>
+
+    # アプリの見た目を整える。
+    # 運用ツールではなくユーザー向けアプリなので、必要最小限のUIにしている。
+    - name: Create application stylesheet
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/app/assets/stylesheets/application.css"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            margin: 0;
+            color: #1f2933;
+            background: #f4f7f5;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          }
+
+          a {
+            color: #16697a;
+            text-decoration: none;
+          }
+
+          .site-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 64px;
+            padding: 0 32px;
+            background: #ffffff;
+            border-bottom: 1px solid #d8e1df;
+          }
+
+          .brand {
+            font-weight: 700;
+            color: #163832;
+          }
+
+          .site-header nav {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+          }
+
+          .page {
+            width: min(1080px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 32px 0 56px;
+          }
+
+          .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(240px, 360px);
+            gap: 32px;
+            align-items: center;
+            padding: 32px 0;
+          }
+
+          .hero h1 {
+            margin: 0 0 12px;
+            color: #12231f;
+            font-size: 44px;
+            line-height: 1.1;
+          }
+
+          .hero p {
+            max-width: 620px;
+            line-height: 1.8;
+          }
+
+          .eyebrow {
+            margin: 0 0 8px;
+            color: #5c6f68;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+
+          .hero-image {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #d8e1df;
+          }
+
+          .welcome,
+          .composer,
+          .form-panel,
+          .profile,
+          .post {
+            margin-bottom: 24px;
+            padding: 24px;
+            background: #ffffff;
+            border: 1px solid #d8e1df;
+            border-radius: 8px;
+          }
+
+          .composer h2,
+          .timeline h2,
+          .form-panel h1,
+          .profile h1 {
+            margin-top: 0;
+          }
+
+          form {
+            display: grid;
+            gap: 12px;
+          }
+
+          input,
+          textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #b8c6c2;
+            border-radius: 6px;
+            font: inherit;
+          }
+
+          textarea {
+            resize: vertical;
+          }
+
+          .button,
+          input[type="submit"] {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            min-height: 40px;
+            padding: 0 16px;
+            color: #ffffff;
+            background: #16697a;
+            border: 0;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+          }
+
+          .link-button {
+            padding: 0;
+            color: #16697a;
+            background: transparent;
+            border: 0;
+            font: inherit;
+            cursor: pointer;
+          }
+
+          .danger {
+            color: #b42318;
+          }
+
+          .flash {
+            padding: 12px 16px;
+            border-radius: 6px;
+            background: #ffffff;
+            border: 1px solid #d8e1df;
+          }
+
+          .notice {
+            color: #0f5132;
+          }
+
+          .alert,
+          .error-box {
+            color: #842029;
+          }
+
+          .post-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            color: #5c6f68;
+            font-size: 14px;
+          }
+
+          .post-image {
+            display: block;
+            width: min(100%, 560px);
+            max-height: 420px;
+            object-fit: cover;
+            margin-top: 16px;
+            border-radius: 8px;
+            border: 1px solid #d8e1df;
+          }
+
+          @media (max-width: 760px) {
+            .site-header {
+              align-items: flex-start;
+              flex-direction: column;
+              gap: 12px;
+              padding: 16px;
+            }
+
+            .hero {
+              grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+              font-size: 34px;
+            }
+          }
+
+    # Puma設定ファイル。
+    # nginxはUnix Socketへproxyするため、PumaはTCPではなくsocketで待ち受ける。
+    - name: Create Puma configuration
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/config/puma.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          max_threads_count = ENV.fetch("RAILS_MAX_THREADS") { 5 }
+          min_threads_count = ENV.fetch("RAILS_MIN_THREADS") { max_threads_count }
+          threads min_threads_count, max_threads_count
+
+          rails_env = ENV.fetch("RAILS_ENV") { "{{ rails_env }}" }
+          environment rails_env
+
+          app_dir = "{{ app_dir }}"
+          directory app_dir
+
+          bind "unix://{{ puma_socket }}"
+
+          pidfile "{{ puma_pid }}"
+          state_path "{{ puma_state }}"
+
+          stdout_redirect "#{app_dir}/log/puma.stdout.log", "#{app_dir}/log/puma.stderr.log", true
+
+          plugin :tmp_restart
+
+    # systemd用の環境変数ファイルが存在するか確認する。
+    # secret_key_baseは全Webサーバーで同じ値を使う必要があるため、
+    # このPlaybookではMac側のSECRET_KEY_BASE環境変数から配布する。
+    - name: Check application environment file
+      ansible.builtin.stat:
+        path: /etc/nobu-iac-lab.env
+      register: app_env_file
+
+    # systemdから読み込む環境変数ファイル。
+    # no_logを付けて、Ansible出力にDBパスワードやsecret_key_baseを出さない。
+    # Rails/Pumaはdeployユーザーで動くため、deployグループに読み取り権限を付ける。
+    - name: Create application environment file for systemd
+      ansible.builtin.copy:
+        dest: /etc/nobu-iac-lab.env
+        owner: root
+        group: "{{ deploy_group }}"
+        mode: '0640'
+        content: |
+          RAILS_ENV={{ rails_env }}
+          RAILS_SERVE_STATIC_FILES=1
+          RAILS_LOG_TO_STDOUT=1
+          SECRET_KEY_BASE={{ secret_key_base }}
+          DB_HOST={{ db_host }}
+          DB_PORT={{ db_port }}
+          DB_NAME={{ db_name }}
+          DB_USERNAME={{ db_username }}
+          DB_PASSWORD={{ db_password }}
+          AWS_REGION={{ aws_region }}
+          AWS_S3_BUCKET={{ s3_bucket }}
+          APP_HOST={{ app_host }}
+          REDIS_URL={{ redis_url }}
+      when: not app_env_file.stat.exists
+      no_log: true
+
+    # 既存の環境ファイルがある場合は、secret_key_baseを維持したまま
+    # DB接続先など再構築で変わり得る値だけ更新する。
+    - name: Update non-secret application environment values
+      ansible.builtin.lineinfile:
+        path: /etc/nobu-iac-lab.env
+        regexp: "^{{ item.key }}="
+        line: "{{ item.key }}={{ item.value }}"
+        owner: root
+        group: "{{ deploy_group }}"
+        mode: '0640'
+      loop:
+        - { key: "RAILS_ENV", value: "{{ rails_env }}" }
+        - { key: "RAILS_SERVE_STATIC_FILES", value: "1" }
+        - { key: "RAILS_LOG_TO_STDOUT", value: "1" }
+        - { key: "DB_HOST", value: "{{ db_host }}" }
+        - { key: "DB_PORT", value: "{{ db_port }}" }
+        - { key: "DB_NAME", value: "{{ db_name }}" }
+        - { key: "DB_USERNAME", value: "{{ db_username }}" }
+        - { key: "AWS_REGION", value: "{{ aws_region }}" }
+        - { key: "AWS_S3_BUCKET", value: "{{ s3_bucket }}" }
+        - { key: "APP_HOST", value: "{{ app_host }}" }
+        - { key: "REDIS_URL", value: "{{ redis_url }}" }
+      when: app_env_file.stat.exists
+
+    # DBパスワードは秘密情報なので、更新時もログに出さない。
+    - name: Update database password in application environment file
+      ansible.builtin.lineinfile:
+        path: /etc/nobu-iac-lab.env
+        regexp: "^DB_PASSWORD="
+        line: "DB_PASSWORD={{ db_password }}"
+        owner: root
+        group: "{{ deploy_group }}"
+        mode: '0640'
+      when: app_env_file.stat.exists
+      no_log: true
+
+    # SECRET_KEY_BASEも秘密情報なので、更新時はログに出さない。
+    # 既存環境ファイルがある場合でも、web01 / web02で同じ値に揃える。
+    - name: Update shared secret_key_base in application environment file
+      ansible.builtin.lineinfile:
+        path: /etc/nobu-iac-lab.env
+        regexp: "^SECRET_KEY_BASE="
+        line: "SECRET_KEY_BASE={{ secret_key_base }}"
+        owner: root
+        group: "{{ deploy_group }}"
+        mode: '0640'
+      when: app_env_file.stat.exists
+      no_log: true
+
+    # db:prepareはDBがなければ作成し、未適用migrationがあれば適用する。
+    # RDS master user(adminuser)を使うため、学習環境ではDB作成権限を持っている。
+    - name: Prepare production database
+      ansible.builtin.shell: |
+        set -a
+        source /etc/nobu-iac-lab.env
+        set +a
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        bin/rails db:prepare
+      args:
+        executable: /bin/bash
+        chdir: "{{ app_dir }}"
+      become_user: "{{ deploy_user }}"
+
+    # seedは再実行しても重複しないようfind_or_create_byを使っている。
+    - name: Load seed data
+      ansible.builtin.shell: |
+        set -a
+        source /etc/nobu-iac-lab.env
+        set +a
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        bin/rails db:seed
+      args:
+        executable: /bin/bash
+        chdir: "{{ app_dir }}"
+      become_user: "{{ deploy_user }}"
+
+    # productionでnginxからCSSや画像を配信できるようにassetsを事前コンパイルする。
+    - name: Precompile assets
+      ansible.builtin.shell: |
+        set -a
+        source /etc/nobu-iac-lab.env
+        set +a
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        bin/rails assets:precompile
+      args:
+        executable: /bin/bash
+        chdir: "{{ app_dir }}"
+      become_user: "{{ deploy_user }}"
+
+    # Railsアプリ全体の所有者をdeployへ揃える。
+    # rootで作成されたファイルが混ざるとPumaから書けずに失敗することがある。
+    - name: Ensure application ownership
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        recurse: true
+
+    # Pumaをsystemdサービスとして登録する。
+    # EnvironmentFileでDBパスワードやsecret_key_baseを読み込む。
+    - name: Create systemd service for Puma
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ puma_service_name }}.service"
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Puma HTTP Server for {{ app_name }}
+          After=network.target
+
+          [Service]
+          Type=simple
+          User={{ deploy_user }}
+          Group={{ deploy_group }}
+          WorkingDirectory={{ app_dir }}
+          EnvironmentFile=/etc/nobu-iac-lab.env
+          Environment=RBENV_ROOT={{ rbenv_root }}
+          Environment=PATH={{ rbenv_root }}/bin:{{ rbenv_root }}/shims:/usr/local/bin:/usr/bin:/bin
+          ExecStart={{ rbenv_root }}/shims/bundle exec puma -C {{ app_dir }}/config/puma.rb
+          ExecReload=/bin/kill -USR1 $MAINPID
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Enable and restart Puma service
+      ansible.builtin.systemd:
+        name: "{{ puma_service_name }}"
+        enabled: true
+        state: restarted
+
+    - name: Enable and restart nginx service
+      ansible.builtin.systemd:
+        name: nginx
+        enabled: true
+        state: restarted
+
+    # ここからは動作確認。
+    # systemd、socket、Puma直接、nginx経由の順に確認すると原因を切り分けやすい。
+    - name: Check Puma service status
+      ansible.builtin.command:
+        cmd: "systemctl is-active {{ puma_service_name }}"
+      register: puma_status
+      changed_when: false
+
+    - name: Check nginx service status
+      ansible.builtin.command:
+        cmd: "systemctl is-active nginx"
+      register: nginx_status
+      changed_when: false
+
+    - name: Check Puma socket exists
+      ansible.builtin.stat:
+        path: "{{ puma_socket }}"
+      register: puma_socket_status
+
+    - name: Check Rails response through Puma socket
+      ansible.builtin.command:
+        cmd: "curl --silent --show-error --fail --unix-socket {{ puma_socket }} http://localhost/"
+      register: puma_curl_result
+      changed_when: false
+
+    - name: Check Rails response through nginx
+      ansible.builtin.command:
+        cmd: "curl --silent --show-error --fail http://localhost:3000/"
+      register: nginx_curl_result
+      changed_when: false
+
+    - name: Show Rails sample application status
+      ansible.builtin.debug:
+        msg:
+          - "Puma service: {{ puma_status.stdout }}"
+          - "nginx service: {{ nginx_status.stdout }}"
+          - "Puma socket exists: {{ puma_socket_status.stat.exists }}"
+          - "Puma response bytes: {{ puma_curl_result.stdout | length }}"
+          - "nginx response bytes: {{ nginx_curl_result.stdout | length }}"
+          - "Sample user: nobu@example.com / password"

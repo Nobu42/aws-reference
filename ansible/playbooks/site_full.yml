@@ -1,0 +1,27 @@
+---
+# Ansible編のフル実行用Playbook。
+#
+# 前提:
+# - AWS CLI編でWeb EC2を作成済み
+# - Amazon Linux 2023の公式AMIなど、Ruby未導入のEC2から構築する
+#
+# 目的:
+# - 共通パッケージ、deployユーザー、nginx、Ruby、Railsアプリ配置までをまとめて実行する
+# - カスタムAMIを使わない検証や、AMIを作り直す前の初回構築で利用する
+#
+# 注意:
+# - 05_ruby.yml はRubyをソースビルドするため時間がかかる
+# - 日次再構築では、通常はカスタムAMI + site.yml を使う
+#
+# 実行前に必要な環境変数:
+#   export DB_MASTER_PASSWORD='RDS作成時のパスワード'
+#   export SECRET_KEY_BASE=$(openssl rand -hex 64)
+#
+# 実行:
+#   ansible-playbook playbooks/site_full.yml
+- import_playbook: 01_ping.yml
+- import_playbook: 02_packages.yml
+- import_playbook: 03_deploy_user.yml
+- import_playbook: 04_nginx.yml
+- import_playbook: 05_ruby.yml
+- import_playbook: 08_sample_app_rails72.yml

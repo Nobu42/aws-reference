@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# /Users/nobu/aws-reference/scripts 直下の 01 〜 10 と 14 の作成系スクリプトで
+# /Users/nobu/aws-reference/scripts 直下の 01 〜 10、14、19 の作成系スクリプトで
 # 作成したネットワークリソースを削除する。
 #
 # 対象スクリプト:
@@ -16,6 +16,7 @@ set -euo pipefail
 # - 09_LoadBalancer_setup.sh
 # - 10_Database_setup.sh
 # - 14_private_dns_setup.sh
+# - 19_elasticache_setup.sh
 #
 # 削除対象:
 # - Private Hosted Zone home
@@ -24,6 +25,8 @@ set -euo pipefail
 # - DB Subnet Group
 # - DB Parameter Group
 # - DB Option Group
+# - ElastiCache Replication Group
+# - ElastiCache Subnet Group
 # - Application Load Balancer
 # - Target Group
 # - Bastion EC2 / Web EC2
@@ -41,24 +44,27 @@ set -euo pipefail
 # 3. RDS DB Instanceを削除する
 # 4. RDS DB Instanceがdeletedになるまで待つ
 # 5. DB Subnet Group / Parameter Group / Option Groupを削除する
-# 6. Private Hosted Zone home のカスタムレコードを削除する
-# 7. Private Hosted Zone home を削除する
-# 8. Bastion EC2 / Web EC2をterminateする
-# 9. EC2がterminatedになるまで待つ
-# 10. NAT Gatewayを削除する
-# 11. NAT Gatewayがdeletedになるまで待つ
-# 12. Elastic IPを解放する
-# 13. Custom Route Tableの関連付けを解除して削除する
-# 14. Security Groupを削除する
-# 15. Internet GatewayをVPCからdetachして削除する
-# 16. Subnetを削除する
-# 17. VPCを削除する
+# 6. ElastiCache Replication Groupを削除する
+# 7. ElastiCache Replication Groupがdeletedになるまで待つ
+# 8. ElastiCache Subnet Groupを削除する
+# 9. Private Hosted Zone home のカスタムレコードを削除する
+# 10. Private Hosted Zone home を削除する
+# 11. Bastion EC2 / Web EC2をterminateする
+# 12. EC2がterminatedになるまで待つ
+# 13. NAT Gatewayを削除する
+# 14. NAT Gatewayがdeletedになるまで待つ
+# 15. Elastic IPを解放する
+# 16. Custom Route Tableの関連付けを解除して削除する
+# 17. Security Groupを削除する
+# 18. Internet GatewayをVPCからdetachして削除する
+# 19. Subnetを削除する
+# 20. VPCを削除する
 #
 # 注意:
 # - NAT GatewayとElastic IPは課金対象である。
 # - このスクリプトは実AWSリソースを削除する。
 # - 実行前にCaller Identityと対象VPCを必ず確認する。
-# - S3、Public DNS、ACM、SES、ElastiCacheなどは対象外である。
+# - S3、Public DNS、ACM、SESなどは対象外である。
 # - Private Hosted Zone home は日次ラボ用の内部DNSとして削除対象に含める。
 # - Key Pairはpemファイルとの対応が重要なため、このcleanupでは削除しない。
 
@@ -124,6 +130,15 @@ DB_OPTION_GROUP_NAMES=(
   "sample-db-og"
 )
 
+# 削除対象のElastiCache関連リソース名。
+ELASTICACHE_REPLICATION_GROUP_IDS=(
+  "sample-elasticache"
+)
+
+ELASTICACHE_SUBNET_GROUP_NAMES=(
+  "sample-elasticache-sg"
+)
+
 # 削除対象のNAT Gateway名。
 NAT_GATEWAY_NAMES=(
   "sample-ngw-01"
@@ -148,6 +163,7 @@ ROUTE_TABLE_NAMES=(
 # default Security GroupはVPC標準リソースのため、単体削除しない。
 SECURITY_GROUP_NAMES=(
   "sample-sg-db"
+  "sample-sg-elasticache"
   "sample-sg-web"
   "sample-sg-bastion"
   "sample-sg-elb"
@@ -446,6 +462,64 @@ for db_option_group_name in "${DB_OPTION_GROUP_NAMES[@]}"; do
     --profile "$PROFILE" \
     --region "$REGION" \
     --option-group-name "$db_option_group_name"
+done
+
+echo "=== Delete ElastiCache Replication Groups ==="
+
+# 19_elasticache_setup.sh で作成したElastiCache Replication Groupを削除する。
+# ElastiCacheが残っていると、Subnet Group、Security Group、Subnet、VPCを削除できない。
+for replication_group_id in "${ELASTICACHE_REPLICATION_GROUP_IDS[@]}"; do
+  REPLICATION_GROUP_STATUS=$(aws elasticache describe-replication-groups \
+    --profile "$PROFILE" \
+    --region "$REGION" \
+    --replication-group-id "$replication_group_id" \
+    --query 'ReplicationGroups[0].Status' \
+    --output text 2>/dev/null || true)
+
+  if [ "$REPLICATION_GROUP_STATUS" = "None" ] || [ -z "$REPLICATION_GROUP_STATUS" ]; then
+    echo "ElastiCache Replication Group not found: $replication_group_id"
+    continue
+  fi
+
+  if [ "$REPLICATION_GROUP_STATUS" = "deleting" ]; then
+    echo "ElastiCache Replication Group is already deleting: $replication_group_id"
+  else
+    echo "Deleting ElastiCache Replication Group: $replication_group_id ($REPLICATION_GROUP_STATUS)"
+    aws elasticache delete-replication-group \
+      --profile "$PROFILE" \
+      --region "$REGION" \
+      --replication-group-id "$replication_group_id" \
+      --no-retain-primary-cluster >/dev/null
+  fi
+
+  echo "Waiting for ElastiCache Replication Group to be deleted: $replication_group_id"
+  aws elasticache wait replication-group-deleted \
+    --profile "$PROFILE" \
+    --region "$REGION" \
+    --replication-group-id "$replication_group_id"
+done
+
+echo "=== Delete ElastiCache Subnet Groups ==="
+
+# ElastiCache Subnet GroupはReplication Group削除後に削除する。
+for elasticache_subnet_group_name in "${ELASTICACHE_SUBNET_GROUP_NAMES[@]}"; do
+  ELASTICACHE_SUBNET_GROUP_EXISTS=$(aws elasticache describe-cache-subnet-groups \
+    --profile "$PROFILE" \
+    --region "$REGION" \
+    --cache-subnet-group-name "$elasticache_subnet_group_name" \
+    --query 'length(CacheSubnetGroups)' \
+    --output text 2>/dev/null || true)
+
+  if [ "$ELASTICACHE_SUBNET_GROUP_EXISTS" = "None" ] || [ -z "$ELASTICACHE_SUBNET_GROUP_EXISTS" ] || [ "$ELASTICACHE_SUBNET_GROUP_EXISTS" -eq 0 ]; then
+    echo "ElastiCache Subnet Group not found: $elasticache_subnet_group_name"
+    continue
+  fi
+
+  echo "Deleting ElastiCache Subnet Group: $elasticache_subnet_group_name"
+  aws elasticache delete-cache-subnet-group \
+    --profile "$PROFILE" \
+    --region "$REGION" \
+    --cache-subnet-group-name "$elasticache_subnet_group_name"
 done
 
 echo "=== Delete Private Hosted Zone home ==="
@@ -1012,6 +1086,20 @@ aws rds describe-option-groups \
   --region "$REGION" \
   --option-group-name sample-db-og \
   --query 'OptionGroupsList[*].{Name:OptionGroupName,Engine:EngineName,MajorEngineVersion:MajorEngineVersion}' \
+  --output table 2>/dev/null || true
+
+aws elasticache describe-replication-groups \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --replication-group-id sample-elasticache \
+  --query 'ReplicationGroups[*].{ID:ReplicationGroupId,Status:Status,ClusterEnabled:ClusterEnabled}' \
+  --output table 2>/dev/null || true
+
+aws elasticache describe-cache-subnet-groups \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --cache-subnet-group-name sample-elasticache-sg \
+  --query 'CacheSubnetGroups[*].{Name:CacheSubnetGroupName,VpcId:VpcId}' \
   --output table 2>/dev/null || true
 
 aws elbv2 describe-load-balancers \

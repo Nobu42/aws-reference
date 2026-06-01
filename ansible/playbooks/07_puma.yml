@@ -1,0 +1,233 @@
+---
+# Pumaをsystemdサービスとして起動するPlaybook。
+#
+# 前提:
+# - 05_ruby.yml で Ruby / Bundler が導入済み
+# - 06_rails.yml で /var/www/nobu-iac-lab にRailsアプリが作成済み
+# - 04_nginx.yml で nginx が /var/www/nobu-iac-lab/tmp/sockets/puma.sock を向いている
+#
+# このPlaybookでは、RailsアプリをPumaで起動し、
+# nginxが接続するUnix Socketを作成する。
+#
+# まずは動作確認を優先するため RAILS_ENV=development で起動する。
+# production化、RDS接続、credentials、assets precompileは後続で扱う。
+- name: Configure and start Puma for Rails application
+  hosts: web
+  become: true
+  serial: 1
+
+  vars:
+    deploy_user: deploy
+    deploy_group: deploy
+    deploy_home: /home/deploy
+    rbenv_root: /home/deploy/.rbenv
+    app_name: nobu-iac-lab
+    app_dir: /var/www/nobu-iac-lab
+    rails_env: development
+    puma_service_name: puma-nobu-iac-lab
+    puma_socket: /var/www/nobu-iac-lab/tmp/sockets/puma.sock
+    puma_pid: /var/www/nobu-iac-lab/tmp/pids/puma.pid
+    puma_state: /var/www/nobu-iac-lab/tmp/pids/puma.state
+
+  tasks:
+    # Amazon Linux 2023ではcurl-minimalが標準で入ることがある。
+    # 通常のcurlパッケージとは競合するため、curl-minimalを前提にする。
+    - name: Ensure curl-minimal is available for health check
+      ansible.builtin.dnf:
+        name: curl-minimal
+        state: present
+
+    # Pumaが利用するディレクトリを作成する。
+    # tmp/sockets:
+    #   nginxが接続するUnix Socketを置く場所。
+    #
+    # tmp/pids:
+    #   PumaのPIDやstateファイルを置く場所。
+    #
+    # log:
+    #   Pumaのstdout/stderrログを置く場所。
+    - name: Ensure Puma directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0755'
+      loop:
+        - "{{ app_dir }}/tmp"
+        - "{{ app_dir }}/tmp/sockets"
+        - "{{ app_dir }}/tmp/pids"
+        - "{{ app_dir }}/log"
+
+    # Rails development環境ではHost Authorizationにより、
+    # localhost以外のHostヘッダーがブロックされることがある。
+    #
+    # ALBや独自ドメイン経由でも確認できるように、学習環境ではhosts制限を解除する。
+    # production環境では安易に解除せず、許可するホスト名を明示する方がよい。
+    - name: Allow external host names in Rails development
+      ansible.builtin.lineinfile:
+        path: "{{ app_dir }}/config/environments/development.rb"
+        line: "  config.hosts.clear"
+        insertbefore: "^end$"
+        state: present
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+
+    # まだRDS接続設定を行っていない段階では、Railsのページ表示時に
+    # マイグレーション確認でローカルMySQLへ接続しようとして500になる。
+    # Puma/nginxの疎通確認を優先するため、developmentの自動確認を無効化する。
+    - name: Disable migration check on page load before database setup
+      ansible.builtin.lineinfile:
+        path: "{{ app_dir }}/config/environments/development.rb"
+        regexp: '^  config\.active_record\.migration_error ='
+        line: "  config.active_record.migration_error = false"
+        state: present
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+
+    # Puma設定ファイルを作成する。
+    #
+    # bind:
+    #   TCPポートではなくUnix Socketで待ち受ける。
+    #   nginxはこのSocketへproxy_passする。
+    #
+    # environment:
+    #   今回はdevelopmentで起動する。
+    #
+    # stdout_redirect:
+    #   PumaのログをRailsアプリ配下のlogディレクトリへ出力する。
+    - name: Create Puma configuration
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/config/puma.rb"
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_group }}"
+        mode: '0644'
+        content: |
+          max_threads_count = ENV.fetch("RAILS_MAX_THREADS") { 5 }
+          min_threads_count = ENV.fetch("RAILS_MIN_THREADS") { max_threads_count }
+          threads min_threads_count, max_threads_count
+
+          rails_env = ENV.fetch("RAILS_ENV") { "{{ rails_env }}" }
+          environment rails_env
+
+          app_dir = "{{ app_dir }}"
+          directory app_dir
+
+          bind "unix://{{ puma_socket }}"
+
+          pidfile "{{ puma_pid }}"
+          state_path "{{ puma_state }}"
+
+          stdout_redirect "#{app_dir}/log/puma.stdout.log", "#{app_dir}/log/puma.stderr.log", true
+
+          plugin :tmp_restart
+
+    # Pumaをsystemdで管理するためのUnitファイルを作成する。
+    #
+    # User / Group:
+    #   Railsアプリはdeployユーザーで実行する。
+    #
+    # WorkingDirectory:
+    #   Railsアプリのルートディレクトリ。
+    #
+    # Environment:
+    #   rbenvのRubyとBundlerを利用できるようにPATHを設定する。
+    #
+    # ExecStart:
+    #   bundle exec pumaで、アプリ内Gemfileに従ってPumaを起動する。
+    - name: Create systemd service for Puma
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ puma_service_name }}.service"
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Puma HTTP Server for {{ app_name }}
+          After=network.target
+
+          [Service]
+          Type=simple
+          User={{ deploy_user }}
+          Group={{ deploy_group }}
+          WorkingDirectory={{ app_dir }}
+          Environment=RAILS_ENV={{ rails_env }}
+          Environment=RBENV_ROOT={{ rbenv_root }}
+          Environment=PATH={{ rbenv_root }}/bin:{{ rbenv_root }}/shims:/usr/local/bin:/usr/bin:/bin
+          ExecStart={{ rbenv_root }}/shims/bundle exec puma -C {{ app_dir }}/config/puma.rb
+          ExecReload=/bin/kill -USR1 $MAINPID
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    # systemdのUnitファイルを再読み込みする。
+    # 新規作成または変更したserviceファイルをsystemdに認識させるために必要。
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    # Pumaを起動し、自動起動も有効化する。
+    - name: Enable and start Puma service
+      ansible.builtin.systemd:
+        name: "{{ puma_service_name }}"
+        enabled: true
+        state: restarted
+
+    # nginxを起動する。
+    # 04_nginx.ymlではPuma未起動だったため、自動起動有効化までにしていた。
+    # ここでPuma socketが作られるので、nginxも起動する。
+    - name: Enable and start nginx service
+      ansible.builtin.systemd:
+        name: nginx
+        enabled: true
+        state: restarted
+
+    # Puma serviceの状態を確認する。
+    - name: Check Puma service status
+      ansible.builtin.command:
+        cmd: "systemctl is-active {{ puma_service_name }}"
+      register: puma_status
+      changed_when: false
+
+    # nginx serviceの状態を確認する。
+    - name: Check nginx service status
+      ansible.builtin.command:
+        cmd: "systemctl is-active nginx"
+      register: nginx_status
+      changed_when: false
+
+    # PumaのUnix Socketが作成されているか確認する。
+    - name: Check Puma socket exists
+      ansible.builtin.stat:
+        path: "{{ puma_socket }}"
+      register: puma_socket_status
+
+    # Unix Socket経由でPumaへHTTPリクエストを投げる。
+    # nginxを経由せず、Puma単体でRailsが応答できるか確認する。
+    - name: Check Rails response through Puma socket
+      ansible.builtin.command:
+        cmd: "curl --silent --show-error --fail --unix-socket {{ puma_socket }} http://localhost/"
+      register: puma_curl_result
+      changed_when: false
+
+    # nginx経由でRailsが応答できるか確認する。
+    # ALBもこの3000番へ転送するため、ここが通ればALB確認に進める。
+    - name: Check Rails response through nginx
+      ansible.builtin.command:
+        cmd: "curl --silent --show-error --fail http://localhost:3000/"
+      register: nginx_curl_result
+      changed_when: false
+
+    # 確認結果を表示する。
+    - name: Show Puma and nginx status
+      ansible.builtin.debug:
+        msg:
+          - "Puma service: {{ puma_status.stdout }}"
+          - "nginx service: {{ nginx_status.stdout }}"
+          - "Puma socket exists: {{ puma_socket_status.stat.exists }}"
+          - "Puma response bytes: {{ puma_curl_result.stdout | length }}"
+          - "nginx response bytes: {{ nginx_curl_result.stdout | length }}"

@@ -1,0 +1,83 @@
+---
+# Railsアプリ用のnginx設定を作成するPlaybook。
+# この段階ではPuma/Railsはまだ起動していないため、nginxの起動までは行わない。
+- name: Configure nginx for Rails application
+  hosts: web
+  become: true
+
+  tasks:
+    # Railsアプリケーションを配置するディレクトリを作成する。
+    # /var/www は前のPlaybookで作成済みだが、ここではアプリ名のディレクトリまで用意する。
+    - name: Create Rails application directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: '0755'
+      loop:
+        - /var/www/nobu-iac-lab
+        - /var/www/nobu-iac-lab/public
+        - /var/www/nobu-iac-lab/tmp
+        - /var/www/nobu-iac-lab/tmp/sockets
+
+    # nginxのRails用設定ファイルを配置する。
+    # copyモジュールのcontentを使うと、別ファイルを作らずPlaybook内に設定を書ける。
+    - name: Create nginx config for Rails
+      ansible.builtin.copy:
+        dest: /etc/nginx/conf.d/rails.conf
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          map $http_x_forwarded_proto $rails_x_forwarded_proto {
+              default $http_x_forwarded_proto;
+              "" $scheme;
+          }
+
+          upstream puma {
+              server unix:///var/www/nobu-iac-lab/tmp/sockets/puma.sock;
+          }
+
+          server {
+              listen 3000 default_server;
+              listen [::]:3000 default_server;
+              server_name _;
+
+              # 画像付き投稿ではmultipart/form-dataでファイルを送る。
+              # nginxのデフォルト上限は小さいため、Rails側の画像制限5MBより少し大きい10MBまで許可する。
+              client_max_body_size 10m;
+
+              root /var/www/nobu-iac-lab/public;
+
+              location ~ ^/assets/ {
+                  root /var/www/nobu-iac-lab/public;
+              }
+
+              location / {
+                  proxy_read_timeout 300;
+                  proxy_connect_timeout 300;
+                  proxy_redirect off;
+
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Forwarded-Proto $rails_x_forwarded_proto;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Real-IP $remote_addr;
+
+                  proxy_pass http://puma;
+              }
+          }
+
+    # nginx設定ファイルの構文チェックを行う。
+    # Pumaのsocketがまだ存在しなくても、nginxの構文としてはチェックできる。
+    - name: Check nginx configuration syntax
+      ansible.builtin.command:
+        cmd: nginx -t
+      changed_when: false
+
+    # nginxを自動起動対象にする。
+    # この段階ではPumaがまだないため、state: started にはしない。
+    - name: Enable nginx service
+      ansible.builtin.systemd:
+        name: nginx
+        enabled: true

@@ -1,0 +1,206 @@
+---
+# CloudWatch Agentを導入し、nginx / PumaログをCloudWatch Logsへ送信するPlaybook。
+#
+# 前提:
+# - Web EC2にIAM Role sample-role-web が関連付けられていること
+# - sample-role-web に CloudWatchAgentServerPolicy が付与されていること
+# - 04_nginx.yml でnginxが導入済みであること
+# - 08_sample_app_rails72.yml でRails/Pumaログ出力先が作成済みであること
+#
+# 収集対象:
+# - /var/log/nginx/access.log
+# - /var/log/nginx/error.log
+# - /var/www/nobu-iac-lab/log/puma.stdout.log
+# - /var/www/nobu-iac-lab/log/puma.stderr.log
+#
+# 実行:
+#   ansible-playbook playbooks/09_cloudwatch_agent.yml
+- name: Install and configure CloudWatch Agent for application logs
+  hosts: web
+  become: true
+
+  vars:
+    aws_region: ap-northeast-1
+    app_dir: /var/www/nobu-iac-lab
+
+    # CloudWatch LogsのLog Group名。
+    # nginx / Pumaのログ種別ごとに分けることで、検索対象を絞りやすくする。
+    nginx_access_log_group: /nobu-iac-lab/nginx/access
+    nginx_error_log_group: /nobu-iac-lab/nginx/error
+    puma_stdout_log_group: /nobu-iac-lab/puma/stdout
+    puma_stderr_log_group: /nobu-iac-lab/puma/stderr
+
+    # 学習環境ではログを長期間残し続けると費用が増えるため、まずは短めにする。
+    # 必要に応じて 14 / 30 / 90 などへ変更する。
+    log_retention_days: 7
+
+    # CloudWatch Agentの設定ファイル。
+    cloudwatch_agent_config_path: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+
+  tasks:
+    # Amazon Linux 2023ではdnfでCloudWatch Agentを導入できる。
+    # このパッケージに、amazon-cloudwatch-agent-ctl コマンドとsystemd serviceが含まれる。
+    - name: Install CloudWatch Agent
+      ansible.builtin.dnf:
+        name: amazon-cloudwatch-agent
+        state: present
+
+    # CloudWatch Logsは、Agentが送信時にLog Groupを作成することもできるが、
+    # 先にAWS CLIで作成しておくと、保持期間を明示できる。
+    #
+    # このタスクは対象EC2上でAWS CLIを実行する。
+    # Web EC2にはIAM Roleが付いているため、アクセスキーを置かずに実行できる。
+    - name: Create CloudWatch Log Groups
+      ansible.builtin.command:
+        cmd: >
+          aws logs create-log-group
+          --region {{ aws_region }}
+          --log-group-name {{ item }}
+      loop:
+        - "{{ nginx_access_log_group }}"
+        - "{{ nginx_error_log_group }}"
+        - "{{ puma_stdout_log_group }}"
+        - "{{ puma_stderr_log_group }}"
+      register: create_log_group_result
+      changed_when: create_log_group_result.rc == 0
+      failed_when:
+        - create_log_group_result.rc != 0
+        - "'ResourceAlreadyExistsException' not in create_log_group_result.stderr"
+      run_once: true
+
+    # Log Groupの保持期間を設定する。
+    # CloudWatch Logsは保存期間を無期限にできるが、学習環境ではコストを抑えるため7日にする。
+    # Log Groupはweb01 / web02で共有するため、保持期間設定も1回だけ実行する。
+    # 複数台から同時にput-retention-policyすると、CloudWatch側で
+    # OperationAbortedExceptionになることがある。
+    - name: Set CloudWatch Log Group retention
+      ansible.builtin.command:
+        cmd: >
+          aws logs put-retention-policy
+          --region {{ aws_region }}
+          --log-group-name {{ item }}
+          --retention-in-days {{ log_retention_days }}
+      loop:
+        - "{{ nginx_access_log_group }}"
+        - "{{ nginx_error_log_group }}"
+        - "{{ puma_stdout_log_group }}"
+        - "{{ puma_stderr_log_group }}"
+      changed_when: false
+      run_once: true
+
+    # Pumaログファイルが存在しない状態でAgentを起動しても後から拾えるが、
+    # 初回確認を分かりやすくするため、空ファイルを作成しておく。
+    # owner/groupはRailsアプリのdeployユーザーに合わせる。
+    - name: Ensure Puma log files exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: touch
+        owner: deploy
+        group: deploy
+        mode: '0644'
+      loop:
+        - "{{ app_dir }}/log/puma.stdout.log"
+        - "{{ app_dir }}/log/puma.stderr.log"
+
+    # CloudWatch Agent設定ファイルを配置する。
+    #
+    # logs_collected.files.collect_list:
+    #   収集するログファイルを列挙する。
+    #
+    # log_group_name:
+    #   CloudWatch Logs側の保存先。
+    #
+    # log_stream_name:
+    #   {instance_id} を使い、web01 / web02 のログをEC2インスタンス単位で分ける。
+    #
+    # timestamp_format:
+    #   nginxとPumaのログ形式は異なるため、まずは指定しない。
+    #   CloudWatch Logsの取り込み時刻で確認する。
+    #
+    # retention_in_days:
+    #   Agent側にも保持期間を明示しておく。
+    - name: Create CloudWatch Agent configuration
+      ansible.builtin.copy:
+        dest: "{{ cloudwatch_agent_config_path }}"
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          {
+            "agent": {
+              "region": "{{ aws_region }}"
+            },
+            "logs": {
+              "logs_collected": {
+                "files": {
+                  "collect_list": [
+                    {
+                      "file_path": "/var/log/nginx/access.log",
+                      "log_group_name": "{{ nginx_access_log_group }}",
+                      "log_stream_name": "{instance_id}",
+                      "retention_in_days": {{ log_retention_days }}
+                    },
+                    {
+                      "file_path": "/var/log/nginx/error.log",
+                      "log_group_name": "{{ nginx_error_log_group }}",
+                      "log_stream_name": "{instance_id}",
+                      "retention_in_days": {{ log_retention_days }}
+                    },
+                    {
+                      "file_path": "{{ app_dir }}/log/puma.stdout.log",
+                      "log_group_name": "{{ puma_stdout_log_group }}",
+                      "log_stream_name": "{instance_id}",
+                      "retention_in_days": {{ log_retention_days }}
+                    },
+                    {
+                      "file_path": "{{ app_dir }}/log/puma.stderr.log",
+                      "log_group_name": "{{ puma_stderr_log_group }}",
+                      "log_stream_name": "{instance_id}",
+                      "retention_in_days": {{ log_retention_days }}
+                    }
+                  ]
+                }
+              }
+            }
+          }
+
+    # CloudWatch Agentに設定ファイルを読み込ませて起動する。
+    #
+    # -a fetch-config:
+    #   指定した設定ファイルを読み込む。
+    #
+    # -m ec2:
+    #   EC2上で動かすモード。
+    #
+    # -s:
+    #   設定反映後にAgentを起動する。
+    - name: Apply CloudWatch Agent configuration and start service
+      ansible.builtin.command:
+        cmd: >
+          /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl
+          -a fetch-config
+          -m ec2
+          -c file:{{ cloudwatch_agent_config_path }}
+          -s
+      changed_when: true
+
+    # systemdの自動起動を有効にする。
+    # EC2再起動後もログ収集が継続するようにする。
+    - name: Enable CloudWatch Agent service
+      ansible.builtin.systemd:
+        name: amazon-cloudwatch-agent
+        enabled: true
+        state: started
+
+    # Agentの状態を確認する。
+    # runningであればログ収集プロセスは起動している。
+    - name: Check CloudWatch Agent status
+      ansible.builtin.command:
+        cmd: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a status
+      register: cloudwatch_agent_status
+      changed_when: false
+
+    # 確認しやすいようにstatusを表示する。
+    - name: Show CloudWatch Agent status
+      ansible.builtin.debug:
+        var: cloudwatch_agent_status.stdout

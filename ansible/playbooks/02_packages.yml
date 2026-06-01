@@ -1,0 +1,31 @@
+---
+- name: Install packages before Rails setup
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Install common packages
+      ansible.builtin.dnf:
+        name:
+          - git
+          - gcc
+          - gcc-c++
+          - glibc-headers
+          - readline
+          - readline-devel
+          - libyaml-devel
+          - zlib
+          - zlib-devel
+          - libffi-devel
+          - libxml2
+          - libxml2-devel
+          - libxslt
+          - libxslt-devel
+          - sqlite-devel
+          - libcurl-devel
+          - mariadb105
+          - mariadb105-devel
+          - ImageMagick
+          - nginx
+        state: present
+

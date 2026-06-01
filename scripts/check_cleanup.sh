@@ -13,7 +13,7 @@ PRIVATE_ZONE_NAME_DOT="${PRIVATE_ZONE_NAME}."
 EC2_NAMES="sample-ec2-bastion,sample-ec2-web01,sample-ec2-web02"
 SUBNET_NAMES="sample-subnet-public01,sample-subnet-public02,sample-subnet-private01,sample-subnet-private02"
 ROUTE_TABLE_NAMES="sample-rt-public,sample-rt-private01,sample-rt-private02"
-SECURITY_GROUP_NAMES="sample-sg-bastion,sample-sg-elb,sample-sg-web,sample-sg-db"
+SECURITY_GROUP_NAMES="sample-sg-bastion,sample-sg-elb,sample-sg-web,sample-sg-db,sample-sg-elasticache"
 NAT_GATEWAY_NAMES="sample-ngw-01,sample-ngw-02"
 EIP_NAMES="sample-eip-ngw-01,sample-eip-ngw-02"
 ALB_NAME="sample-elb"
@@ -22,6 +22,8 @@ RDS_INSTANCE_ID="sample-db"
 DB_SUBNET_GROUP_NAME="sample-db-subnet"
 DB_PARAMETER_GROUP_NAME="sample-db-pg"
 DB_OPTION_GROUP_NAME="sample-db-og"
+ELASTICACHE_REPLICATION_GROUP_ID="sample-elasticache"
+ELASTICACHE_SUBNET_GROUP_NAME="sample-elasticache-sg"
 S3_BUCKET_NAMES=(
   "nobu-terraform-iac-lab-upload"
   "nobu-iac-lab-mailbox"
@@ -145,6 +147,22 @@ aws rds describe-option-groups \
   --query 'OptionGroupsList[*].{Name:OptionGroupName,Engine:EngineName,MajorEngineVersion:MajorEngineVersion}' \
   --output table 2>/dev/null || echo "DB Option Group not found: $DB_OPTION_GROUP_NAME"
 
+echo "=== Daily Lab ElastiCache Replication Groups ==="
+aws elasticache describe-replication-groups \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --replication-group-id "$ELASTICACHE_REPLICATION_GROUP_ID" \
+  --query 'ReplicationGroups[*].{ID:ReplicationGroupId,Status:Status,ClusterEnabled:ClusterEnabled,MemberClusters:MemberClusters}' \
+  --output table 2>/dev/null || echo "ElastiCache Replication Group not found: $ELASTICACHE_REPLICATION_GROUP_ID"
+
+echo "=== Daily Lab ElastiCache Subnet Groups ==="
+aws elasticache describe-cache-subnet-groups \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --cache-subnet-group-name "$ELASTICACHE_SUBNET_GROUP_NAME" \
+  --query 'CacheSubnetGroups[*].{Name:CacheSubnetGroupName,VpcId:VpcId,Subnets:Subnets[*].SubnetIdentifier}' \
+  --output table 2>/dev/null || echo "ElastiCache Subnet Group not found: $ELASTICACHE_SUBNET_GROUP_NAME"
+
 echo "=== Daily Lab S3 Buckets ==="
 for bucket_name in "${S3_BUCKET_NAMES[@]}"; do
   if aws s3api head-bucket \
@@ -254,6 +272,7 @@ echo "  - No daily lab Elastic IP"
 echo "  - No daily lab ALB / Target Group"
 echo "  - No daily lab RDS instance"
 echo "  - No daily lab RDS DB Subnet Group / Parameter Group / Option Group"
+echo "  - No daily lab ElastiCache Replication Group / Subnet Group"
 echo "  - No temporary DNS records: bastion, www, MX"
 echo "  - No Private Hosted Zone: home"
 echo "  - S3 buckets for daily lab should be deleted"

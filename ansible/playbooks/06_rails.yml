@@ -1,0 +1,166 @@
+---
+# Railsアプリケーションの雛形を作成するPlaybook。
+#
+# 前提:
+# - 05_ruby.yml で deploy ユーザーに Ruby 3.3.6 が入っていること
+# - /var/www/nobu-iac-lab は deploy ユーザー所有で作成済みであること
+#
+# このPlaybookでは、Rails 7.2系をインストールし、
+# /var/www/nobu-iac-lab にRailsアプリを作成する。
+#
+# まだPuma起動、nginx連携、RDS接続までは行わない。
+- name: Install Rails and create Rails application
+  hosts: web
+
+  # web01 / web02 を同時に処理してもよいが、
+  # 初回のgem installやbundle installは時間がかかるため1台ずつ実行する。
+  serial: 1
+
+  # Playbook内で使う変数。
+  vars:
+    deploy_user: deploy
+    deploy_home: /home/deploy
+    rbenv_root: /home/deploy/.rbenv
+    ruby_version: "3.3.6"
+    rails_version: "7.2.3"
+    app_name: nobu-iac-lab
+    app_dir: /var/www/nobu-iac-lab
+
+  tasks:
+    # Railsアプリ作成に必要な追加パッケージを入れる。
+    # すでに02_packages.ymlで多くのパッケージは導入済みだが、
+    # Rails 7ではJavaScript / CSSまわりでNode.jsが必要になる場面があるため確認しておく。
+    - name: Install packages required for Rails application
+      become: true
+      ansible.builtin.dnf:
+        name:
+          - nodejs
+          - npm
+        state: present
+
+    # deployユーザーでRails gemがインストール済みか確認する。
+    # gem list -i は、指定gemとversionが存在するとtrueを返す。
+    - name: Check Rails gem is installed
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        gem list -i rails -v {{ rails_version }}
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "{{ deploy_user }}"
+      register: rails_gem_check
+      changed_when: false
+      failed_when: false
+
+    # Rails 7.2系をインストールする。
+    # すでに指定バージョンが入っている場合はスキップする。
+    - name: Install Rails gem
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        gem install rails -v {{ rails_version }}
+        rbenv rehash
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "{{ deploy_user }}"
+      when: rails_gem_check.stdout != "true"
+
+    # Railsコマンドのバージョンを確認する。
+    - name: Check Rails version
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        rails -v
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "{{ deploy_user }}"
+      register: rails_version_check
+      changed_when: false
+
+    # RailsアプリのGemfileが存在するか確認する。
+    # Gemfileがある場合は、既にRailsアプリが作成済みと判断する。
+    - name: Check Rails application already exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}/Gemfile"
+      register: rails_app_exists
+
+    # Railsアプリの親ディレクトリがdeployユーザー所有であることを保証する。
+    # 04_nginx.ymlで作成済みだが、再実行時の安全のためここでも確認する。
+    - name: Ensure application directory exists
+      become: true
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+        mode: '0755'
+
+    # Railsアプリを作成する。
+    #
+    # --database=mysql:
+    #   RDS for MySQLに接続する前提のためMySQL用Gemを入れる。
+    #
+    # --skip-git:
+    #   この環境上ではGit初期化しない。
+    #   アプリをリポジトリ管理する段階で別途Git管理する。
+    #
+    # --skip-test:
+    #   まずはデプロイ確認を優先するため、初期テストファイルは作らない。
+    #
+    # --skip-system-test:
+    #   ブラウザテスト用の初期設定は作らない。
+    #
+    # Railsアプリが既に存在する場合はスキップする。
+    - name: Create Rails application
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        rails _{{ rails_version }}_ new {{ app_dir }} \
+          --database=mysql \
+          --skip-git \
+          --skip-test \
+          --skip-system-test
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "{{ deploy_user }}"
+      when: not rails_app_exists.stat.exists
+
+    # bundle installを実行する。
+    # Rails new直後にもbundle installは走るが、
+    # 再実行時にも依存Gemを揃えられるように明示しておく。
+    - name: Run bundle install
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        bundle install
+      args:
+        executable: /bin/bash
+        chdir: "{{ app_dir }}"
+      become: true
+      become_user: "{{ deploy_user }}"
+
+    # 作成されたRailsアプリのバージョンを確認する。
+    - name: Check Rails application version
+      ansible.builtin.shell: |
+        export RBENV_ROOT="{{ rbenv_root }}"
+        export PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+        bundle exec rails -v
+      args:
+        executable: /bin/bash
+        chdir: "{{ app_dir }}"
+      become: true
+      become_user: "{{ deploy_user }}"
+      register: app_rails_version_check
+      changed_when: false
+
+    # 確認結果を表示する。
+    - name: Show Rails versions
+      ansible.builtin.debug:
+        msg:
+          - "{{ rails_version_check.stdout }}"
+          - "{{ app_rails_version_check.stdout }}"
+

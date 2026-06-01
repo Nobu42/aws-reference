@@ -1,0 +1,23 @@
+---
+# Ansible編の標準実行用Playbook。
+#
+# 前提:
+# - AWS CLI編でWeb EC2を作成済み
+# - 08_Web_server_setup.sh でカスタムWebベースAMIを使用している
+# - カスタムAMIにはRuby 3.3.6 / Bundler / nginx / deployユーザーが導入済み
+#
+# 目的:
+# - 日次再構築時に、複数Playbookを1本で実行できるようにする
+# - RubyのソースビルドはカスタムAMIで済ませ、Railsアプリの配置を中心に行う
+# - Railsアプリ起動後、CloudWatch Agentでnginx / Pumaログを収集する
+#
+# 実行前に必要な環境変数:
+#   export DB_MASTER_PASSWORD='RDS作成時のパスワード'
+#   export SECRET_KEY_BASE=$(openssl rand -hex 64)
+#
+# 実行:
+#   ansible-playbook playbooks/site.yml
+- import_playbook: 01_ping.yml
+- import_playbook: 04_nginx.yml
+- import_playbook: 08_sample_app_rails72.yml
+- import_playbook: 09_cloudwatch_agent.yml
