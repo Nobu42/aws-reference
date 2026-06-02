@@ -13,6 +13,7 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCacheなど�
 | 種別 | リンク | 内容 |
 | :--- | :--- | :--- |
 | インフラ設計書 | [AWS Webアプリケーション基盤の設計書](./docs/Design_Specification.md) | ネットワーク、サーバー、DB、DNS、メール、キャッシュ、運用方針の全体設計 |
+| 案件対策S3手順 | [S3バケットポリシー変更の影響調査・設定変更・証跡取得](./docs/case_study_s3_bucket_policy_change.md) | S3バケットポリシー変更を題材に、変更前確認、影響調査、設定変更、テスト、切り戻し、証跡取得を整理 |
 | VPC構築スクリプト解説 | [VPC構築スクリプトの詳細解説](./scripts/01_vpc_setup.md) | `01_vpc_setup.sh` の処理内容、前提条件、実行後の確認観点 |
 | ネットワークCLIリファレンス | [AWSネットワーク調査用CLIリファレンス](./scripts/aws_network_cli_reference.md) | VPC、Subnet、Route Table、Security Group、NACL、VPC Endpoint、Flow Logsなどの確認コマンド |
 | セキュリティ調査CLIリファレンス | [AWSセキュリティ調査用CLIリファレンス](./scripts/aws_security_investigation_cli_reference.md) | EC2、S3、RDS、Lambda、GuardDuty、IAM、KMS、CloudTrail、Security Hubなどの調査コマンド |
