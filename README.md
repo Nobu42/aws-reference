@@ -16,6 +16,7 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCacheなど�
 | 案件対策S3手順 | [S3バケットポリシー変更の影響調査・設定変更・証跡取得](./docs/case_study_s3_bucket_policy_change.md) | S3バケットポリシー変更を題材に、変更前確認、影響調査、設定変更、テスト、切り戻し、証跡取得を整理 |
 | 案件対策S3手順書テンプレート | [S3バケットポリシー変更 作業手順書テンプレート](./docs/templates/s3_bucket_policy_change_procedure_template.xlsx) | 作業概要、事前確認、変更手順、変更後確認、切り戻し、証跡一覧、チェックリスト、レビュー承認をExcel形式で整理 |
 | 共通AWS CLIリファレンス | [共通AWS CLI・証跡保存リファレンス](./scripts/00_common_aws_cli_reference.md) | アカウント、Profile、Region、出力形式、証跡保存、差分確認、終了コード、秘密情報の扱いを整理 |
+| S3セキュリティCLIリファレンス | [S3セキュリティ設定CLIリファレンス](./scripts/01_s3_security_cli_reference.md) | Public Access Block、ACL、Object Ownership、暗号化、ログ、Versioning、Access Pointなどの確認コマンド |
 | VPC構築スクリプト解説 | [VPC構築スクリプトの詳細解説](./scripts/01_vpc_setup.md) | `01_vpc_setup.sh` の処理内容、前提条件、実行後の確認観点 |
 | ネットワークCLIリファレンス | [AWSネットワーク調査用CLIリファレンス](./scripts/aws_network_cli_reference.md) | VPC、Subnet、Route Table、Security Group、NACL、VPC Endpoint、Flow Logsなどの確認コマンド |
 | セキュリティ調査CLIリファレンス | [AWSセキュリティ調査用CLIリファレンス](./scripts/aws_security_investigation_cli_reference.md) | EC2、S3、RDS、Lambda、GuardDuty、IAM、KMS、CloudTrail、Security Hubなどの調査コマンド |
