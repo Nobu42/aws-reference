@@ -144,7 +144,7 @@ echo "=== Run setup scripts ==="
 ./14_private_dns_setup.sh
 
 # ACM証明書とHTTPS Listener
-#./15_acm_certificate_setup.sh
+./15_acm_certificate_setup.sh
 
 # SES送信用のDomain Identity / DKIM / SPF / DMARCは初回設定済みのため、
 # 毎日のセットアップでは実行しない。
