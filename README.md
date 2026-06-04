@@ -28,6 +28,7 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | 日次ラボ環境を一括構築したい | [All_Setup.sh](./scripts/All_Setup.sh) |
 | 検証後にリソースを削除したい | [cleanup_network.sh](./scripts/cleanup_network.sh)、[check_cleanup.sh](./scripts/check_cleanup.sh) |
 | 作業手順書テンプレートを使いたい | [Markdown版](./docs/templates/s3_bucket_policy_change_procedure_template.md)、[Excel版](./docs/templates/s3_bucket_policy_change_procedure_template.xlsx) |
+| 案件初日までの学習計画を確認したい | [2026-06-05 to 2026-06-30 案件対策ロードマップ](./docs/roadmaps/2026-06-05_to_2026-06-30_project_preparation_roadmap.md) |
 
 ## 案件対策リファレンス
 
@@ -108,6 +109,7 @@ AWS CLIでインフラを作成した後、Private Subnet上のWeb EC2へRails�
 
 | 種別 | リンク | 内容 |
 | :--- | :--- | :--- |
+| 案件対策ロードマップ | [2026-06-05 to 2026-06-30 案件対策ロードマップ](./docs/roadmaps/2026-06-05_to_2026-06-30_project_preparation_roadmap.md) | 7月1日の案件初日に向けた日別学習・模擬作業計画 |
 | プロジェクトメモ | [project.md](./project.md) | リポジトリや学習の全体メモ |
 | 作業種別メモ | [type_of_work.md](./type_of_work.md) | 作業分類の整理 |
 | 面談メモ | [mendan.md](./mendan.md) | 案件面談で確認した内容 |
