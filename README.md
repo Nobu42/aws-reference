@@ -22,7 +22,7 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | RailsアプリをEC2へデプロイしたい | [Railsアプリケーションデプロイ手順](./ansible/10_rails_app_deploy.md)、[Ansible README](./ansible/README.md) |
 | 日次ラボ環境を一括構築したい | [All_Setup.sh](./scripts/All_Setup.sh) |
 | 検証後にリソースを削除したい | [cleanup_network.sh](./scripts/cleanup_network.sh)、[check_cleanup.sh](./scripts/check_cleanup.sh) |
-| 作業手順書テンプレートを使いたい | [S3バケットポリシー変更 作業手順書テンプレート](./docs/templates/s3_bucket_policy_change_procedure_template.xlsx) |
+| 作業手順書テンプレートを使いたい | [Markdown版](./docs/templates/s3_bucket_policy_change_procedure_template.md)、[Excel版](./docs/templates/s3_bucket_policy_change_procedure_template.xlsx) |
 
 ## 案件対策リファレンス
 
@@ -39,7 +39,7 @@ AWSセキュリティ・ネットワーク改善案件で使うことを意識�
 | MFA検知 | [MFAなし管理コンソールログイン検知手順](./docs/references/06_mfa_console_login_detection.md) | CloudTrail、Metric Filter、Alarm、調査、切り戻し |
 | VPC/Network | [VPC/Network CLIリファレンス](./docs/references/07_vpc_network_cli_reference.md) | VPC、Subnet、Route Table、SG、NACL、Endpoint、Flow Logs、通信影響調査 |
 | S3変更ケーススタディ | [S3バケットポリシー変更の影響調査・設定変更・証跡取得](./docs/case_studies/case_study_s3_bucket_policy_change.md) | 変更前確認、影響調査、設定変更、テスト、切り戻し、証跡取得 |
-| 作業手順書テンプレート | [S3バケットポリシー変更 作業手順書テンプレート](./docs/templates/s3_bucket_policy_change_procedure_template.xlsx) | 作業概要、事前確認、変更手順、変更後確認、切り戻し、証跡一覧 |
+| 作業手順書テンプレート | [Markdown版](./docs/templates/s3_bucket_policy_change_procedure_template.md)、[Excel版](./docs/templates/s3_bucket_policy_change_procedure_template.xlsx) | 作業概要、事前確認、変更手順、変更後確認、切り戻し、証跡一覧 |
 | 汎用セキュリティ調査 | [AWSセキュリティ調査用CLIリファレンス](./docs/references/aws_security_investigation_cli_reference.md) | EC2、S3、RDS、Lambda、GuardDuty、IAM、KMS、CloudTrail、Security Hub |
 | 汎用ネットワーク調査 | [AWSネットワーク調査用CLIリファレンス](./docs/references/aws_network_cli_reference.md) | VPC、Subnet、Route Table、Security Group、NACL、VPC Endpoint、Flow Logs |
 
