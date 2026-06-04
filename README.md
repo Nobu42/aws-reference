@@ -12,6 +12,8 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | :--- | :--- |
 | 全体構成を確認したい | [設計書](./docs/design/Design_Specification.md)、[ネットワーク構成図](./docs/design/Network_Architecture.png) |
 | AWS CLIの共通作法を確認したい | [共通AWS CLI・証跡保存リファレンス](./docs/references/00_common_aws_cli_reference.md) |
+| AWSセキュリティ設定を横断的に確認したい | [AWS Security Settings 横断チェックリスト](./docs/references/90_aws_security_settings_checklist.md) |
+| AWSネットワーク設定を横断的に確認したい | [AWS Network Settings 横断チェックリスト](./docs/references/91_aws_network_settings_checklist.md) |
 | S3のセキュリティ設定を確認したい | [S3セキュリティ設定CLIリファレンス](./docs/references/01_s3_security_cli_reference.md) |
 | S3バケットポリシー変更の影響調査をしたい | [S3 Bucket Policy CLIリファレンス](./docs/references/02_s3_bucket_policy_cli_reference.md)、[S3バケットポリシー変更ケーススタディ](./docs/case_studies/case_study_s3_bucket_policy_change.md) |
 | CloudTrailのログや変更履歴を確認したい | [CloudTrail CLIリファレンス](./docs/references/03_cloudtrail_cli_reference.md) |
@@ -20,6 +22,8 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | MFAなし管理コンソールログインを検知したい | [MFAなし管理コンソールログイン検知手順](./docs/references/06_mfa_console_login_detection.md) |
 | VPC / SG / NACL / Routeの通信影響調査をしたい | [VPC/Network CLIリファレンス](./docs/references/07_vpc_network_cli_reference.md) |
 | EC2 / IAM Role / IMDSv2 / EBS暗号化を確認したい | [EC2 Security CLIリファレンス](./docs/references/08_ec2_security_cli_reference.md) |
+| RDSのPublic設定、暗号化、SG、ログ、バックアップを確認したい | [RDS Security CLIリファレンス](./docs/references/09_rds_security_cli_reference.md) |
+| LambdaのIAM Role、VPC、環境変数、ログ、Function URLを確認したい | [Lambda Security CLIリファレンス](./docs/references/10_lambda_security_cli_reference.md) |
 | RailsアプリをEC2へデプロイしたい | [Railsアプリケーションデプロイ手順](./ansible/10_rails_app_deploy.md)、[Ansible README](./ansible/README.md) |
 | 日次ラボ環境を一括構築したい | [All_Setup.sh](./scripts/All_Setup.sh) |
 | 検証後にリソースを削除したい | [cleanup_network.sh](./scripts/cleanup_network.sh)、[check_cleanup.sh](./scripts/check_cleanup.sh) |
@@ -32,6 +36,8 @@ AWSセキュリティ・ネットワーク改善案件で使うことを意識�
 | 領域 | リンク | 主な内容 |
 | :--- | :--- | :--- |
 | 共通 | [共通AWS CLI・証跡保存リファレンス](./docs/references/00_common_aws_cli_reference.md) | Account / Profile / Region確認、証跡保存、差分確認、秘密情報の扱い |
+| 横断チェックリスト | [AWS Security Settings 横断チェックリスト](./docs/references/90_aws_security_settings_checklist.md) | サービス横断の確認順序、重要度、証跡、切り戻し観点 |
+| ネットワーク横断チェックリスト | [AWS Network Settings 横断チェックリスト](./docs/references/91_aws_network_settings_checklist.md) | 通信経路、Route、SG、NACL、DNS、Endpoint、Flow Logsの確認索引 |
 | S3 | [S3セキュリティ設定CLIリファレンス](./docs/references/01_s3_security_cli_reference.md) | Public Access Block、ACL、Object Ownership、暗号化、ログ、Versioning |
 | S3 Bucket Policy | [S3 Bucket Policy CLIリファレンス](./docs/references/02_s3_bucket_policy_cli_reference.md) | Policy取得、Public判定、差分確認、変更、切り戻し、CloudTrail確認 |
 | CloudTrail | [CloudTrail CLIリファレンス](./docs/references/03_cloudtrail_cli_reference.md) | Trail、Event Data Store、イベント検索、S3保存、CloudWatch Logs連携 |
@@ -40,6 +46,8 @@ AWSセキュリティ・ネットワーク改善案件で使うことを意識�
 | MFA検知 | [MFAなし管理コンソールログイン検知手順](./docs/references/06_mfa_console_login_detection.md) | CloudTrail、Metric Filter、Alarm、調査、切り戻し |
 | VPC/Network | [VPC/Network CLIリファレンス](./docs/references/07_vpc_network_cli_reference.md) | VPC、Subnet、Route Table、SG、NACL、Endpoint、Flow Logs、通信影響調査 |
 | EC2 Security | [EC2 Security CLIリファレンス](./docs/references/08_ec2_security_cli_reference.md) | EC2、IAM Role、IMDSv2、EBS暗号化、Security Group、変更履歴確認 |
+| RDS Security | [RDS Security CLIリファレンス](./docs/references/09_rds_security_cli_reference.md) | Public設定、暗号化、Security Group、Parameter Group、ログ、バックアップ確認 |
+| Lambda Security | [Lambda Security CLIリファレンス](./docs/references/10_lambda_security_cli_reference.md) | IAM Role、VPC、環境変数、KMS、CloudWatch Logs、Function URL確認 |
 | S3変更ケーススタディ | [S3バケットポリシー変更の影響調査・設定変更・証跡取得](./docs/case_studies/case_study_s3_bucket_policy_change.md) | 変更前確認、影響調査、設定変更、テスト、切り戻し、証跡取得 |
 | 作業手順書テンプレート | [Markdown版](./docs/templates/s3_bucket_policy_change_procedure_template.md)、[Excel版](./docs/templates/s3_bucket_policy_change_procedure_template.xlsx) | 作業概要、事前確認、変更手順、変更後確認、切り戻し、証跡一覧 |
 | 汎用セキュリティ調査 | [AWSセキュリティ調査用CLIリファレンス](./docs/references/aws_security_investigation_cli_reference.md) | EC2、S3、RDS、Lambda、GuardDuty、IAM、KMS、CloudTrail、Security Hub |
