@@ -36,7 +36,7 @@ Amazon SESのSMTPインターフェースを利用して、Pythonスクリプト
 
 ## スクリプト
 
-- [17_sendmailtest.py](../scripts/17_sendmailtest.py)
+- [17_sendmail_test.py](../../scripts/17_sendmail_test.py)
 
 ## 認証情報の扱い
 
@@ -53,7 +53,8 @@ export SES_SMTP_PASSWORD='SMTP password'
 ## 実行コマンド
 
 ```bash
-python3 17_sendmailtest.py
+cd scripts
+python3 17_sendmail_test.py
 ```
 
 ## Pythonスクリプトの概要
@@ -187,4 +188,3 @@ MAIL_FROM=no-reply@nobu-iac-lab.com
 ```
 
 RailsではAction MailerのSMTP設定でこれらの値を利用する。
-

@@ -4,21 +4,21 @@ AWS上にWebアプリケーション基盤を構築し、AWSセキュリティ�
 
 VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、CloudTrail、CloudWatch、GuardDutyなどを対象に、AWS CLIとシェルスクリプトで構築・確認・削除できるようにする。
 
-![ネットワーク構成図](./docs/Network_Architecture.png)
+![ネットワーク構成図](./docs/design/Network_Architecture.png)
 
 ## 目的別目次
 
 | 目的 | 見るもの |
 | :--- | :--- |
-| 全体構成を確認したい | [設計書](./docs/Design_Specification.md)、[ネットワーク構成図](./docs/Network_Architecture.png) |
-| AWS CLIの共通作法を確認したい | [共通AWS CLI・証跡保存リファレンス](./scripts/00_common_aws_cli_reference.md) |
-| S3のセキュリティ設定を確認したい | [S3セキュリティ設定CLIリファレンス](./scripts/01_s3_security_cli_reference.md) |
-| S3バケットポリシー変更の影響調査をしたい | [S3 Bucket Policy CLIリファレンス](./scripts/02_s3_bucket_policy_cli_reference.md)、[S3バケットポリシー変更ケーススタディ](./docs/case_study_s3_bucket_policy_change.md) |
-| CloudTrailのログや変更履歴を確認したい | [CloudTrail CLIリファレンス](./scripts/03_cloudtrail_cli_reference.md) |
-| CloudWatch Logs / Alarmを確認したい | [CloudWatch CLIリファレンス](./scripts/04_cloudwatch_cli_reference.md) |
-| GuardDuty Findingを確認したい | [GuardDuty CLIリファレンス](./scripts/05_guardduty_cli_reference.md) |
-| MFAなし管理コンソールログインを検知したい | [MFAなし管理コンソールログイン検知手順](./scripts/06_mfa_console_login_detection.md) |
-| VPC / SG / NACL / Routeの通信影響調査をしたい | [VPC/Network CLIリファレンス](./scripts/07_vpc_network_cli_reference.md) |
+| 全体構成を確認したい | [設計書](./docs/design/Design_Specification.md)、[ネットワーク構成図](./docs/design/Network_Architecture.png) |
+| AWS CLIの共通作法を確認したい | [共通AWS CLI・証跡保存リファレンス](./docs/references/00_common_aws_cli_reference.md) |
+| S3のセキュリティ設定を確認したい | [S3セキュリティ設定CLIリファレンス](./docs/references/01_s3_security_cli_reference.md) |
+| S3バケットポリシー変更の影響調査をしたい | [S3 Bucket Policy CLIリファレンス](./docs/references/02_s3_bucket_policy_cli_reference.md)、[S3バケットポリシー変更ケーススタディ](./docs/case_studies/case_study_s3_bucket_policy_change.md) |
+| CloudTrailのログや変更履歴を確認したい | [CloudTrail CLIリファレンス](./docs/references/03_cloudtrail_cli_reference.md) |
+| CloudWatch Logs / Alarmを確認したい | [CloudWatch CLIリファレンス](./docs/references/04_cloudwatch_cli_reference.md) |
+| GuardDuty Findingを確認したい | [GuardDuty CLIリファレンス](./docs/references/05_guardduty_cli_reference.md) |
+| MFAなし管理コンソールログインを検知したい | [MFAなし管理コンソールログイン検知手順](./docs/references/06_mfa_console_login_detection.md) |
+| VPC / SG / NACL / Routeの通信影響調査をしたい | [VPC/Network CLIリファレンス](./docs/references/07_vpc_network_cli_reference.md) |
 | RailsアプリをEC2へデプロイしたい | [Railsアプリケーションデプロイ手順](./ansible/10_rails_app_deploy.md)、[Ansible README](./ansible/README.md) |
 | 日次ラボ環境を一括構築したい | [All_Setup.sh](./scripts/All_Setup.sh) |
 | 検証後にリソースを削除したい | [cleanup_network.sh](./scripts/cleanup_network.sh)、[check_cleanup.sh](./scripts/check_cleanup.sh) |
@@ -30,18 +30,18 @@ AWSセキュリティ・ネットワーク改善案件で使うことを意識�
 
 | 領域 | リンク | 主な内容 |
 | :--- | :--- | :--- |
-| 共通 | [共通AWS CLI・証跡保存リファレンス](./scripts/00_common_aws_cli_reference.md) | Account / Profile / Region確認、証跡保存、差分確認、秘密情報の扱い |
-| S3 | [S3セキュリティ設定CLIリファレンス](./scripts/01_s3_security_cli_reference.md) | Public Access Block、ACL、Object Ownership、暗号化、ログ、Versioning |
-| S3 Bucket Policy | [S3 Bucket Policy CLIリファレンス](./scripts/02_s3_bucket_policy_cli_reference.md) | Policy取得、Public判定、差分確認、変更、切り戻し、CloudTrail確認 |
-| CloudTrail | [CloudTrail CLIリファレンス](./scripts/03_cloudtrail_cli_reference.md) | Trail、Event Data Store、イベント検索、S3保存、CloudWatch Logs連携 |
-| CloudWatch | [CloudWatch CLIリファレンス](./scripts/04_cloudwatch_cli_reference.md) | Log Group、Metric Filter、Alarm、ログ検索、証跡取得 |
-| GuardDuty | [GuardDuty CLIリファレンス](./scripts/05_guardduty_cli_reference.md) | Detector、Finding、重要度、サンプルFinding、調査手順 |
-| MFA検知 | [MFAなし管理コンソールログイン検知手順](./scripts/06_mfa_console_login_detection.md) | CloudTrail、Metric Filter、Alarm、調査、切り戻し |
-| VPC/Network | [VPC/Network CLIリファレンス](./scripts/07_vpc_network_cli_reference.md) | VPC、Subnet、Route Table、SG、NACL、Endpoint、Flow Logs、通信影響調査 |
-| S3変更ケーススタディ | [S3バケットポリシー変更の影響調査・設定変更・証跡取得](./docs/case_study_s3_bucket_policy_change.md) | 変更前確認、影響調査、設定変更、テスト、切り戻し、証跡取得 |
+| 共通 | [共通AWS CLI・証跡保存リファレンス](./docs/references/00_common_aws_cli_reference.md) | Account / Profile / Region確認、証跡保存、差分確認、秘密情報の扱い |
+| S3 | [S3セキュリティ設定CLIリファレンス](./docs/references/01_s3_security_cli_reference.md) | Public Access Block、ACL、Object Ownership、暗号化、ログ、Versioning |
+| S3 Bucket Policy | [S3 Bucket Policy CLIリファレンス](./docs/references/02_s3_bucket_policy_cli_reference.md) | Policy取得、Public判定、差分確認、変更、切り戻し、CloudTrail確認 |
+| CloudTrail | [CloudTrail CLIリファレンス](./docs/references/03_cloudtrail_cli_reference.md) | Trail、Event Data Store、イベント検索、S3保存、CloudWatch Logs連携 |
+| CloudWatch | [CloudWatch CLIリファレンス](./docs/references/04_cloudwatch_cli_reference.md) | Log Group、Metric Filter、Alarm、ログ検索、証跡取得 |
+| GuardDuty | [GuardDuty CLIリファレンス](./docs/references/05_guardduty_cli_reference.md) | Detector、Finding、重要度、サンプルFinding、調査手順 |
+| MFA検知 | [MFAなし管理コンソールログイン検知手順](./docs/references/06_mfa_console_login_detection.md) | CloudTrail、Metric Filter、Alarm、調査、切り戻し |
+| VPC/Network | [VPC/Network CLIリファレンス](./docs/references/07_vpc_network_cli_reference.md) | VPC、Subnet、Route Table、SG、NACL、Endpoint、Flow Logs、通信影響調査 |
+| S3変更ケーススタディ | [S3バケットポリシー変更の影響調査・設定変更・証跡取得](./docs/case_studies/case_study_s3_bucket_policy_change.md) | 変更前確認、影響調査、設定変更、テスト、切り戻し、証跡取得 |
 | 作業手順書テンプレート | [S3バケットポリシー変更 作業手順書テンプレート](./docs/templates/s3_bucket_policy_change_procedure_template.xlsx) | 作業概要、事前確認、変更手順、変更後確認、切り戻し、証跡一覧 |
-| 汎用セキュリティ調査 | [AWSセキュリティ調査用CLIリファレンス](./scripts/aws_security_investigation_cli_reference.md) | EC2、S3、RDS、Lambda、GuardDuty、IAM、KMS、CloudTrail、Security Hub |
-| 汎用ネットワーク調査 | [AWSネットワーク調査用CLIリファレンス](./scripts/aws_network_cli_reference.md) | VPC、Subnet、Route Table、Security Group、NACL、VPC Endpoint、Flow Logs |
+| 汎用セキュリティ調査 | [AWSセキュリティ調査用CLIリファレンス](./docs/references/aws_security_investigation_cli_reference.md) | EC2、S3、RDS、Lambda、GuardDuty、IAM、KMS、CloudTrail、Security Hub |
+| 汎用ネットワーク調査 | [AWSネットワーク調査用CLIリファレンス](./docs/references/aws_network_cli_reference.md) | VPC、Subnet、Route Table、Security Group、NACL、VPC Endpoint、Flow Logs |
 
 ## AWS CLI構築手順
 
@@ -49,25 +49,25 @@ AWS CLI編の構築スクリプトと解説。
 
 | No. | 領域 | スクリプト | 解説 |
 | :--- | :--- | :--- | :--- |
-| 01 | VPC | [01_vpc_setup.sh](./scripts/01_vpc_setup.sh) | [01_vpc_setup.md](./scripts/01_vpc_setup.md) |
-| 02 | Subnet | [02_subnet_setup.sh](./scripts/02_subnet_setup.sh) | [02_subnet_setup.md](./scripts/02_subnet_setup.md) |
-| 03 | Internet Gateway | [03_internetgateway_setup.sh](./scripts/03_internetgateway_setup.sh) | [03_internetgateway_setup.md](./scripts/03_internetgateway_setup.md) |
-| 04 | NAT Gateway | [04_nat_gateway_setup.sh](./scripts/04_nat_gateway_setup.sh) | [04_nat_gateway_setup.md](./scripts/04_nat_gateway_setup.md) |
-| 05 | Route Table | [05_route_table_setup.sh](./scripts/05_route_table_setup.sh) | [05_route_table_setup.md](./scripts/05_route_table_setup.md) |
-| 06 | Security Group | [06_security_group_setup.sh](./scripts/06_security_group_setup.sh) | [06_security_group_setup.md](./scripts/06_security_group_setup.md) |
-| 07 | Bastion EC2 | [07_bastion_server_setup.sh](./scripts/07_bastion_server_setup.sh) | [07_bastion_server_setup.md](./scripts/07_bastion_server_setup.md) |
+| 01 | VPC | [01_vpc_setup.sh](./scripts/01_vpc_setup.sh) | [01_vpc_setup.md](./docs/setup_guides/01_vpc_setup.md) |
+| 02 | Subnet | [02_subnet_setup.sh](./scripts/02_subnet_setup.sh) | [02_subnet_setup.md](./docs/setup_guides/02_subnet_setup.md) |
+| 03 | Internet Gateway | [03_internetgateway_setup.sh](./scripts/03_internetgateway_setup.sh) | [03_internetgateway_setup.md](./docs/setup_guides/03_internetgateway_setup.md) |
+| 04 | NAT Gateway | [04_nat_gateway_setup.sh](./scripts/04_nat_gateway_setup.sh) | [04_nat_gateway_setup.md](./docs/setup_guides/04_nat_gateway_setup.md) |
+| 05 | Route Table | [05_route_table_setup.sh](./scripts/05_route_table_setup.sh) | [05_route_table_setup.md](./docs/setup_guides/05_route_table_setup.md) |
+| 06 | Security Group | [06_security_group_setup.sh](./scripts/06_security_group_setup.sh) | [06_security_group_setup.md](./docs/setup_guides/06_security_group_setup.md) |
+| 07 | Bastion EC2 | [07_bastion_server_setup.sh](./scripts/07_bastion_server_setup.sh) | [07_bastion_server_setup.md](./docs/setup_guides/07_bastion_server_setup.md) |
 | 08 | Web EC2 | [08_Web_server_setup.sh](./scripts/08_Web_server_setup.sh) | なし |
-| 09 | ALB | [09_LoadBalancer_setup.sh](./scripts/09_LoadBalancer_setup.sh) | [09_LoadBalancer_setup.md](./scripts/09_LoadBalancer_setup.md) |
-| 10 | RDS | [10_Database_setup.sh](./scripts/10_Database_setup.sh) | [10_Database_setup.md](./scripts/10_Database_setup.md) |
-| 11 | S3 / IAM Role | [11_s3_setup.sh](./scripts/11_s3_setup.sh) | [11_s3_setup.md](./scripts/11_s3_setup.md) |
-| 12 | Public DNS | [12_public_dns_setup.sh](./scripts/12_public_dns_setup.sh) | [12_public_dns_setup.md](./scripts/12_public_dns_setup.md) |
-| 13 | DNS Packet Capture | なし | [13_public_dns_packet_capture.md](./scripts/13_public_dns_packet_capture.md) |
-| 14 | Private DNS | [14_private_dns_setup.sh](./scripts/14_private_dns_setup.sh) | [14_private_dns_setup.md](./scripts/14_private_dns_setup.md) |
-| 15 | ACM / HTTPS | [15_acm_certificate_setup.sh](./scripts/15_acm_certificate_setup.sh) | [15_acm_certificate_setup.md](./scripts/15_acm_certificate_setup.md) |
+| 09 | ALB | [09_LoadBalancer_setup.sh](./scripts/09_LoadBalancer_setup.sh) | [09_LoadBalancer_setup.md](./docs/setup_guides/09_LoadBalancer_setup.md) |
+| 10 | RDS | [10_Database_setup.sh](./scripts/10_Database_setup.sh) | [10_Database_setup.md](./docs/setup_guides/10_Database_setup.md) |
+| 11 | S3 / IAM Role | [11_s3_setup.sh](./scripts/11_s3_setup.sh) | [11_s3_setup.md](./docs/setup_guides/11_s3_setup.md) |
+| 12 | Public DNS | [12_public_dns_setup.sh](./scripts/12_public_dns_setup.sh) | [12_public_dns_setup.md](./docs/setup_guides/12_public_dns_setup.md) |
+| 13 | DNS Packet Capture | なし | [13_public_dns_packet_capture.md](./docs/operations/13_public_dns_packet_capture.md) |
+| 14 | Private DNS | [14_private_dns_setup.sh](./scripts/14_private_dns_setup.sh) | [14_private_dns_setup.md](./docs/setup_guides/14_private_dns_setup.md) |
+| 15 | ACM / HTTPS | [15_acm_certificate_setup.sh](./scripts/15_acm_certificate_setup.sh) | [15_acm_certificate_setup.md](./docs/setup_guides/15_acm_certificate_setup.md) |
 | 16 | SES送信設定 | [16_ses_setup.sh](./scripts/16_ses_setup.sh) | なし |
-| 17 | SES送信テスト | [17_sendmail_test.py](./scripts/17_sendmail_test.py) | [17_sendmail_test.md](./scripts/17_sendmail_test.md) |
-| 18 | SES受信設定 | [18_ses_receiving_setup.sh](./scripts/18_ses_receiving_setup.sh) | [18_ses_receiving_setup.md](./scripts/18_ses_receiving_setup.md) |
-| 19 | ElastiCache | [19_elasticache_setup.sh](./scripts/19_elasticache_setup.sh) | [19_elasticache_setup.md](./scripts/19_elasticache_setup.md) |
+| 17 | SES送信テスト | [17_sendmail_test.py](./scripts/17_sendmail_test.py) | [17_sendmail_test.md](./docs/operations/17_sendmail_test.md) |
+| 18 | SES受信設定 | [18_ses_receiving_setup.sh](./scripts/18_ses_receiving_setup.sh) | [18_ses_receiving_setup.md](./docs/setup_guides/18_ses_receiving_setup.md) |
+| 19 | ElastiCache | [19_elasticache_setup.sh](./scripts/19_elasticache_setup.sh) | [19_elasticache_setup.md](./docs/setup_guides/19_elasticache_setup.md) |
 | 20 | Web Base AMI | [20_create_web_base_ami.sh](./scripts/20_create_web_base_ami.sh) | なし |
 
 ## 一括構築・削除・確認
@@ -102,7 +102,7 @@ AWS CLIでインフラを作成した後、Private Subnet上のWeb EC2へRails�
 | 作業種別メモ | [type_of_work.md](./type_of_work.md) | 作業分類の整理 |
 | 面談メモ | [mendan.md](./mendan.md) | 案件面談で確認した内容 |
 | Codex作業方針 | [AGENTS.md](./AGENTS.md) | このリポジトリでのMarkdown作成・案件対策方針 |
-| ネットワーク構成図ソース | [Network_Architecture.puml](./docs/Network_Architecture.puml) | PlantUMLの構成図ソース |
+| ネットワーク構成図ソース | [Network_Architecture.puml](./docs/design/Network_Architecture.puml) | PlantUMLの構成図ソース |
 | サンプル画像 | [Suneteruzu.JPG](./images/Suneteruzu.JPG) | Railsアプリの表示確認用画像 |
 
 ## 想定構成
