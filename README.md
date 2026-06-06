@@ -16,6 +16,7 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | AWSネットワーク設定を横断的に確認したい | [AWS Network Settings 横断チェックリスト](./docs/references/91_aws_network_settings_checklist.md) |
 | S3のセキュリティ設定を確認したい | [S3セキュリティ設定CLIリファレンス](./docs/references/01_s3_security_cli_reference.md) |
 | S3バケットポリシー変更の影響調査をしたい | [S3 Bucket Policy CLIリファレンス](./docs/references/02_s3_bucket_policy_cli_reference.md)、[S3バケットポリシー変更ケーススタディ](./docs/case_studies/case_study_s3_bucket_policy_change.md) |
+| オンプレミス、S3、CloudTrail、GuardDutyの関係を理解したい | [オンプレミス、S3、CloudTrail、GuardDutyのつながり](./docs/case_studies/case_study_onpremises_s3_cloudtrail_guardduty.md) |
 | CloudTrailのログや変更履歴を確認したい | [CloudTrail CLIリファレンス](./docs/references/03_cloudtrail_cli_reference.md) |
 | CloudWatch Logs / Alarmを確認したい | [CloudWatch CLIリファレンス](./docs/references/04_cloudwatch_cli_reference.md) |
 | GuardDuty Findingを確認したい | [GuardDuty CLIリファレンス](./docs/references/05_guardduty_cli_reference.md) |
@@ -50,6 +51,7 @@ AWSセキュリティ・ネットワーク改善案件で使うことを意識�
 | RDS Security | [RDS Security CLIリファレンス](./docs/references/09_rds_security_cli_reference.md) | Public設定、暗号化、Security Group、Parameter Group、ログ、バックアップ確認 |
 | Lambda Security | [Lambda Security CLIリファレンス](./docs/references/10_lambda_security_cli_reference.md) | IAM Role、VPC、環境変数、KMS、CloudWatch Logs、Function URL確認 |
 | S3変更ケーススタディ | [S3バケットポリシー変更の影響調査・設定変更・証跡取得](./docs/case_studies/case_study_s3_bucket_policy_change.md) | 変更前確認、影響調査、設定変更、テスト、切り戻し、証跡取得 |
+| オンプレ・S3・監査検知ケーススタディ | [オンプレミス、S3、CloudTrail、GuardDutyのつながり](./docs/case_studies/case_study_onpremises_s3_cloudtrail_guardduty.md) | 閉域接続、S3アクセス経路、CloudTrail監査、GuardDuty検知の関係 |
 | 作業手順書テンプレート | [Markdown版](./docs/templates/s3_bucket_policy_change_procedure_template.md)、[Excel版](./docs/templates/s3_bucket_policy_change_procedure_template.xlsx) | 作業概要、事前確認、変更手順、変更後確認、切り戻し、証跡一覧 |
 | 汎用セキュリティ調査 | [AWSセキュリティ調査用CLIリファレンス](./docs/references/aws_security_investigation_cli_reference.md) | EC2、S3、RDS、Lambda、GuardDuty、IAM、KMS、CloudTrail、Security Hub |
 | 汎用ネットワーク調査 | [AWSネットワーク調査用CLIリファレンス](./docs/references/aws_network_cli_reference.md) | VPC、Subnet、Route Table、Security Group、NACL、VPC Endpoint、Flow Logs |
