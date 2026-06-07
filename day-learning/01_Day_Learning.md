@@ -7,7 +7,7 @@
     - 想定AWSアカウントIDを設定する
     - 対象S3バケット名を設定する
 
-```
+```bash
 PROFILE="learning"
 REGION="ap-northeast-1"
 EXPECTED_ACCOUNT_ID="445405559057"
@@ -15,7 +15,7 @@ BUCKET="nobu-terraform-iac-lab-upload"
 ```
     - 作業に必要な変数が空でないことを確認する
 
-```
+```bash
 printf "$PROFILE\n$REGION\n$EXPECTED_ACCOUNT_ID\n$BUCKET="nobu-terraform-iac-lab-upload"
 ```
 
