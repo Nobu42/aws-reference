@@ -1,4 +1,4 @@
-# Day 1 Learning
+# Day 2 Learning
 
 ## 1. 作業目的・対象・前提条件の確認
 
@@ -125,6 +125,163 @@ S3 Bucket Policy変更作業の事前確認を実施した。
 および切り戻し方法を確認した。
 
 本手順では、後続の承認済み変更手順に従って作業を実施する。
+```
+## 2. 変更前Bucket Policyの確認
+
+変更前のBucket Policyを確認し、現在のアクセス制御内容を把握する。
+
+この手順では設定変更を行わない。
+
+### Webコンソールで確認する場所
+
+1. Amazon S3コンソールを開く
+2. `nobu-terraform-iac-lab-upload`を開く
+3. 「アクセス許可」タブを開く
+4. 「バケットポリシー」まで移動する
+5. 現在設定されているPolicy全体を確認する
+6. 「編集」「削除」は押さない
+
+確認URL:
+
+```text
+https://ap-northeast-1.console.aws.amazon.com/s3/buckets/nobu-terraform-iac-lab-upload?region=ap-northeast-1&tab=permissions
+```
+
+### AWS CLIによる変更前Bucket Policy確認
+
+```bash
+aws s3api get-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --query Policy \
+  --output text \
+  --no-cli-pager
+```
+
+今回の期待値:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyInsecureTransport",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::nobu-terraform-iac-lab-upload",
+        "arn:aws:s3:::nobu-terraform-iac-lab-upload/*"
+      ],
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
+      }
+    }
+  ]
+}
+```
+
+### Bucket Policy Statusの確認
+
+```bash
+aws s3api get-bucket-policy-status \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --output table \
+  --no-cli-pager
+```
+
+期待値:
+
+```text
+IsPublic: False
+```
+
+### Statementの確認ポイント
+
+| 項目 | 設定値 | 読み方 |
+| :--- | :--- | :--- |
+| `Sid` | `DenyInsecureTransport` | Statementを識別する名前 |
+| `Effect` | `Deny` | 条件に一致するアクセスを拒否する |
+| `Principal` | `*` | すべてのアクセス主体を対象とする |
+| `Action` | `s3:*` | すべてのS3操作を対象とする |
+| `Resource` | バケットARNとオブジェクトARN | バケット操作とオブジェクト操作の両方を対象とする |
+| `Condition` | `aws:SecureTransport=false` | TLSを使用しない通信を拒否する |
+
+### Principalがアスタリスクである理由
+
+```text
+"Principal": "*"
+```
+
+すべてのアクセス主体が対象となるが、`Effect`は`Deny`である。
+
+このStatementはPublicアクセスを許可する設定ではなく、すべての利用者に対して非TLS通信を拒否する設定である。
+
+### Resourceの確認
+
+```text
+arn:aws:s3:::nobu-terraform-iac-lab-upload
+```
+
+バケット自体に対する操作を対象とする。
+
+```text
+arn:aws:s3:::nobu-terraform-iac-lab-upload/*
+```
+
+バケット内のオブジェクトに対する操作を対象とする。
+
+両方を指定することで、バケット操作とオブジェクト操作の両方について非TLS通信を拒否する。
+
+### 確認結果の判定
+
+```text
+Bucket Policy: DenyInsecureTransportのみ
+非TLS通信: 拒否
+Publicアクセスを許可するStatement: なし
+Bucket Policy Status: IsPublic=False
+設定変更: なし
+```
+
+### 想定外の場合の対応
+
+次の設定が確認された場合は、変更を行わず影響調査を実施する。
+
+- `Effect: Allow`が存在する
+- `Principal: "*"`を対象としたAllowが存在する
+- 想定外のAWSアカウントやIAM RoleがPrincipalに指定されている
+- `s3:*`など過剰なActionが許可されている
+- Resourceの対象範囲が想定より広い
+- Conditionによるアクセス制限が存在しない
+- `IsPublic=True`になっている
+- 手順書に記載されていないStatementが存在する
+
+### 取得するスクリーンショット
+
+```text
+04_変更前_Bucket_Policy確認.png
+05_変更前_Bucket_Policy_Status確認.png
+```
+
+### 手順書への記載例
+
+```text
+対象バケットの変更前Bucket Policyを確認した。
+
+変更前Policyには、非TLS通信を拒否する
+DenyInsecureTransport Statementのみが設定されていた。
+
+Publicアクセスを許可するStatementは確認されず、
+Bucket Policy StatusはIsPublic=Falseであった。
+
+本確認において設定変更は実施していない。
 ```
 
 
