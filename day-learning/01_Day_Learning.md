@@ -81,16 +81,33 @@ echo "head-bucket exit code: $HEAD_BUCKET_RC"
 
 ## 5. S3バケット一覧の確認
 
-・AWSアカウント内のS3バケット一覧を取得する
-・対象バケットが一覧に存在することを確認する
-・想定外または用途不明のバケットがないか確認する
-・取得結果を証跡として保存する
+- AWSアカウント内のS3バケット一覧を取得する
+- 対象バケットが一覧に存在することを確認する
+- 想定外または用途不明のバケットがないか確認する
+- 取得結果を証跡として保存する
 
 ## 6. 対象S3バケットのリージョン確認
 
-・対象バケットが配置されているリージョンを確認する
-・確認結果が想定リージョンと一致することを確認する
-・取得結果を証跡として保存する
+- 対象バケットが配置されているリージョンを確認する
+- 確認結果が想定リージョンと一致することを確認する
+- 取得結果を証跡として保存する
+
+```bash
+aws s3api get-bucket-location \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --bucket "$BUCKET" \
+  --expected-bucket-owner "$EXPECTED_ACCOUNT_ID" \
+  --output json \
+  > "$EVIDENCE_DIR/before/02_bucket_location.json"
+
+aws s3api get-bucket-location \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --bucket "$BUCKET" \
+  --expected-bucket-owner "$EXPECTED_ACCOUNT_ID" \
+  --output table
+```
 
 ## 7. Account-level Public Access Blockの確認
 
