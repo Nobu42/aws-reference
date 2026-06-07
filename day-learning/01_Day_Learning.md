@@ -14,6 +14,7 @@ EXPECTED_ACCOUNT_ID="445405559057"
 BUCKET="nobu-terraform-iac-lab-upload"
 ```
     - 作業に必要な変数が空でないことを確認する
+
 ```
 printf "$PROFILE\n$REGION\n$EXPECTED_ACCOUNT_ID\n$BUCKET="nobu-terraform-iac-lab-upload"
 ```
