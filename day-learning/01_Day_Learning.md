@@ -12,13 +12,13 @@ PROFILE="learning"
 REGION="ap-northeast-1"
 EXPECTED_ACCOUNT_ID="445405559057"
 BUCKET="nobu-terraform-iac-lab-upload"
-```bash
+```
 
 ・作業に必要な変数が空でないことを確認する
 
 ```bash
 printf "$PROFILE\n$REGION\n$EXPECTED_ACCOUNT_ID\n$BUCKET\n"
-```bash
+```
 
 ## 2. 証跡保存用ディレクトリの作成
 
