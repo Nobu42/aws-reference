@@ -30,7 +30,7 @@ printf "$PROFILE\n$REGION\n$EXPECTED_ACCOUNT_ID\n$BUCKET\n"
 
 ```bash
 WORK_NAME="s3_security_check"
-EVIDENCE_DIR="evidence/$(date +%Y%m%d_%H%M%S)_${WORK_NAME}"
+EVIDENCE_DIR="evidence/$(date +%Y%m%d)_${WORK_NAME}"
 
 mkdir -p \
   "$EVIDENCE_DIR/00_metadata" \
