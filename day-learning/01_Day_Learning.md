@@ -16,7 +16,7 @@ BUCKET="nobu-terraform-iac-lab-upload"
     ・作業に必要な変数が空でないことを確認する
 
 ```bash
-printf "$PROFILE\n$REGION\n$EXPECTED_ACCOUNT_ID\n$BUCKET="nobu-terraform-iac-lab-upload"
+printf "$PROFILE\n$REGION\n$EXPECTED_ACCOUNT_ID\n$BUCKET\n"
 ```
 
 2. 証跡保存用ディレクトリの作成
