@@ -63,10 +63,21 @@ fi
 
 ## 4. 対象S3バケットの存在確認
 
-・対象バケット名が空でないことを確認する
-・対象バケットが存在することを確認する
-・現在の認証情報で対象バケットへアクセスできることを確認する
-・バケット所有者が想定AWSアカウントであることを確認する
+- 対象バケット名が空でないことを確認する
+- 対象バケットが存在することを確認する
+- 現在の認証情報で対象バケットへアクセスできることを確認する
+- バケット所有者が想定AWSアカウントであることを確認する
+
+```bash
+aws s3api head-bucket \
+    --profile "$PROFILE" \
+    --region "$REGION" \
+    --bucket "$BUCKET" \
+    --expedted-bucket-owner "$EXPECTED_ACCOUNT_ID"
+
+HEAD_BUCKET=RC=$?
+echo "head-bucket exit code: $HEAD_BUCKET_RC"
+```
 
 ## 5. S3バケット一覧の確認
 
