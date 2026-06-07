@@ -86,6 +86,17 @@ echo "head-bucket exit code: $HEAD_BUCKET_RC"
 - 想定外または用途不明のバケットがないか確認する
 - 取得結果を証跡として保存する
 
+```bash
+aws s3api list-buckets \
+  --profile "$PROFILE" \
+  --output json \
+  > "$EVIDENCE_DIR/before/01_list_buckets.json"
+
+aws s3api list-buckets \
+  --profile "$PROFILE" \
+  --query 'Buckets[*].{Name:Name,CreationDate:CreationDate}' \
+  --output table
+```
 ## 6. 対象S3バケットのリージョン確認
 
 - 対象バケットが配置されているリージョンを確認する
@@ -93,6 +104,7 @@ echo "head-bucket exit code: $HEAD_BUCKET_RC"
 - 取得結果を証跡として保存する
 
 ```bash
+EVIDENCE_DIR=evidence
 aws s3api get-bucket-location \
   --profile "$PROFILE" \
   --region "$REGION" \
