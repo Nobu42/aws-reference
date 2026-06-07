@@ -223,3 +223,87 @@ RestrictPublicBuckets  True
 4つの公開防止設定はすべて有効であり、設定状態は良好である。
 設定変更は実施していない。
 ```
+
+## 4. Bucket Policy StatusによるPublic判定確認
+対象バケットのBucket Policyなどが、S3からPublicと判定されていないことを確認する。設定変更は行わない。
+
+### Webコンソール
+- 対象バケットを開く
+- 「アクセス許可」タブを開く
+- 「ブロックパブリックアクセス」と「バケットポリシー」を確認する
+- パブリックアクセスに関する警告が表示されていないことを確認する
+- 「このバケットに対してブロックパブリックアクセス設定が有効」と表示されていることを確認する
+URL: https://ap-northeast-1.console.aws.amazon.com/s3/buckets/nobu-terraform-iac-lab-upload?region=ap-northeast-1&tab=permissions
+
+Webコンソールでは、必ずしもIsPublic=Falseという値が直接表示されるとは限らない。正確なPublic判定はAWS CLIで確認する。
+
+取得するスクリーンショット
+05_Bucket_Policy_Status確認.png
+
+以下が読み取れる範囲を撮影する。
+
+- 対象バケット名
+- パブリックアクセスがブロックされていること
+- バケットポリシーの設定状態
+- Publicアクセスに関する警告がないこと
+
+### AWS CLI
+```bash
+aws s3api get-bucket-policy-status \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --output table \
+  --no-cli-pager
+```
+
+期待結果:
+```text
+-------------------------
+| GetBucketPolicyStatus |
++-----------------------+
+||    PolicyStatus     ||
+|+-----------+---------+|
+||  IsPublic |  False  ||
+|+-----------+---------+|
+```
+値だけを確認する場合:
+```bash
+aws s3api get-bucket-policy-status \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --query 'PolicyStatus.IsPublic' \
+  --output text \
+  --no-cli-pager
+```
+
+期待結果:
+False
+
+### 結果の読み方
+- IsPublic=False: Bucket PolicyなどによりPublicと判定されていない
+- IsPublic=True: Publicアクセスを許可する設定が存在する可能性があるため、影響調査が必要
+- AccessDenied: Publicではないという意味ではなく、確認権限が不足している可能性がある
+
+IsPublic=Falseでも、次の設定確認は継続する。
+```text
+Bucket Policy
+ACL
+Access Point Policy
+IAM Policy
+VPC Endpoint Policy
+```
+
+### 手順書への記載例
+```text
+対象バケットのBucket Policy Statusを確認した結果、
+IsPublicはFalseであり、Publicと判定されていないことを確認した。
+
+なお、IsPublic=Falseのみではアクセス制御全体の安全性を判断できないため、
+Bucket Policy、ACLおよびAccess Pointについても継続して確認する。
+
+設定変更は実施していない。
+```
