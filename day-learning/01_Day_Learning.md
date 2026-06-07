@@ -87,6 +87,8 @@ echo "head-bucket exit code: $HEAD_BUCKET_RC"
 - 取得結果を証跡として保存する
 
 ```bash
+EVIDENCE_DIR="evidence/$(date +%Y%m%d)_${WORK_NAME}"
+WORK_NAME="s3_security_check"
 aws s3api list-buckets \
   --profile "$PROFILE" \
   --output json \
@@ -104,7 +106,8 @@ aws s3api list-buckets \
 - 取得結果を証跡として保存する
 
 ```bash
-EVIDENCE_DIR=evidence
+EVIDENCE_DIR="evidence/$(date +%Y%m%d)_${WORK_NAME}"
+WORK_NAME="s3_security_check"
 aws s3api get-bucket-location \
   --profile "$PROFILE" \
   --region "$REGION" \
@@ -127,6 +130,50 @@ aws s3api get-bucket-location \
 - 4つの公開防止設定が有効か確認する
 - 未設定の場合はエラー内容を証跡として保存する
 - 設定変更時にアカウント内の全バケットへ影響することを認識する
+
+```bash
+# 必要な変数を確認する
+printf 'PROFILE=%s\nREGION=%S\nEXPECTED_ACCOUNT_ID=%s\nEVIDENCE_DIR%s\n' \
+"$PROFILE" "$REGION" "$EXPECTED_ACCOUNT_ID" "$EVIDENCE_DIR"
+
+# 証跡ファイル名を変数化する
+ACCOUNT_PAB_JSON="$EVIDENCE_DIR/befor/03_account_public_access_block.json"
+ACCOUNT_PAB_ERROR="$EVIDENCE_DIR/before/03_account_public_access_block_error.txt"
+
+if aws s3control get-public-access-block \
+    --profile "$PROFILE" \
+    --region "$REGION" \
+    --account_id "$EXPECTED_ACCOUNT_ID" \
+    --output json \
+    > "$ACCOUNT_PAB_JSON" \
+    2> "$ACCOUNT_PAB_ERROR"; then
+
+    rm -f "$ACCOUNT_PAB_ERROR"
+
+    echo "Account-level Public Access Block is configured."
+    cat "$ACCOUNT_PAB_JSON"
+elif grep -q "NoSuchPublicAccessBlockConfiguration" "$ACCOUNT_PAB_ERROR"; then
+
+    rm -f "$ACCOUNT_PAB_JSON"
+
+    echo "Account-level public Access Block is not configured."
+    cat "$ACCOUNT_PAB_JSON"
+
+    echo "ERROR: Account-level Public Access Block could not be retrieved."
+    cat "$ACCOUNT_PAB_ERROR"
+fi
+
+# 設定済みの場合は、保存したJsonで以下の４項目が全てTrueか確認する。
+if [ -f "$ACCOUNT_PAB_JSON" ]; then
+    jq '.PublicAccessBlockConfiguration' "$ACCOUNT_PAB_JSON"
+fi
+
+# 証跡確認
+find "$EVIDENCE_DIR/before" \
+    -name '03_account_public_access_block*' \
+    -type f \
+    -print
+```
 
 ## 8. Bucket-level Public Access Blockの確認
 
