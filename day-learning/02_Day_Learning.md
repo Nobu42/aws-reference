@@ -283,6 +283,180 @@ Bucket Policy StatusはIsPublic=Falseであった。
 
 本確認において設定変更は実施していない。
 ```
+## 3. 変更候補と影響範囲の整理
 
+変更前Bucket Policyの確認結果を基に、変更候補と影響範囲を整理する。
+
+本手順では変更内容の検討だけを行い、Bucket Policyの変更は実施しない。
+
+### 変更前の状態
+
+```text
+Bucket Policy:
+DenyInsecureTransportのみ
+
+通信要件:
+HTTP通信を拒否
+HTTPS通信を許可
+
+Bucket Policy Status:
+IsPublic=False
+```
+
+現在のBucket Policyでは、`aws:SecureTransport=false`の通信を拒否している。
+
+この設定によりHTTP通信は拒否されるが、HTTPS通信で使用されるTLSバージョンまでは制限していない。
+
+### 今回の変更候補
+
+今回のドリルでは、古いTLSバージョンによるアクセスを拒否するPolicyの追加を候補とする。
+
+```text
+変更候補:
+TLS 1.2未満の通信を拒否する
+
+追加予定Statement名:
+DenyOutdatedTLS
+
+変更目的:
+S3への通信でTLS 1.2以上を必須とする
+```
+
+### 変更候補のStatement
+
+```json
+{
+  "Sid": "DenyOutdatedTLS",
+  "Effect": "Deny",
+  "Principal": "*",
+  "Action": "s3:*",
+  "Resource": [
+    "arn:aws:s3:::nobu-terraform-iac-lab-upload",
+    "arn:aws:s3:::nobu-terraform-iac-lab-upload/*"
+  ],
+  "Condition": {
+    "NumericLessThan": {
+      "s3:TlsVersion": "1.2"
+    },
+    "Bool": {
+      "aws:PrincipalIsAWSService": "false"
+    }
+  }
+}
+```
+
+### Statementの読み方
+
+| 項目 | 設定値 | 読み方 |
+| :--- | :--- | :--- |
+| `Sid` | `DenyOutdatedTLS` | Statementを識別する名前 |
+| `Effect` | `Deny` | 条件に一致するアクセスを拒否する |
+| `Principal` | `*` | すべてのアクセス主体を対象とする |
+| `Action` | `s3:*` | すべてのS3操作を対象とする |
+| `Resource` | バケットARNとオブジェクトARN | バケット操作とオブジェクト操作の両方を対象とする |
+| `NumericLessThan` | `s3:TlsVersion: 1.2` | TLS 1.2未満の通信を条件とする |
+| `aws:PrincipalIsAWSService` | `false` | AWSサービスプリンシパル以外を対象とする |
+
+### `aws:PrincipalIsAWSService`を指定する理由
+
+AWSサービスがユーザーの代わりにS3へアクセスする場合、ネットワーク固有の情報がリクエストコンテキストから削除される場合がある。
+
+TLSバージョンだけを条件にした明示的なDenyを設定すると、AWSサービスからのアクセスを意図せず拒否する可能性がある。
+
+```text
+"aws:PrincipalIsAWSService": "false"
+```
+
+を条件に追加することで、AWSサービスプリンシパルをDenyの対象から除外する。
+
+### 変更前後の差分
+
+変更前:
+
+```text
+DenyInsecureTransport
+```
+
+変更後候補:
+
+```text
+DenyInsecureTransport
+DenyOutdatedTLS
+```
+
+既存の`DenyInsecureTransport`は削除しない。
+
+### 想定される影響
+
+TLS 1.2未満を使用する次のクライアントは、対象バケットへアクセスできなくなる可能性がある。
+
+- 古いOSや古いTLSライブラリを使用するサーバー
+- 古いAWS SDKを使用するアプリケーション
+- 古いAWS CLIを使用する作業端末
+- 古いJava RuntimeやOpenSSLを使用する処理
+- オンプレミス環境から接続する既存システム
+- 外部サービスや連携システム
+
+### 影響調査対象
+
+| 調査対象 | 確認内容 |
+| :--- | :--- |
+| Railsアプリケーション | 使用しているAWS SDKとTLSバージョン |
+| Web EC2 | OS、OpenSSL、Ruby、AWS SDKのバージョン |
+| 管理端末 | AWS CLIとTLSライブラリのバージョン |
+| オンプレミス連携 | S3への接続方式とTLSバージョン |
+| 外部サービス | 対象バケットへのアクセス有無 |
+| AWSサービス | 対象バケットへの書き込み・読み取り有無 |
+| CloudTrail | S3データイベントによるアクセス元調査の可否 |
+
+### 変更後の動作確認候補
+
+変更後は、最低限次の正常系テストを実施する。
+
+```text
+・AWS CLIでバケットへアクセスできること
+・Rails Active Storageから画像をアップロードできること
+・アップロードした画像を表示できること
+・既存オブジェクトを取得できること
+・Bucket Policy StatusがIsPublic=Falseのままであること
+```
+
+異常系テストとして、TLS 1.2未満のクライアントからアクセスした場合に拒否されることを確認する。
+
+ただし、TLS 1.2未満のテスト環境を安全に準備できない場合は、無理に異常系テストを実施しない。
+
+### 切り戻し条件
+
+次のいずれかが発生した場合は、変更前Bucket Policyへ切り戻す。
+
+- RailsアプリケーションからS3へアクセスできない
+- 画像アップロードまたは画像表示に失敗する
+- 管理用AWS CLIからS3へアクセスできない
+- 想定していたAWSサービス連携が失敗する
+- 想定外のアクセス拒否が発生する
+- 関係者から切り戻し指示を受ける
+
+### 取得するスクリーンショット
+
+```text
+06_変更候補_Policy確認.png
+07_影響調査結果確認.png
+```
+
+### 手順書への記載例
+
+```text
+変更前Bucket Policyを基に、TLS 1.2未満の通信を拒否する
+DenyOutdatedTLS Statementの追加を変更候補として整理した。
+
+変更により、古いTLSライブラリ、AWS SDK、AWS CLIなどを使用する
+既存システムが対象バケットへアクセスできなくなる可能性がある。
+
+Railsアプリケーション、管理端末、オンプレミス連携、
+外部サービスおよびAWSサービスからのアクセス有無を
+影響調査対象として整理した。
+
+本手順では影響範囲の整理のみを行い、設定変更は実施していない。
+```
 
 
