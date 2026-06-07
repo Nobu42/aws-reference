@@ -56,10 +56,9 @@ ACCOUNT_ID=$(aws sts get-caller-identity \
 
 if [ "$ACCOUNT_ID" != "$EXPECTED_ACCOUNT_ID" ]; then
     echo "ERROR: Unexpected AWS account: $ACCOUNT_ID"
-    return 1 2>/dev/null || exit 1
+else
+    echo "Account check OK: $ACCOUNT_ID"
 fi
-
-echo "Account check OK: $ACCOUNT_ID"
 ```
 
 ## 4. 対象S3バケットの存在確認
