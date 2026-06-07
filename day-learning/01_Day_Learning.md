@@ -23,15 +23,25 @@
 - 作業目的: S3セキュリティ設定の変更前確認
 - 変更作業: なし
 
-実案件では、承認済みの作業手順書で対象アカウント、対象リージョン、対象バケット、作業内容を確認してから作業を開始します。
+実案件では、承認済みの作業手順書で対象アカウント、対象リージョン、対象バケット、作業内容を確認してから作業を開始する。
+
+## AWS CLI実行時の注意
+
+- この資料の`--profile learning`は、自宅の学習環境専用である。
+- 実案件では、指定されたIAM Role、AWS IAM Identity Center、作業用プロファイルなどを使用する。
+- 実案件でプロファイル指定が不要な場合は、手順書に従って`--profile learning`を削除する。
+- `--no-cli-pager`が利用できないAWS CLI環境では、このオプションを削除する。
+- AWS CLIの実行前後に、Webコンソールでも対象アカウント、リージョン、リソース名を確認する。
+- `NoSuch*`エラーや空の正常レスポンスは、設定が存在しないことを示す場合がある。
+- `AccessDenied`や接続エラーは未設定を意味しない。権限や実行環境を確認する。
 
 ## スクリーンショット取得ルール
 
-- 対象バケット名と確認対象の設定値が読み取れる範囲を撮影します。
-- 可能な範囲で操作対象アカウントを識別できる情報を含めます。
-- パスワード、アクセスキー、個人情報、不要な別システムの情報を含めません。
-- 編集画面を開いた場合でも、承認前は保存や変更を行いません。
-- ファイル名から確認内容が分かるようにします。
+- 対象バケット名と確認対象の設定値が読み取れる範囲を撮影する。
+- 可能な範囲で操作対象アカウントを識別できる情報を含める。
+- パスワード、アクセスキー、個人情報、不要な別システムの情報を含めない。
+- 編集画面を開いた場合でも、承認前は保存や変更を行わない。
+- ファイル名から確認内容が分かるようにする。
 
 ## 1. 作業対象確認
 
@@ -85,10 +95,10 @@ aws s3api head-bucket \
 
 結果の読み方:
 
-- 正常終了した場合、バケットが存在し、現在の認証情報でアクセス可能です。
-- `403`の場合、IAM権限不足または想定した所有アカウントとの不一致などが考えられます。
-- `404`の場合、バケットが存在しない可能性があります。
-- 失敗時のエラーだけでは原因を断定せず、バケット名、所有アカウント、IAM権限を確認します。
+- 正常終了した場合、バケットが存在し、現在の認証情報でアクセス可能である。
+- `403`の場合、IAM権限不足または想定した所有アカウントとの不一致などが考えられる。
+- `404`の場合、バケットが存在しない可能性がある。
+- 失敗時のエラーだけでは原因を断定せず、バケット名、所有アカウント、IAM権限を確認する。
 
 #### バケットリージョン確認
 
@@ -117,13 +127,13 @@ LocationConstraint: ap-northeast-1
 3. 「このアカウントのパブリックアクセスブロック設定」を確認する
 4. 4項目の有効・無効を確認する
 
-今回は確認だけなので、「編集」は押しません。
+今回は確認だけなので、「編集」は押さない。
 
 ### 取得するスクリーンショット
 
 - `03_Account-level_Public_Access_Block確認.png`
 
-画面内に以下が含まれるようにします。
+画面内に以下が含まれるようにする。
 
 - 「このアカウントのパブリックアクセスブロック設定」
 - 4項目の現在値
@@ -140,7 +150,7 @@ aws s3control get-public-access-block \
   --no-cli-pager
 ```
 
-現在の環境では、次の結果になる想定です。
+現在の環境では、次の結果になる想定である。
 
 ```text
 NoSuchPublicAccessBlockConfiguration
@@ -151,13 +161,13 @@ NoSuchPublicAccessBlockConfiguration
 ```text
 Account-level設定: 未設定
 Bucket-level設定: 後続で確認
-現時点の判定: 即時変更せず、影響調査が必要な改善候補
+現時点の判定: 即時変更せず、要件確認・影響調査が必要
 ```
 
-- `NoSuchPublicAccessBlockConfiguration`の場合は、Account-level Public Access Blockが未設定であると判断します。
-- `AccessDenied`など別のエラーの場合は未設定と判断せず、IAM権限や実行環境を確認します。
-- アカウント単位の設定を有効にすると、そのアカウントが所有する全バケットとAccess Pointに影響します。
-- Account、Bucket、Access Point、Organizationsで設定が異なる場合、S3は有効な設定のうち最も制限の強い組み合わせを適用します。
+- `NoSuchPublicAccessBlockConfiguration`の場合は、Account-level Public Access Blockが未設定であると判断する。
+- `AccessDenied`など別のエラーの場合は未設定と判断せず、IAM権限や実行環境を確認する。
+- アカウント単位の設定を有効にすると、そのアカウントが所有する全バケットとAccess Pointに影響する。
+- Account、Bucket、Access Point、Organizationsで設定が異なる場合、S3は有効な設定のうち最も制限の強い組み合わせを適用する。
 
 ### 手順書への記載例
 
@@ -213,8 +223,8 @@ RestrictPublicBuckets  True
 
 ### 結果の読み方
 
-- 4項目すべてが`True`なら、対象バケット単位の公開防止設定は良好です。
-- Public Access Blockだけでは安全性を完全には判断できないため、後続でBucket Policy、ACL、Access Pointも確認します。
+- 4項目すべてが`True`なら、対象バケット単位の公開防止設定は良好である。
+- Public Access Blockだけでは安全性を完全には判断できないため、後続でBucket Policy、ACL、Access Pointも確認する。
 
 ### 手順書への記載例
 
@@ -225,20 +235,30 @@ RestrictPublicBuckets  True
 ```
 
 ## 4. Bucket Policy StatusによるPublic判定確認
-対象バケットのBucket Policyなどが、S3からPublicと判定されていないことを確認する。設定変更は行わない。
+
+対象バケットのポリシーが、S3からPublicと判定されていないことを確認する。設定変更は行わない。
 
 ### Webコンソール
-- 対象バケットを開く
-- 「アクセス許可」タブを開く
-- 「ブロックパブリックアクセス」と「バケットポリシー」を確認する
-- パブリックアクセスに関する警告が表示されていないことを確認する
-- 「このバケットに対してブロックパブリックアクセス設定が有効」と表示されていることを確認する
-URL: https://ap-northeast-1.console.aws.amazon.com/s3/buckets/nobu-terraform-iac-lab-upload?region=ap-northeast-1&tab=permissions
 
-Webコンソールでは、必ずしもIsPublic=Falseという値が直接表示されるとは限らない。正確なPublic判定はAWS CLIで確認する。
+1. 対象バケットを開く
+2. 「アクセス許可」タブを開く
+3. 「ブロックパブリックアクセス」と「バケットポリシー」を確認する
+4. パブリックアクセスに関する警告が表示されていないことを確認する
+5. 「このバケットに対してブロックパブリックアクセス設定が有効」と表示されていることを確認する
 
-取得するスクリーンショット
-05_Bucket_Policy_Status確認.png
+URL:
+
+```text
+https://ap-northeast-1.console.aws.amazon.com/s3/buckets/nobu-terraform-iac-lab-upload?region=ap-northeast-1&tab=permissions
+```
+
+Webコンソールでは、`IsPublic=False`が直接表示されるとは限りない。WebコンソールではPublicアクセスに関する警告の有無を確認し、Bucket Policy Statusの値はAWS CLIで確認する。
+
+取得するスクリーンショット:
+
+```text
+05_Publicアクセス警告確認.png
+```
 
 以下が読み取れる範囲を撮影する。
 
@@ -281,14 +301,19 @@ aws s3api get-bucket-policy-status \
 ```
 
 期待結果:
+
+```text
 False
+```
 
 ### 結果の読み方
-- IsPublic=False: Bucket PolicyなどによりPublicと判定されていない
-- IsPublic=True: Publicアクセスを許可する設定が存在する可能性があるため、影響調査が必要
-- AccessDenied: Publicではないという意味ではなく、確認権限が不足している可能性がある
 
-IsPublic=Falseでも、次の設定確認は継続する。
+- `IsPublic=False`: 対象バケットのポリシーはPublicと判定されていない
+- `IsPublic=True`: Publicアクセスを許可するポリシーが存在する可能性があるため、影響調査が必要
+- `AccessDenied`: Publicではないという意味ではなく、確認権限が不足している可能性がある
+
+`IsPublic=False`は、IAM Policy、VPC Endpoint Policy、KMS Key Policyなどを含むアクセス制御全体が安全であることを保証する値ではない。次の設定確認も継続する。
+
 ```text
 Bucket Policy
 ACL
@@ -309,20 +334,27 @@ Bucket Policy、ACLおよびAccess Pointについても継続して確認する�
 ```
 
 ## 5. Bucket Policyの確認
-現在設定されているアクセス制御ルールを読み取ります。
+
+現在設定されているアクセス制御ルールを読み取る。
 
 ### Webコンソール
+
 1. 対象バケットの「アクセス許可」タブを開く
 2. 「バケットポリシー」まで移動する
 3. 「編集」「削除」は押さず、JSONを確認する
 
 取得するスクリーンショット:
 
+```text
 06_Bucket_Policy確認.png
-対象バケット名とポリシー全体が読み取れるように撮影します。
+```
+
+対象バケット名とポリシー全体が読み取れるように撮影する。
 
 ### AWS CLI
-ポリシー本文を表示します。
+
+ポリシー本文を表示する。
+
 ```bash
 aws s3api get-bucket-policy \
   --profile learning \
@@ -333,8 +365,11 @@ aws s3api get-bucket-policy \
   --output text \
   --no-cli-pager
 ```
+
 ### 確認ポイント
+
 今回の期待値:
+
 ```text
 Sid       : DenyInsecureTransport
 Effect    : Deny
@@ -342,13 +377,19 @@ Principal : *
 Action    : s3:*
 Condition : aws:SecureTransport=false
 ```
+
 読み方:
-- Effect: Deny: 条件に一致するアクセスを拒否する
-- Principal: "*": すべてのアクセス主体が対象
-- Action: s3:*: すべてのS3操作が対象
-- バケットARNと/*: バケット操作とオブジェクト操作の両方が対象
-- aws:SecureTransport=false: HTTPSを使用しない通信だけが拒否対象
-- Principal: "*"でも、今回はAllowではなく条件付きのDenyなので、Publicアクセスを許可する設定ではありません。
+
+- `Effect: Deny`: 条件に一致するアクセスを拒否する
+- `Principal: "*"`: すべてのアクセス主体が対象
+- `Action: s3:*`: すべてのS3操作が対象
+- バケットARNと`/*`: バケット操作とオブジェクト操作の両方が対象
+- `aws:SecureTransport=false`: TLSを使用しない通信が拒否対象
+- `Principal: "*"`でも、今回は`Allow`ではなく条件付きの`Deny`なので、Publicアクセスを許可する設定ではない。
+
+`NoSuchBucketPolicy`が返った場合は、Bucket Policyが未設定であることを示す。Bucket Policyが未設定でも、IAM Policy、ACL、Access Point Policyなどによるアクセス許可は別途確認する。
+
+`AccessDenied`が返った場合は、Bucket Policyが未設定という意味ではなく、確認権限が不足している可能性がある。
 
 ### 手順書への記載例
 ```text
@@ -362,10 +403,11 @@ Publicアクセスを許可するStatementは確認されなかった。
 ```
 
 ## 6. Object Ownership・ACLの確認
-Object OwnershipとACLを確認し、ACL経由でPublicアクセスが許可されていないことを確認します。設定変更は行いません。
+
+Object OwnershipとACLを確認し、ACL経由でPublicアクセスが許可されていないことを確認する。設定変更は行わない。
 
 ### Webコンソール
-対象バケットの「アクセス許可」タブで、次のセクションを確認します。
+対象バケットの「アクセス許可」タブで、次のセクションを確認する。
 
 - 「オブジェクト所有者」を確認する
 - 「ACL無効（推奨）」が選択されていることを確認する
@@ -403,12 +445,12 @@ aws s3api get-bucket-ownership-controls \
 ```text
 ObjectOwnership: BucketOwnerEnforced
 ```
-結果の読み方
-- BucketOwnerEnforcedの場合:
-- ACLは無効化されている
-- バケット所有者がすべてのオブジェクトを所有する
-- IAM PolicyやBucket Policyを使用してアクセスを管理する
-- ACLを指定したオブジェクトアップロードは失敗する可能性がある
+結果の読み方:
+
+- `BucketOwnerEnforced`の場合、ACLは無効化されている。
+- バケット所有者が、バケット内のオブジェクトを所有する。
+- IAM PolicyやBucket Policyを使用してアクセスを管理する。
+- `bucket-owner-full-control`以外のACLを指定したオブジェクトアップロードは、失敗する可能性がある。
 
 ### ACLのAWS CLI確認
 ```bash
@@ -426,7 +468,7 @@ Grantee Type : CanonicalUser
 Permission   : FULL_CONTROL
 ```
 ### ACLで注意する項目
-以下のURIや権限が存在する場合は、Publicアクセスの可能性があるため調査します。
+以下のURIや権限が存在する場合は、Publicアクセスの可能性があるため調査する。
 ```url
 http://acs.amazonaws.com/groups/global/AllUsers
 http://acs.amazonaws.com/groups/global/AuthenticatedUsers
@@ -439,7 +481,7 @@ WRITE_ACP
 FULL_CONTROL
 ```
 
-今回の期待値は、バケット所有者のCanonicalUserに対するFULL_CONTROLのみです。
+今回の期待値は、バケット所有者のCanonicalUserに対するFULL_CONTROLのみである。
 
 ### 手順書への記載例
 ```text
@@ -454,9 +496,10 @@ AllUsersおよびAuthenticatedUsersへの権限付与は確認されなかった
 
 ## 7. デフォルト暗号化設定の確認
 
-保存される新規オブジェクトが、どの暗号化方式で暗号化されるか確認します。設定変更は行いません。
+保存される新規オブジェクトが、どの暗号化方式で暗号化されるか確認する。設定変更は行わない。
 
 ### Webコンソール
+
 - 対象バケットを開く
 - **「プロパティ」**タブを開く
 - 「デフォルトの暗号化」まで移動する
@@ -472,7 +515,7 @@ AllUsersおよびAuthenticatedUsersへの権限付与は確認されなかった
 ```text
 09_デフォルト暗号化確認.png
 ```
-対象バケット名、暗号化タイプ、バケットキー設定などが読み取れる範囲を撮影します。
+対象バケット名、暗号化タイプ、バケットキー設定などが読み取れる範囲を撮影する。
 
 ### AWS CLI
 ```bash
@@ -492,16 +535,18 @@ BucketKeyEnabled        : False
 BlockedEncryptionTypes  : SSE-C
 ```
 
-結果の読み方
-- AES256: S3管理キーを使用するSSE-S3が設定されています。
-- aws:kms: AWS KMSキーを使用するSSE-KMSです。KMS Key Policyや利用権限も確認します。
-- aws:kms:dsse: 二層のKMS暗号化を使用するDSSE-KMSです。
-- BucketKeyEnabled=False: SSE-S3では問題ありません。S3 Bucket Keyは主にSSE-KMSのKMSリクエストコスト削減に使用します。
-- BlockedEncryptionTypes: SSE-C: 利用者が提供する暗号鍵を使うSSE-Cが拒否されています。
-- Amazon S3では、すべての新規オブジェクトが最低でもSSE-S3で自動暗号化されます。ただし、金融案件では要件によりSSE-KMSやDSSE-KMSが指定される可能性があります。
+### 結果の読み方
+
+- `AES256`: バケットのデフォルト暗号化として、S3管理キーを使用するSSE-S3が設定されている。
+- `aws:kms`: AWS KMSキーを使用するSSE-KMSである。KMS Key Policyや利用権限も確認する。
+- `aws:kms:dsse`: 二層のKMS暗号化を使用するDSSE-KMSである。
+- `BucketKeyEnabled=False`: SSE-S3では問題ない。S3 Bucket Keyは主にSSE-KMSのKMSリクエストコスト削減に使用する。
+- `BlockedEncryptionTypes: SSE-C`: 利用者が提供する暗号鍵を使うSSE-Cが拒否されている。
+- Amazon S3では、すべての新規オブジェクトが最低でもSSE-S3で自動暗号化される。`get-bucket-encryption`では、対象バケットのデフォルト暗号化設定を確認する。
+- 金融案件では、要件によりSSE-KMSやDSSE-KMSが指定される可能性がある。
 
 ### 追加の確認ポイント
-SSE-KMSまたはDSSE-KMSの場合は、次も確認します。
+SSE-KMSまたはDSSE-KMSの場合は、次も確認する。
 ```text
 ・使用しているKMSキー
 ・KMS Key Policy
@@ -510,7 +555,7 @@ SSE-KMSまたはDSSE-KMSの場合は、次も確認します。
 ・KMS利用料金とリクエストクォータ
 ```
 
-手順書への記載例
+### 手順書への記載例
 ```text
 対象バケットのデフォルト暗号化設定を確認した。
 
@@ -523,7 +568,7 @@ S3管理キーにより暗号化されることを確認した。
 
 ## 8. Versioning・Server Access Loggingの確認
 
-誤削除・上書きへの対策と、S3へのアクセス記録設定を確認します。設定変更は行いません。
+誤削除・上書きへの対策と、S3へのアクセス記録設定を確認する。設定変更は行わない。
 
 ### VersioningのWebコンソール確認
 
@@ -556,7 +601,7 @@ aws s3api get-bucket-versioning \
   --no-cli-pager
 ```
 
-現在のバケットでは、未設定のため何も表示されない可能性があります。
+現在のバケットでは、未設定のため何も表示されない可能性がある。
 
 値を確認する場合:
 
@@ -578,7 +623,7 @@ aws s3api get-bucket-versioning \
 - 値が空または`None`: 一度も有効化されていない
 - `MFADelete=Enabled`: バージョンの完全削除などにMFAが必要
 
-Versioningを有効化すると、誤削除や上書きから復旧しやすくなります。一方で、旧バージョンの保存料金やライフサイクル管理を検討する必要があります。
+Versioningを有効化すると、誤削除や上書きから復旧しやすくなる。一方で、旧バージョンの保存料金やライフサイクル管理を検討する必要がある。
 
 ### Server Access LoggingのWebコンソール確認
 
@@ -612,9 +657,9 @@ aws s3api get-bucket-logging \
   --no-cli-pager
 ```
 
-未設定の場合、何も表示されない可能性があります。
+未設定の場合、何も表示されない可能性がある。
 
-設定済みの場合は、次のような情報が表示されます。
+設定済みの場合は、次のような情報が表示される。
 
 ```text
 LoggingEnabled
@@ -628,9 +673,9 @@ TargetPrefix
 - `TargetBucket`: ログ保存先バケット
 - `TargetPrefix`: ログオブジェクトの先頭文字列
 
-Server Access Loggingは、S3バケットへのリクエストを記録します。CloudTrailのS3データイベントとは目的、形式、料金、配信方法が異なるため、要件に応じて使い分けます。
+Server Access Loggingは、S3バケットへのリクエストを記録する。CloudTrailのS3データイベントとは目的、形式、料金、配信方法が異なるため、要件に応じて使い分ける。
 
-有効化する場合は、次の影響調査が必要です。
+有効化する場合は、次の影響調査が必要である。
 
 - ログ保存先バケットは同一AWSアカウント・同一リージョンか
 - 保存先バケットポリシーで`logging.s3.amazonaws.com`を許可できるか
@@ -654,7 +699,7 @@ CloudTrailデータイベントとの役割分担を確認する必要がある�
 
 ## 9. Website・CORS・Access Point・タグの確認
 
-対象バケットに、想定外の公開経路やアクセス経路が設定されていないか確認します。設定変更は行いません。
+対象バケットに、想定外の公開経路やアクセス経路が設定されていないか確認する。設定変更は行わない。
 
 ### Static Website HostingのWebコンソール確認
 
@@ -700,7 +745,7 @@ NoSuchWebsiteConfiguration
 - `ErrorDocument`: エラー表示用ドキュメント
 - `RedirectAllRequestsTo`: 別のホストなどへのリダイレクト設定
 
-Static Website Hostingが有効な場合は、公開要件、Bucket Policy、CloudFront利用状況などを確認します。
+Static Website Hostingが有効な場合は、公開要件、Bucket Policy、CloudFront利用状況などを確認する。
 
 ---
 
@@ -749,7 +794,7 @@ NoSuchCORSConfiguration
 - `AllowedHeaders`: ブラウザから送信可能なHTTPヘッダー
 - `ExposeHeaders`: ブラウザから参照可能なレスポンスヘッダー
 
-次のような設定がある場合は、要件と影響範囲を確認します。
+次のような設定がある場合は、要件と影響範囲を確認する。
 
 ```text
 AllowedOrigins: *
@@ -757,7 +802,7 @@ AllowedMethods: PUT、POST、DELETE
 AllowedHeaders: *
 ```
 
-CORSはブラウザによるクロスオリジンアクセスを制御する設定です。CORSで許可されていても、Bucket PolicyやIAM Policyによるアクセス許可が別途必要です。
+CORSはブラウザによるクロスオリジンアクセスを制御する設定である。CORSで許可されていても、Bucket PolicyやIAM Policyによるアクセス許可が別途必要である。
 
 ---
 
@@ -793,16 +838,16 @@ aws s3control list-access-points \
   --no-cli-pager
 ```
 
-Access Pointが存在しない場合、一覧に何も表示されない可能性があります。
+Access Pointが存在しない場合、一覧に何も表示されない可能性がある。
 
 ### 結果の読み方
 
 - 一覧が空: 対象バケットにAccess Pointなし
 - `NetworkOrigin=VPC`: 指定VPCからのみアクセス可能
-- `NetworkOrigin=Internet`: インターネット由来のアクセスが可能。ただし、実際のアクセス可否はAccess Point PolicyやBucket Policyなどにも依存する
+- `NetworkOrigin=Internet`: VPC限定のAccess Pointではない。Publicアクセスを許可していることを直接意味せず、実際のアクセス可否はAccess Point Policy、Bucket Policy、Block Public Accessなどにも依存する。
 - `VpcId`: Access Pointに関連付けられたVPC
 
-Access Pointが存在する場合は、Access Point Policyも確認します。
+Access Pointが存在する場合は、Access Point Policyも確認する。
 
 ---
 
@@ -849,7 +894,7 @@ NoSuchTagSet
 - `Key`: タグの分類名
 - `Value`: タグの設定値
 
-管理対象バケットでは、次のようなタグを使用する場合があります。
+管理対象バケットでは、次のようなタグを使用する場合がある。
 
 ```text
 Name
@@ -860,7 +905,7 @@ System
 DataClassification
 ```
 
-タグを追加する場合は、組織の命名規則、コスト配分、運用管理、自動処理への影響を確認します。
+タグを追加する場合は、組織の命名規則、コスト配分、運用管理、自動処理への影響を確認する。
 
 ### 手順書への記載例
 
@@ -871,7 +916,7 @@ DataClassification
 Static Website HostingおよびCORSは未設定であり、
 対象バケットに関連付けられたAccess Pointも確認されなかった。
 
-バケットタグは未設定であり、運用管理上の改善候補として、
+バケットタグは未設定であり、運用ルールの確認が必要な項目として、
 組織のタグ付けルールを確認する必要がある。
 
 設定変更は実施していない。
@@ -879,9 +924,9 @@ Static Website HostingおよびCORSは未設定であり、
 
 ## 10. 確認結果の整理・報告
 
-実施したS3セキュリティ設定確認の結果を整理し、良好な設定、改善候補、影響調査が必要な項目を明確にします。
+実施したS3セキュリティ設定確認の結果を整理し、良好な設定、想定どおりの設定、要件確認・影響調査が必要な項目を明確にする。
 
-設定変更は実施していません。
+設定変更は実施していない。
 
 ### 確認結果一覧
 
@@ -890,39 +935,39 @@ Static Website HostingおよびCORSは未設定であり、
 | AWSアカウント | 想定アカウントと一致 | 正常 |
 | 対象バケット | 存在およびアクセス可能 | 正常 |
 | バケットリージョン | `ap-northeast-1` | 正常 |
-| Account-level Public Access Block | 未設定 | 改善候補・影響調査必要 |
+| Account-level Public Access Block | 未設定 | 要件確認・影響調査必要 |
 | Bucket-level Public Access Block | 4項目すべて有効 | 良好 |
 | Bucket Policy Status | `IsPublic=False` | 良好 |
 | Bucket Policy | 非TLS通信を拒否 | 良好 |
 | Object Ownership | `BucketOwnerEnforced` | 良好 |
 | ACL | バケット所有者のみ | 良好 |
 | デフォルト暗号化 | SSE-S3（AES256） | 有効 |
-| Versioning | 未設定 | 改善候補 |
-| Server Access Logging | 未設定 | 要件確認・改善候補 |
-| Static Website Hosting | 未設定 | 良好 |
-| CORS | 未設定 | 良好 |
+| Versioning | 未設定 | 要件確認 |
+| Server Access Logging | 未設定 | 要件確認 |
+| Static Website Hosting | 未設定 | 想定どおり |
+| CORS | 未設定 | 想定どおり |
 | Access Point | なし | 想定どおり |
-| バケットタグ | 未設定 | 運用管理上の改善候補 |
+| バケットタグ | 未設定 | 運用ルール確認 |
 
 ### 良好な設定
 
-- Bucket-level Public Access Blockの4項目がすべて有効です。
-- Bucket Policy Statusは`IsPublic=False`です。
-- Bucket Policyで非TLS通信が拒否されています。
-- Object Ownershipは`BucketOwnerEnforced`です。
-- ACLによるPublicアクセス許可はありません。
-- 新規オブジェクトはSSE-S3により暗号化されます。
-- Static Website HostingおよびCORSは未設定です。
-- 対象バケットにAccess Pointはありません。
+- Bucket-level Public Access Blockの4項目がすべて有効である。
+- Bucket Policy Statusは`IsPublic=False`である。
+- Bucket Policyで非TLS通信が拒否されている。
+- Object Ownershipは`BucketOwnerEnforced`である。
+- ACLによるPublicアクセス許可はない。
+- 新規オブジェクトはSSE-S3により暗号化される。
+- Static Website HostingおよびCORSは、現在の構成では想定どおり未設定である。
+- 対象バケットにAccess Pointはない。
 
-### 改善候補
+### 要件確認・影響調査が必要な項目
 
-- Account-level Public Access Blockが未設定です。
-- Versioningが未設定です。
-- Server Access Loggingが未設定です。
-- バケットタグが未設定です。
+- Account-level Public Access Blockが未設定である。
+- Versioningが未設定である。
+- Server Access Loggingが未設定である。
+- バケットタグが未設定である。
 
-改善候補は、問題があることを直ちに意味するものではありません。システム要件、運用設計、コスト、既存アプリケーションへの影響を調査してから変更を判断します。
+未設定であることは、問題があることを直ちに意味するものではない。システム要件、運用設計、コスト、既存アプリケーションへの影響を調査してから変更を判断する。
 
 ### 影響調査が必要な項目
 
@@ -962,7 +1007,7 @@ Static Website HostingおよびCORSは未設定であり、
 02_S3対象バケット確認.png
 03_Account-level_Public_Access_Block確認.png
 04_Bucket-level_Public_Access_Block確認.png
-05_Bucket_Policy_Status確認.png
+05_Publicアクセス警告確認.png
 06_Bucket_Policy確認.png
 07_Object_Ownership確認.png
 08_Bucket_ACL確認.png
@@ -977,37 +1022,37 @@ Static Website HostingおよびCORSは未設定であり、
 
 ### 証跡確認時の注意点
 
-- 対象アカウント、対象バケット、設定値が読み取れることを確認します。
-- スクリーンショットの順番が手順書の確認順と一致していることを確認します。
-- パスワード、アクセスキー、個人情報が含まれていないことを確認します。
-- 設定変更を実施していないことを明記します。
-- 未設定を示すエラーと、権限不足などのエラーを区別します。
+- 対象アカウント、対象バケット、設定値が読み取れることを確認する。
+- スクリーンショットの順番が手順書の確認順と一致していることを確認する。
+- パスワード、アクセスキー、個人情報が含まれていないことを確認する。
+- 設定変更を実施していないことを明記する。
+- 未設定を示すエラーと、権限不足などのエラーを区別する。
 
 ### 作業結果報告例
 
 ```text
-対象S3バケットのセキュリティ設定について、変更前確認を実施しました。
+対象S3バケットのセキュリティ設定について、変更前確認を実施した。
 
 Bucket-level Public Access Blockは4項目すべて有効であり、
-Bucket Policy StatusはIsPublic=Falseでした。
+Bucket Policy StatusはIsPublic=Falseであった。
 
 Bucket Policyでは非TLS通信が拒否されており、
-Object OwnershipはBucketOwnerEnforced、ACLはバケット所有者のみでした。
-デフォルト暗号化はSSE-S3が有効です。
+Object OwnershipはBucketOwnerEnforced、ACLはバケット所有者のみであった。
+デフォルト暗号化はSSE-S3が有効である。
 
-改善候補として、Account-level Public Access Block、Versioning、
-Server Access Loggingおよびバケットタグが未設定であることを確認しました。
+要件確認が必要な項目として、Account-level Public Access Block、Versioning、
+Server Access Loggingおよびバケットタグが未設定であることを確認した。
 
-各改善候補は、既存システムへの影響および運用要件を確認してから、
-設定変更の要否を判断する必要があります。
+各項目は、既存システムへの影響および運用要件を確認してから、
+設定変更の要否を判断する必要がある。
 
-本確認において設定変更は実施していません。
+本確認において設定変更は実施していない。
 ```
 
 ### Teams報告例
 
 ```text
-S3セキュリティ設定の変更前確認が完了しました。
+S3セキュリティ設定の変更前確認が完了した。
 
 対象:
 nobu-terraform-iac-lab-upload
@@ -1025,15 +1070,17 @@ nobu-terraform-iac-lab-upload
 ・Server Access Logging: 未設定
 ・バケットタグ: 未設定
 
-設定変更は実施していません。
-改善候補については、影響調査後に対応要否をご確認ください。
+設定変更は実施していない。
+未設定項目については、影響調査後に対応要否の確認を依頼する。
 ```
 
 ### CloudTrail確認について
 
-今回は設定確認のみで、AWSリソースへの設定変更は実施していません。
+今回は設定確認のみで、AWSリソースへの設定変更は実施していない。
 
-そのため、変更操作を証明するCloudTrailイベントの確認は不要です。設定変更を実施した場合は、変更後にCloudTrailで次の情報を確認します。
+そのため、今回は変更イベントの確認対象はない。ただし、現場の証跡要件によっては、参照操作を含むCloudTrailイベントの確認を求められる可能性がある。
+
+設定変更を実施した場合は、変更後にCloudTrailで次の情報を確認する。
 
 ```text
 ・イベント名
