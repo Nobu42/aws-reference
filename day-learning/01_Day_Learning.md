@@ -73,7 +73,7 @@ aws s3api head-bucket \
     --profile "$PROFILE" \
     --region "$REGION" \
     --bucket "$BUCKET" \
-    --expedted-bucket-owner "$EXPECTED_ACCOUNT_ID"
+    --expected-bucket-owner "$EXPECTED_ACCOUNT_ID"
 
 HEAD_BUCKET=RC=$?
 echo "head-bucket exit code: $HEAD_BUCKET_RC"
