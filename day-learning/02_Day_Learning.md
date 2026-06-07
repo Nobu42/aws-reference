@@ -611,6 +611,161 @@ aws s3api put-bucket-policy \
 ```text
 08_変更前_Bucket_Policyバックアップ確認.png
 ```
+### PowerShellによるバックアップ取得
+
+PowerShellでは、改行継続にバックスラッシュ`\`ではなく、バッククォート`` ` ``を使用する。
+
+バッククォートの後ろに空白を入れると、改行継続として動作しないため注意する。
+
+#### バックアップ保存先の作成
+
+```powershell
+$BackupDir = ".\02_Day_Learning\before"
+$BackupFile = Join-Path $BackupDir "bucket-policy-before.json"
+
+New-Item `
+  -ItemType Directory `
+  -Path $BackupDir `
+  -Force
+```
+
+#### 変更前Bucket Policyの取得
+
+```powershell
+$Policy = aws s3api get-bucket-policy `
+  --profile learning `
+  --region ap-northeast-1 `
+  --bucket nobu-terraform-iac-lab-upload `
+  --expected-bucket-owner 445405559057 `
+  --query Policy `
+  --output text `
+  --no-cli-pager
+```
+
+AWS CLIの実行結果を確認する。
+
+```powershell
+if ($LASTEXITCODE -ne 0) {
+  throw "Bucket Policyの取得に失敗したため、作業を中止する。"
+}
+```
+
+#### UTF-8形式でバックアップを保存
+
+Windows PowerShellでは、`>`や`Out-File`を使用すると、意図しない文字コードで保存される場合がある。
+
+切り戻し時にAWS CLIから読み込めるよう、UTF-8 BOMなしで保存する。
+
+```powershell
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+[System.IO.File]::WriteAllText(
+  $BackupFile,
+  $Policy,
+  $Utf8NoBom
+)
+```
+
+#### バックアップファイルの存在確認
+
+```powershell
+Get-Item $BackupFile
+```
+
+ファイルサイズが`0`より大きいことを確認する。
+
+```powershell
+if ((Get-Item $BackupFile).Length -eq 0) {
+  throw "バックアップファイルが空であるため、作業を中止する。"
+}
+
+Write-Host "Bucket Policy backup completed: $BackupFile"
+```
+
+#### バックアップファイルの内容確認
+
+```powershell
+Get-Content `
+  -Path $BackupFile `
+  -Raw
+```
+
+JSONとして正常に読み込めることを確認する。
+
+```powershell
+$SavedPolicy = Get-Content `
+  -Path $BackupFile `
+  -Raw |
+  ConvertFrom-Json
+
+$SavedPolicy | ConvertTo-Json -Depth 20
+```
+
+次の内容が含まれることを確認する。
+
+```text
+Version: 2012-10-17
+Sid: DenyInsecureTransport
+Effect: Deny
+Principal: *
+Action: s3:*
+Condition: aws:SecureTransport=false
+```
+
+#### AWS上のPolicyとの再比較
+
+AWS上の現在のPolicyを再取得する。
+
+```powershell
+$CurrentPolicy = aws s3api get-bucket-policy `
+  --profile learning `
+  --region ap-northeast-1 `
+  --bucket nobu-terraform-iac-lab-upload `
+  --expected-bucket-owner 445405559057 `
+  --query Policy `
+  --output text `
+  --no-cli-pager
+```
+
+保存したPolicyと一致することを確認する。
+
+```powershell
+$SavedPolicyText = Get-Content `
+  -Path $BackupFile `
+  -Raw
+
+if ($CurrentPolicy -eq $SavedPolicyText) {
+  Write-Host "OK: AWS上のPolicyとバックアップファイルが一致している。"
+} else {
+  Write-Warning "AWS上のPolicyとバックアップファイルが一致していない。"
+}
+```
+
+### PowerShellによる切り戻し用コマンド
+
+問題発生時は、保存した変更前Policyを再適用する。
+
+```powershell
+aws s3api put-bucket-policy `
+  --profile learning `
+  --region ap-northeast-1 `
+  --bucket nobu-terraform-iac-lab-upload `
+  --expected-bucket-owner 445405559057 `
+  --policy file://02_Day_Learning/before/bucket-policy-before.json `
+  --no-cli-pager
+```
+
+このコマンドはAWS設定を変更するため、現時点では実行しない。
+
+### PowerShell利用時の注意点
+
+- 改行継続にはバッククォート`` ` ``を使用する
+- バッククォートの後ろに空白を入れない
+- AWS CLI実行後は`$LASTEXITCODE`を確認する
+- JSONファイルはUTF-8 BOMなしで保存する
+- バックアップファイルが空でないことを確認する
+- `ConvertFrom-Json`でJSONとして読み込めることを確認する
+- 切り戻しコマンドは承認を得るまで実行しない
 
 ### 手順書への記載例
 
