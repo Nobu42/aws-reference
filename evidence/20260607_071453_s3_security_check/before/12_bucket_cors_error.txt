@@ -1,0 +1,2 @@
+
+aws: [ERROR]: An error occurred (NoSuchCORSConfiguration) when calling the GetBucketCors operation: The CORS configuration does not exist

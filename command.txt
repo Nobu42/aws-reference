@@ -1,0 +1,1 @@
+# 実際のBucket Policy, Object Ownership, ACLを確認します。
