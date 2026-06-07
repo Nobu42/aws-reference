@@ -307,3 +307,149 @@ Bucket Policy、ACLおよびAccess Pointについても継続して確認する�
 
 設定変更は実施していない。
 ```
+
+## 5. Bucket Policyの確認
+現在設定されているアクセス制御ルールを読み取ります。
+
+### Webコンソール
+1. 対象バケットの「アクセス許可」タブを開く
+2. 「バケットポリシー」まで移動する
+3. 「編集」「削除」は押さず、JSONを確認する
+
+取得するスクリーンショット:
+
+06_Bucket_Policy確認.png
+対象バケット名とポリシー全体が読み取れるように撮影します。
+
+### AWS CLI
+ポリシー本文を表示します。
+```bash
+aws s3api get-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --query Policy \
+  --output text \
+  --no-cli-pager
+```
+### 確認ポイント
+今回の期待値:
+```text
+Sid       : DenyInsecureTransport
+Effect    : Deny
+Principal : *
+Action    : s3:*
+Condition : aws:SecureTransport=false
+```
+読み方:
+- Effect: Deny: 条件に一致するアクセスを拒否する
+- Principal: "*": すべてのアクセス主体が対象
+- Action: s3:*: すべてのS3操作が対象
+- バケットARNと/*: バケット操作とオブジェクト操作の両方が対象
+- aws:SecureTransport=false: HTTPSを使用しない通信だけが拒否対象
+- Principal: "*"でも、今回はAllowではなく条件付きのDenyなので、Publicアクセスを許可する設定ではありません。
+
+### 手順書への記載例
+```text
+対象バケットのBucket Policyを確認した。
+
+非TLS通信を拒否するDenyInsecureTransportが設定されており、
+HTTPによるすべてのS3操作が拒否されることを確認した。
+
+Publicアクセスを許可するStatementは確認されなかった。
+設定変更は実施していない。
+```
+
+### 6. Object Ownership・ACLの確認
+Object OwnershipとACLを確認し、ACL経由でPublicアクセスが許可されていないことを確認します。設定変更は行いません。
+
+### Webコンソール
+対象バケットの「アクセス許可」タブで、次のセクションを確認します。
+
+- 「オブジェクト所有者」を確認する
+- 「ACL無効（推奨）」が選択されていることを確認する
+- 「アクセスコントロールリスト（ACL）」を確認する
+- バケット所有者以外への権限付与がないことを確認する
+- 「編集」は押さない
+
+期待する状態:
+```text
+オブジェクト所有者:
+ACL無効
+バケット所有者の強制
+
+ACL:
+バケット所有者のみFULL_CONTROL
+Everyoneへの権限なし
+AuthenticatedUsersへの権限なし
+```
+取得するスクリーンショット
+```text
+07_Object_Ownership確認.png
+08_Bucket_ACL確認.png
+```
+### Object OwnershipのAWS CLI確認
+```bash
+aws s3api get-bucket-ownership-controls \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --output table \
+  --no-cli-pager
+```
+期待結果:
+```text
+ObjectOwnership: BucketOwnerEnforced
+```
+結果の読み方
+- BucketOwnerEnforcedの場合:
+- ACLは無効化されている
+- バケット所有者がすべてのオブジェクトを所有する
+- IAM PolicyやBucket Policyを使用してアクセスを管理する
+- ACLを指定したオブジェクトアップロードは失敗する可能性がある
+
+### ACLのAWS CLI確認
+```bash
+aws s3api get-bucket-acl \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --output table \
+  --no-cli-pager
+```
+期待結果:
+```text
+Grantee Type : CanonicalUser
+Permission   : FULL_CONTROL
+```
+### ACLで注意する項目
+以下のURIや権限が存在する場合は、Publicアクセスの可能性があるため調査します。
+```url
+http://acs.amazonaws.com/groups/global/AllUsers
+http://acs.amazonaws.com/groups/global/AuthenticatedUsers
+```
+```text
+READ
+WRITE
+READ_ACP
+WRITE_ACP
+FULL_CONTROL
+```
+
+今回の期待値は、バケット所有者のCanonicalUserに対するFULL_CONTROLのみです。
+
+### 手順書への記載例
+```text
+対象バケットのObject OwnershipおよびACLを確認した。
+
+Object OwnershipはBucketOwnerEnforcedであり、ACLは無効化されている。
+ACLにはバケット所有者のFULL_CONTROLのみが設定されており、
+AllUsersおよびAuthenticatedUsersへの権限付与は確認されなかった。
+
+設定変更は実施していない。
+```
+
+
