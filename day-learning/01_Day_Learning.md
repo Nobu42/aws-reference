@@ -75,7 +75,7 @@ aws s3api head-bucket \
     --bucket "$BUCKET" \
     --expected-bucket-owner "$EXPECTED_ACCOUNT_ID"
 
-HEAD_BUCKET=RC=$?
+HEAD_BUCKET_RC=$?
 echo "head-bucket exit code: $HEAD_BUCKET_RC"
 ```
 
