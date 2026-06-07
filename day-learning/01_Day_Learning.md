@@ -88,4 +88,45 @@ Account-level Public Access Blockを確認した結果、未設定であるこ�
 本設定を有効化した場合、AWSアカウント内の全S3バケットへ影響するため、
 変更は実施せず、公開要件および利用状況の影響調査が必要と判断した。
 ```
-##
+## 3. Bucket-level Public Access Block確認
+### Webコンソール
+1. 対象バケットのアクセス許可画面を開く
+2. 「ブロックパブリックアクセス（バケット設定）」を確認する
+3. 「すべてのパブリックアクセスをブロック」がオンであることを確認する
+4. 4項目がすべてオンであることを確認する
+5. 「編集」は押さない
+
+確認項目
+```text
+BlockPublicAcls
+IgnorePublicAcls
+BlockPublicPolicy
+RestrictPublicBuckets
+```
+取得するスクリーンショット
+04_Bucket-level_Public_Access_Block確認.png
+
+### 一行AWS CLI
+```bash
+aws s3api get-public-access-block --profile learning --region ap-northeast-1 --bucket nobu-terraform-iac-lab-upload --expected-bucket-owner 445405559057 --output table --no-cli-pager
+```
+期待結果
+```text
+BlockPublicAcls        True
+IgnorePublicAcls       True
+BlockPublicPolicy      True
+RestrictPublicBuckets  True
+```
+### 結果の読み方
+4項目すべてがTrueなら、対象バケット単位の公開防止設定は良好です。
+
+ただし、Public Access Blockだけでは安全性を完全には判断できない。後続でBucket Policy、ACL、Access Pointも確認する。
+
+### 手順書への記載例
+```text
+対象バケットのBucket-level Public Access Blockを確認した。
+4つの公開防止設定はすべて有効であり、設定状態は良好である。
+設定変更は実施していない。
+```
+
+
