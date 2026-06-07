@@ -133,7 +133,7 @@ aws s3api get-bucket-location \
 
 ```bash
 # 必要な変数を確認する
-printf 'PROFILE=%s\nREGION=%S\nEXPECTED_ACCOUNT_ID=%s\nEVIDENCE_DIR%s\n' \
+printf 'PROFILE=%s\nREGION=%S\nEXPECTED_ACCOUNT_ID=%s\nEVIDENCE_DIR=%s\n' \
 "$PROFILE" "$REGION" "$EXPECTED_ACCOUNT_ID" "$EVIDENCE_DIR"
 
 # 証跡ファイル名を変数化する
