@@ -14,11 +14,20 @@ EXPECTED_ACCOUNT_ID="445405559057"
 BUCKET="nobu-terraform-iac-lab-upload"
 ```
 
-・作業に必要な変数が空でないことを確認する
+- 作業に必要な変数が空でないことを確認する
 
 ```bash
-printf "$PROFILE\n$REGION\n$EXPECTED_ACCOUNT_ID\n$BUCKET\n"
+printf 'PROFILE=%s\nREGION=%s\nEXPECTED_ACCOUNT_ID=%s\nBUCKET=%s\n' \
+  "$PROFILE" "$REGION" "$EXPECTED_ACCOUNT_ID" "$BUCKET"
+
+for VARIABLE_NAME in PROFILE REGION EXPECTED_ACCOUNT_ID BUCKET; do
+  if [ -z "${!VARIABLE_NAME:-}" ]; then
+    echo "ERROR: $VARIABLE_NAME is not set."
+  fi
+done
 ```
+
+`ERROR`が表示された場合は、後続の確認を実行せず、対象の変数を設定し直す。
 
 ## 2. 証跡保存用ディレクトリの作成
 
@@ -30,7 +39,7 @@ printf "$PROFILE\n$REGION\n$EXPECTED_ACCOUNT_ID\n$BUCKET\n"
 
 ```bash
 WORK_NAME="s3_security_check"
-EVIDENCE_DIR="evidence/$(date +%Y%m%d)_${WORK_NAME}"
+EVIDENCE_DIR="evidence/$(date +%Y%m%d_%H%M%S)_${WORK_NAME}"
 
 mkdir -p \
   "$EVIDENCE_DIR/00_metadata" \
@@ -50,16 +59,29 @@ echo "Evidence directory: $EVIDENCE_DIR"
 
 ```bash
 ACCOUNT_ID=$(aws sts get-caller-identity \
-    --profile "$PROFILE" \
-    --query Account \
-    --output text)
+  --profile "$PROFILE" \
+  --query Account \
+  --output text)
 
 if [ "$ACCOUNT_ID" != "$EXPECTED_ACCOUNT_ID" ]; then
-    echo "ERROR: Unexpected AWS account: $ACCOUNT_ID"
+  echo "ERROR: Unexpected AWS account: $ACCOUNT_ID"
+  echo "Expected account: $EXPECTED_ACCOUNT_ID"
+  echo "Do not continue."
 else
-    echo "Account check OK: $ACCOUNT_ID"
+  echo "Account check OK: $ACCOUNT_ID"
 fi
+
+aws sts get-caller-identity \
+  --profile "$PROFILE" \
+  --output json \
+  > "$EVIDENCE_DIR/00_metadata/00_caller_identity.json"
+
+aws sts get-caller-identity \
+  --profile "$PROFILE" \
+  --output table
 ```
+
+`ERROR`が表示された場合は、後続の確認を実行しない。
 
 ## 4. 対象S3バケットの存在確認
 
@@ -69,15 +91,34 @@ fi
 - バケット所有者が想定AWSアカウントであることを確認する
 
 ```bash
-aws s3api head-bucket \
-    --profile "$PROFILE" \
-    --region "$REGION" \
-    --bucket "$BUCKET" \
-    --expected-bucket-owner "$EXPECTED_ACCOUNT_ID"
+HEAD_BUCKET_RESULT="$EVIDENCE_DIR/before/00_head_bucket_result.txt"
+HEAD_BUCKET_ERROR="$EVIDENCE_DIR/before/00_head_bucket_error.txt"
 
-HEAD_BUCKET_RC=$?
-echo "head-bucket exit code: $HEAD_BUCKET_RC"
+if aws s3api head-bucket \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --bucket "$BUCKET" \
+  --expected-bucket-owner "$EXPECTED_ACCOUNT_ID" \
+  2> "$HEAD_BUCKET_ERROR"; then
+
+  rm -f "$HEAD_BUCKET_ERROR"
+  printf 'Bucket access check succeeded.\nBucket: %s\nOwner: %s\nExitCode: 0\n' \
+    "$BUCKET" "$EXPECTED_ACCOUNT_ID" \
+    > "$HEAD_BUCKET_RESULT"
+
+  cat "$HEAD_BUCKET_RESULT"
+else
+  HEAD_BUCKET_RC=$?
+  printf 'Bucket access check failed.\nBucket: %s\nOwner: %s\nExitCode: %s\n' \
+    "$BUCKET" "$EXPECTED_ACCOUNT_ID" "$HEAD_BUCKET_RC" \
+    > "$HEAD_BUCKET_RESULT"
+
+  cat "$HEAD_BUCKET_RESULT"
+  cat "$HEAD_BUCKET_ERROR"
+fi
 ```
+
+失敗した場合は、バケット名、所有アカウント、IAM権限を確認してから後続の確認へ進む。
 
 ## 5. S3バケット一覧の確認
 
@@ -87,8 +128,6 @@ echo "head-bucket exit code: $HEAD_BUCKET_RC"
 - 取得結果を証跡として保存する
 
 ```bash
-EVIDENCE_DIR="evidence/$(date +%Y%m%d)_${WORK_NAME}"
-WORK_NAME="s3_security_check"
 aws s3api list-buckets \
   --profile "$PROFILE" \
   --output json \
@@ -106,8 +145,6 @@ aws s3api list-buckets \
 - 取得結果を証跡として保存する
 
 ```bash
-EVIDENCE_DIR="evidence/$(date +%Y%m%d)_${WORK_NAME}"
-WORK_NAME="s3_security_check"
 aws s3api get-bucket-location \
   --profile "$PROFILE" \
   --region "$REGION" \
@@ -133,39 +170,52 @@ aws s3api get-bucket-location \
 
 ```bash
 # 必要な変数を確認する
-printf 'PROFILE=%s\nREGION=%S\nEXPECTED_ACCOUNT_ID=%s\nEVIDENCE_DIR=%s\n' \
-"$PROFILE" "$REGION" "$EXPECTED_ACCOUNT_ID" "$EVIDENCE_DIR"
+printf 'PROFILE=%s\nREGION=%s\nEXPECTED_ACCOUNT_ID=%s\nEVIDENCE_DIR=%s\n' \
+  "$PROFILE" "$REGION" "$EXPECTED_ACCOUNT_ID" "$EVIDENCE_DIR"
 
 # 証跡ファイル名を変数化する
-ACCOUNT_PAB_JSON="$EVIDENCE_DIR/befor/03_account_public_access_block.json"
+ACCOUNT_PAB_JSON="$EVIDENCE_DIR/before/03_account_public_access_block.json"
 ACCOUNT_PAB_ERROR="$EVIDENCE_DIR/before/03_account_public_access_block_error.txt"
 
 if aws s3control get-public-access-block \
-    --profile "$PROFILE" \
-    --region "$REGION" \
-    --account_id "$EXPECTED_ACCOUNT_ID" \
-    --output json \
-    > "$ACCOUNT_PAB_JSON" \
-    2> "$ACCOUNT_PAB_ERROR"; then
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --account-id "$EXPECTED_ACCOUNT_ID" \
+  --output json \
+  > "$ACCOUNT_PAB_JSON" \
+  2> "$ACCOUNT_PAB_ERROR"; then
 
-    rm -f "$ACCOUNT_PAB_ERROR"
+  rm -f "$ACCOUNT_PAB_ERROR"
 
-    echo "Account-level Public Access Block is configured."
-    cat "$ACCOUNT_PAB_JSON"
+  echo "Account-level Public Access Block is configured."
+  cat "$ACCOUNT_PAB_JSON"
 elif grep -q "NoSuchPublicAccessBlockConfiguration" "$ACCOUNT_PAB_ERROR"; then
 
-    rm -f "$ACCOUNT_PAB_JSON"
+  rm -f "$ACCOUNT_PAB_JSON"
 
-    echo "Account-level public Access Block is not configured."
-    cat "$ACCOUNT_PAB_JSON"
+  echo "Account-level Public Access Block is not configured."
+  cat "$ACCOUNT_PAB_ERROR"
+else
 
-    echo "ERROR: Account-level Public Access Block could not be retrieved."
-    cat "$ACCOUNT_PAB_ERROR"
+  rm -f "$ACCOUNT_PAB_JSON"
+
+  echo "ERROR: Account-level Public Access Block could not be retrieved."
+  cat "$ACCOUNT_PAB_ERROR"
 fi
 
-# 設定済みの場合は、保存したJsonで以下の４項目が全てTrueか確認する。
-if [ -f "$ACCOUNT_PAB_JSON" ]; then
-    jq '.PublicAccessBlockConfiguration' "$ACCOUNT_PAB_JSON"
+# 設定済みの場合は、保存したJSONで4項目を確認する。
+if [ -s "$ACCOUNT_PAB_JSON" ]; then
+  jq '.PublicAccessBlockConfiguration' "$ACCOUNT_PAB_JSON"
+
+  jq -e '
+    .PublicAccessBlockConfiguration
+    | .BlockPublicAcls == true
+      and .IgnorePublicAcls == true
+      and .BlockPublicPolicy == true
+      and .RestrictPublicBuckets == true
+  ' "$ACCOUNT_PAB_JSON" >/dev/null \
+    && echo "All account-level Public Access Block settings are true." \
+    || echo "WARNING: One or more account-level Public Access Block settings are not true."
 fi
 
 # 証跡確認
