@@ -361,7 +361,7 @@ Publicアクセスを許可するStatementは確認されなかった。
 設定変更は実施していない。
 ```
 
-### 6. Object Ownership・ACLの確認
+## 6. Object Ownership・ACLの確認
 Object OwnershipとACLを確認し、ACL経由でPublicアクセスが許可されていないことを確認します。設定変更は行いません。
 
 ### Webコンソール
