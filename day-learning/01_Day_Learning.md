@@ -22,18 +22,45 @@ printf "$PROFILE\n$REGION\n$EXPECTED_ACCOUNT_ID\n$BUCKET\n"
 
 ## 2. 証跡保存用ディレクトリの作成
 
-・実行日時を含む証跡ディレクトリを作成する
-・メタデータ保存用ディレクトリを作成する
-・変更前証跡保存用ディレクトリを作成する
-・変更後証跡保存用ディレクトリを作成する
-・スクリーンショット保存用ディレクトリを作成する
+- 実行日時を含む証跡ディレクトリを作成する
+- メタデータ保存用ディレクトリを作成する
+- 変更前証跡保存用ディレクトリを作成する
+- 変更後証跡保存用ディレクトリを作成する
+- スクリーンショット保存用ディレクトリを作成する
+
+```bash
+WORK_NAME="s3_security_check"
+EVIDENCE_DIR="evidence/$(date +%Y%m%d_%H%M%S)_${WORK_NAME}"
+
+mkdir -p \
+  "$EVIDENCE_DIR/00_metadata" \
+  "$EVIDENCE_DIR/before" \
+  "$EVIDENCE_DIR/after" \
+  "$EVIDENCE_DIR/screenshots"
+
+echo "Evidence directory: $EVIDENCE_DIR"
+```
 
 ## 3. AWS操作アカウントの確認
 
-・現在使用しているAWSアカウントIDを取得する
-・取得したアカウントIDが想定値と一致することを確認する
-・作業に使用するIAMユーザーまたはIAMロールを確認する
-・Caller Identityを証跡として保存する
+- 現在使用しているAWSアカウントIDを取得する
+- 取得したアカウントIDが想定値と一致することを確認する
+- 作業に使用するIAMユーザーまたはIAMロールを確認する
+- Caller Identityを証跡として保存する
+
+```bash
+ACCOUNT_ID=$(aws sts get-caller-identity \
+    --profile "$PROFILE" \
+    --query Account \
+    --output text)
+
+if [ "$ACCOUNT_ID" != "EXPECTED_ACCOUNT_ID" ]; then
+    echo "ERROR: Unexpected AWS account: $ACCOUNT_ID"
+    return 1 2>/dev/null || exit 1
+fi
+
+echo "Account check OK: $ACCOUNT_ID"
+```
 
 ## 4. 対象S3バケットの存在確認
 
