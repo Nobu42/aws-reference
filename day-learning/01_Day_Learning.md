@@ -54,12 +54,15 @@
 - `01_操作アカウント確認.png`
 - `02_S3対象バケット確認.png`
 
-### 一行AWS CLI
+### AWS CLI
 
 #### アカウント確認
 
 ```bash
-aws sts get-caller-identity --profile learning --output table --no-cli-pager
+aws sts get-caller-identity \
+  --profile learning \
+  --output table \
+  --no-cli-pager
 ```
 
 期待値:
@@ -72,7 +75,12 @@ Arn: arn:aws:iam::445405559057:user/nobu
 #### バケット存在確認
 
 ```bash
-aws s3api head-bucket --profile learning --region ap-northeast-1 --bucket nobu-terraform-iac-lab-upload --expected-bucket-owner 445405559057 --no-cli-pager
+aws s3api head-bucket \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --no-cli-pager
 ```
 
 結果の読み方:
@@ -85,7 +93,13 @@ aws s3api head-bucket --profile learning --region ap-northeast-1 --bucket nobu-t
 #### バケットリージョン確認
 
 ```bash
-aws s3api get-bucket-location --profile learning --region ap-northeast-1 --bucket nobu-terraform-iac-lab-upload --expected-bucket-owner 445405559057 --output table --no-cli-pager
+aws s3api get-bucket-location \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --output table \
+  --no-cli-pager
 ```
 
 期待値:
@@ -115,10 +129,15 @@ LocationConstraint: ap-northeast-1
 - 4項目の現在値
 - 操作対象アカウントを識別できる情報
 
-### 一行AWS CLI
+### AWS CLI
 
 ```bash
-aws s3control get-public-access-block --profile learning --region ap-northeast-1 --account-id 445405559057 --output table --no-cli-pager
+aws s3control get-public-access-block \
+  --profile learning \
+  --region ap-northeast-1 \
+  --account-id 445405559057 \
+  --output table \
+  --no-cli-pager
 ```
 
 現在の環境では、次の結果になる想定です。
@@ -171,10 +190,16 @@ RestrictPublicBuckets
 
 - `04_Bucket-level_Public_Access_Block確認.png`
 
-### 一行AWS CLI
+### AWS CLI
 
 ```bash
-aws s3api get-public-access-block --profile learning --region ap-northeast-1 --bucket nobu-terraform-iac-lab-upload --expected-bucket-owner 445405559057 --output table --no-cli-pager
+aws s3api get-public-access-block \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --output table \
+  --no-cli-pager
 ```
 
 期待結果
@@ -198,4 +223,3 @@ RestrictPublicBuckets  True
 4つの公開防止設定はすべて有効であり、設定状態は良好である。
 設定変更は実施していない。
 ```
-
