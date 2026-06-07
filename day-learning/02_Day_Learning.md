@@ -459,4 +459,169 @@ Railsアプリケーション、管理端末、オンプレミス連携、
 本手順では影響範囲の整理のみを行い、設定変更は実施していない。
 ```
 
+## 4. 変更前Bucket Policyのバックアップ
 
+Bucket Policy変更前に、現在のPolicyを切り戻し用ファイルとして保存する。
+
+バックアップを取得・確認できるまで、Bucket Policyの変更は実施しない。
+
+### バックアップの目的
+
+変更後に問題が発生した場合、変更前Bucket Policyを再適用して切り戻すために使用する。
+
+```text
+バックアップ対象:
+nobu-terraform-iac-lab-uploadの変更前Bucket Policy
+
+バックアップ用途:
+Bucket Policy変更失敗時または動作確認失敗時の切り戻し
+```
+
+### Webコンソールによる確認
+
+1. 対象バケットの「アクセス許可」タブを開く
+2. 「バケットポリシー」を確認する
+3. Policy全体が表示されていることを確認する
+4. Policy全体を作業手順書または承認済みの保存場所へ記録する
+5. 「編集」「削除」は押さない
+
+Webコンソールから取得したPolicyと、AWS CLIで取得したPolicyの内容が一致することを確認する。
+
+### AWS CLIによるバックアップ取得
+
+バックアップ保存用ディレクトリを作成する。
+
+```bash
+mkdir -p 02_Day_Learning/before
+```
+
+変更前Bucket Policyを保存する。
+
+```bash
+aws s3api get-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --query Policy \
+  --output text \
+  --no-cli-pager \
+  > 02_Day_Learning/before/bucket-policy-before.json
+```
+
+このコマンドはBucket Policyを取得してローカルファイルへ保存するだけであり、AWS設定は変更しない。
+
+### バックアップファイルの存在確認
+
+```bash
+ls -l 02_Day_Learning/before/bucket-policy-before.json
+```
+
+ファイルの内容を確認する。
+
+```bash
+cat 02_Day_Learning/before/bucket-policy-before.json
+```
+
+期待するPolicy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyInsecureTransport",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::nobu-terraform-iac-lab-upload",
+        "arn:aws:s3:::nobu-terraform-iac-lab-upload/*"
+      ],
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
+      }
+    }
+  ]
+}
+```
+
+### バックアップ取得後の再確認
+
+AWS上の現在のBucket Policyを再取得する。
+
+```bash
+aws s3api get-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --query Policy \
+  --output text \
+  --no-cli-pager
+```
+
+次の3つが一致することを確認する。
+
+```text
+・Webコンソールに表示されたBucket Policy
+・AWS CLIで表示されたBucket Policy
+・bucket-policy-before.jsonに保存したBucket Policy
+```
+
+### 切り戻し用コマンド
+
+問題発生時は、保存した変更前Policyを再適用する。
+
+```bash
+aws s3api put-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --policy file://02_Day_Learning/before/bucket-policy-before.json \
+  --no-cli-pager
+```
+
+このコマンドはAWS設定を変更するため、現時点では実行しない。
+
+### バックアップ取得時の注意点
+
+- バックアップファイルが空でないことを確認する
+- 対象バケット名が正しいことを確認する
+- 保存したPolicyに必要なStatementがすべて含まれていることを確認する
+- バックアップファイルを変更後Policyで上書きしない
+- 切り戻しコマンドのファイルパスが正しいことを確認する
+- 実案件では、承認済みの保存場所とファイル命名規則を使用する
+
+### 作業中止条件
+
+次のいずれかに該当する場合は、変更作業へ進まない。
+
+- 変更前Bucket Policyを取得できない
+- バックアップファイルが空である
+- Webコンソールとバックアップファイルの内容が一致しない
+- 想定外のStatementが存在する
+- 切り戻し用コマンドまたは保存先が未確認である
+
+### 取得するスクリーンショット
+
+```text
+08_変更前_Bucket_Policyバックアップ確認.png
+```
+
+### 手順書への記載例
+
+```text
+対象バケットの変更前Bucket Policyを取得し、
+切り戻し用ファイルとして保存した。
+
+Webコンソール、AWS CLIの取得結果、およびバックアップファイルの
+Policy内容が一致することを確認した。
+
+切り戻し用コマンドとバックアップファイルの保存場所を確認した。
+
+本手順ではバックアップ取得のみを行い、設定変更は実施していない。
+```
