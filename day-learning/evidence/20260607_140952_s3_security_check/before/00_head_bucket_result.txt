@@ -1,0 +1,4 @@
+Bucket access check succeeded.
+Bucket: nobu-terraform-iac-lab-upload
+Owner: 445405559057
+ExitCode: 0

@@ -234,6 +234,83 @@ find "$EVIDENCE_DIR/before" \
 - RestrictPublicBucketsが有効であることを確認する
 - 取得結果を証跡として保存する
 
+```bash
+# 作業対象を確認する
+printf 'PROFILE=%s\nREGION=%s\nEXPECTED_ACCOUNT_ID=%s\nBUCKET=%s\nEVIDENCE_DIR=%s\n' \
+  "$PROFILE" "$REGION" "$EXPECTED_ACCOUNT_ID" "$BUCKET" "$EVIDENCE_DIR"
+
+# 証跡ファイル名を設定する
+BUCKET_PAB_JSON="$EVIDENCE_DIR/before/04_bucket_public_access_block.json"
+BUCKET_PAB_ERROR="$EVIDENCE_DIR/before/04_bucket_public_access_block_error.txt"
+
+# Bucket-level Public Access Blockを取得する
+if aws s3api get-public-access-block \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --bucket "$BUCKET" \
+  --expected-bucket-owner "$EXPECTED_ACCOUNT_ID" \
+  --output json \
+  > "$BUCKET_PAB_JSON" \
+  2> "$BUCKET_PAB_ERROR"; then
+
+  rm -f "$BUCKET_PAB_ERROR"
+
+  echo "Bucket-level Public Access Block is configured."
+  cat "$BUCKET_PAB_JSON"
+
+elif grep -q "NoSuchPublicAccessBlockConfiguration" "$BUCKET_PAB_ERROR"; then
+
+  rm -f "$BUCKET_PAB_JSON"
+
+  echo "WARNING: Bucket-level Public Access Block is not configured."
+  cat "$BUCKET_PAB_ERROR"
+
+else
+
+  rm -f "$BUCKET_PAB_JSON"
+
+  echo "ERROR: Bucket-level Public Access Block could not be retrieved."
+  cat "$BUCKET_PAB_ERROR"
+fi
+```
+4項目がすべてtrueであることを確認する。
+```bash
+if [ -s "$BUCKET_PAB_JSON" ]; then
+  echo "=== Public Access Block settings ==="
+
+  jq '.PublicAccessBlockConfiguration' "$BUCKET_PAB_JSON"
+
+  if jq -e '
+    .PublicAccessBlockConfiguration
+    | .BlockPublicAcls == true
+      and .IgnorePublicAcls == true
+      and .BlockPublicPolicy == true
+      and .RestrictPublicBuckets == true
+  ' "$BUCKET_PAB_JSON" >/dev/null; then
+
+    echo "OK: All bucket-level Public Access Block settings are true."
+  else
+    echo "WARNING: One or more bucket-level Public Access Block settings are not true."
+  fi
+fi
+```
+
+証跡ファイルを確認する。
+```bash
+find "$EVIDENCE_DIR/before" \
+  -name '04_bucket_public_access_block*' \
+  -type f \
+  -print
+```
+期待結果
+```text
+BlockPublicAcls: true
+IgnorePublicAcls: true
+BlockPublicPolicy: true
+RestrictPublicBuckets: true
+
+OK: All bucket-level Public Access Block settings are true.
+```
 ## 9. Bucket Policy StatusによるPublic判定の確認
 
 - 対象バケットのPublic判定を確認する
