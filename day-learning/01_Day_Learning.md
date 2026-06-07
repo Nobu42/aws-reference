@@ -45,7 +45,7 @@ Arn: arn:aws:iam::445405559057:user/nobu
 ```
 
 ### バケット存在確認
-```
+```bash
 aws s3api head-bucket --profile learning --region ap-northeast-1 --bucket nobu-terraform-iac-lab-upload --expected-bucket-owner 445405559057 --no-cli-pager
 ```
 
