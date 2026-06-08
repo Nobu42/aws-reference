@@ -1301,15 +1301,36 @@ aws cloudtrail lookup-events \
   --profile learning \
   --region ap-northeast-1 \
   --lookup-attributes AttributeKey=EventId,AttributeValue="$EVENT_ID" \
+  --query 'Events[0].{EventTime:EventTime,EventName:EventName,Username:Username,ReadOnly:ReadOnly,ResourceName:Resources[0].ResourceName,ResourceType:Resources[0].ResourceType,EventId:EventId}' \
   --output table \
   --no-cli-pager
 ```
 
-## CloudTrailイベントレコードの保存
+`CloudTrailEvent`を含むイベント全体を`--output table`で表示すると、横長の表になり読みづらい。
+画面上では上記の要約を確認し、イベントの全内容は後続手順でJSONファイルへ保存する。
+
+## CloudTrailイベント要約の保存
 
 ```bash
 mkdir -p 02_Day_Learning/evidence
 ```
+
+確認と報告に使用する主要項目を、読みやすい表形式で保存する。
+
+```bash
+aws cloudtrail lookup-events \
+  --profile learning \
+  --region ap-northeast-1 \
+  --lookup-attributes AttributeKey=EventId,AttributeValue="$EVENT_ID" \
+  --query 'Events[0].{EventTime:EventTime,EventName:EventName,Username:Username,ReadOnly:ReadOnly,ResourceName:Resources[0].ResourceName,ResourceType:Resources[0].ResourceType,EventId:EventId}' \
+  --output table \
+  --no-cli-pager \
+  | tee 02_Day_Learning/evidence/cloudtrail-put-bucket-policy-summary.txt
+```
+
+## CloudTrailイベントレコードの保存
+
+調査用の正式証跡として、CloudTrailイベントの全内容を生JSONのまま保存する。
 
 ```bash
 aws cloudtrail lookup-events \
@@ -1322,13 +1343,20 @@ aws cloudtrail lookup-events \
   > 02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
 ```
 
+生JSONは1行で保存されるため、通常確認では`cat`による全内容表示を行わない。
+ファイルが作成され、空でないことを確認する。
+
 ```bash
-cat 02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
+ls -l \
+  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
+
+wc -c \
+  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
 ```
 
-## sed・grepによる主要項目確認
+## grepによるイベント詳細確認
 
-イベントレコードから主要項目を抽出する。
+生JSON全体を表示せず、確認が必要な主要項目だけを抽出する。
 
 ```bash
 grep -o \
@@ -1343,6 +1371,24 @@ grep -o \
   '"arn":"[^"]*"' \
   02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
 ```
+
+通信に使用されたTLSバージョンを確認する。
+
+```bash
+grep -o \
+  '"tlsVersion":"[^"]*"' \
+  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
+```
+
+変更したBucket Policyに、想定したステートメントが含まれることを確認する。
+
+```bash
+grep -o \
+  '"Sid":"DenyInsecureTransport"\|"Sid":"DenyOutdatedTLS"\|"s3:TlsVersion":[^,}]*' \
+  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
+```
+
+`errorCode`および`errorMessage`が表示されない場合、CloudTrailイベントにはAPIエラーが記録されていない。
 
 ## 結果の読み方
 
@@ -1916,4 +1962,3 @@ Day 2完了時点で、S3 Bucket Policy変更について次の一連の作業�
 → 切り戻し
 → 作業報告
 ```
-
