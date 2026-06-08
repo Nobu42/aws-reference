@@ -1010,4 +1010,910 @@ Webアプリケーション環境を停止している場合、S3を利用する
 
 その場合は、Bucket Policy変更確認までを実施し、アプリケーション動作確認を未実施項目として記録する。
 
+## 7. 変更後Bucket Policyの動作確認
+
+変更後Bucket Policyが意図した内容で反映され、既存のS3利用処理へ影響していないことを確認する。
+
+この手順では設定変更を行わない。
+
+### 確認観点
+
+- `DenyInsecureTransport`が維持されていること
+- `DenyOutdatedTLS`が追加されていること
+- Bucket Policy Statusが`IsPublic=False`であること
+- 通常のAWS CLIによるS3アクセスが成功すること
+- RailsアプリケーションからS3を利用できること
+- 想定外のアクセス拒否が発生していないこと
+
+## AWS CLIによる変更後Policy取得
+
+```bash
+aws s3api get-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --query Policy \
+  --output text \
+  --no-cli-pager \
+  > 02_Day_Learning/after/bucket-policy-applied.json
+```
+
+### Policy内容の表示
+
+JSONを読みやすくするため、ステートメントの区切りで改行して表示する。
+
+```bash
+sed 's/},{/},\
+{/g' \
+  02_Day_Learning/after/bucket-policy-applied.json
+```
+
+### 必須設定の存在確認
+
+```bash
+grep -n \
+  'DenyInsecureTransport\|DenyOutdatedTLS\|s3:TlsVersion\|aws:PrincipalIsAWSService' \
+  02_Day_Learning/after/bucket-policy-applied.json
+```
+
+期待する確認項目:
+
+```text
+DenyInsecureTransport
+DenyOutdatedTLS
+s3:TlsVersion
+aws:PrincipalIsAWSService
+```
+
+### TLSバージョン設定の確認
+
+```bash
+grep -o \
+  '"s3:TlsVersion":[^,}]*' \
+  02_Day_Learning/after/bucket-policy-applied.json
+```
+
+期待値:
+
+```text
+"s3:TlsVersion":1.2
+```
+
+## Public判定の確認
+
+```bash
+aws s3api get-bucket-policy-status \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --output table \
+  --no-cli-pager
+```
+
+期待値:
+
+```text
+IsPublic: False
+```
+
+## Bucket-level Public Access Blockの再確認
+
+```bash
+aws s3api get-public-access-block \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --output table \
+  --no-cli-pager
+```
+
+期待値:
+
+```text
+BlockPublicAcls        True
+IgnorePublicAcls       True
+BlockPublicPolicy      True
+RestrictPublicBuckets  True
+```
+
+## AWS CLIによる正常系アクセステスト
+
+現在のAWS CLIはTLS 1.2以上で通信するため、通常のS3アクセスが成功することを確認する。
+
+### バケットアクセス確認
+
+```bash
+aws s3api head-bucket \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --no-cli-pager
+```
+
+期待結果:
+
+```text
+コマンドが正常終了する
+```
+
+### オブジェクト一覧確認
+
+```bash
+aws s3api list-objects-v2 \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --max-items 10 \
+  --output table \
+  --no-cli-pager
+```
+
+期待結果:
+
+```text
+オブジェクト一覧を取得できる
+```
+
+`AccessDenied`となった場合は、Bucket Policyだけでなく、実行ユーザーのIAM権限も確認する。
+
+## Webコンソールによる確認
+
+1. Amazon S3コンソールを開く
+2. 対象バケットの「アクセス許可」タブを開く
+3. Bucket Policyに2つのDenyステートメントがあることを確認する
+4. パブリックアクセスに関する警告がないことを確認する
+5. 「オブジェクト」タブを開く
+6. オブジェクト一覧を表示できることを確認する
+
+取得するスクリーンショット:
+
+```text
+14_Bucket_Policy変更後詳細確認.png
+15_S3オブジェクト一覧確認.png
+```
+
+## Railsアプリケーションの動作確認
+
+Webアプリケーション環境が起動している場合に実施する。
+
+1. `https://www.nobu-iac-lab.com`へアクセスする
+2. ログインする
+3. 画像を含む投稿を作成する
+4. 投稿と画像が正常に表示されることを確認する
+5. S3コンソールで新しいオブジェクトが保存されたことを確認する
+
+取得するスクリーンショット:
+
+```text
+16_Railsアプリケーション動作確認.png
+17_S3画像保存確認.png
+```
+
+Webアプリケーション環境を削除済みの場合は、次のように記録する。
+
+```text
+Webアプリケーション環境が停止中のため、
+RailsアプリケーションからのS3アップロード確認は未実施。
+
+AWS CLIおよびWebコンソールによる正常系アクセス確認を実施した。
+アプリケーション環境の再構築後に追加確認を実施する。
+```
+
+## TLS 1.2未満の拒否確認について
+
+通常のAWS CLIではTLS 1.2未満の通信を再現できないため、AWS CLIの正常系確認だけでは`DenyOutdatedTLS`の拒否動作を直接証明できない。
+
+TLS 1.2未満を使用する検証用クライアントが用意されている場合のみ、承認を得たうえで異常系テストを実施する。
+
+検証用クライアントがない場合は、次の結果を証跡とする。
+
+- Bucket Policyの設定内容
+- IAM Access Analyzerの検証結果
+- AWS CLIによる正常系アクセステスト
+- Railsアプリケーションの動作確認
+- CloudTrailによる変更履歴
+
+## 確認結果記載例
+
+```text
+変更後Bucket Policyの設定内容および正常系動作を確認した。
+
+DenyInsecureTransportが維持され、
+DenyOutdatedTLSが追加されていることを確認した。
+
+Bucket Policy StatusはIsPublic=Falseであり、
+Bucket-level Public Access Blockの4項目はすべて有効であった。
+
+AWS CLIによるバケットアクセスおよびオブジェクト一覧取得は正常終了した。
+
+TLS 1.2未満を使用する検証用クライアントがないため、
+TLS 1.2未満の拒否動作確認は未実施とした。
+```
+
+## 8. CloudTrailによる変更履歴の確認
+
+CloudTrail Event historyを使用し、Bucket Policy変更の実行者、実行時刻、対象バケット、実行結果を確認する。
+
+CloudTrail Event historyでは、リージョンごとに過去90日間の管理イベントを確認できる。
+
+設定変更は行わない。
+
+## Webコンソールによる確認
+
+1. AWSマネジメントコンソールでCloudTrailを開く
+2. リージョンを東京リージョンへ切り替える
+3. 「イベント履歴」を開く
+4. 検索属性で「イベント名」を選択する
+5. `PutBucketPolicy`を入力する
+6. 作業時刻付近のイベントを開く
+7. イベントレコードを確認する
+
+確認項目:
+
+```text
+eventName: PutBucketPolicy
+eventSource: s3.amazonaws.com
+awsRegion: ap-northeast-1
+requestParameters.bucketName: nobu-terraform-iac-lab-upload
+userIdentity: 想定したIAMユーザーまたはIAMロール
+sourceIPAddress: 想定した接続元
+errorCode: 記録なし
+errorMessage: 記録なし
+```
+
+取得するスクリーンショット:
+
+```text
+18_CloudTrail_PutBucketPolicy一覧確認.png
+19_CloudTrail_PutBucketPolicy詳細確認.png
+```
+
+## AWS CLIによるイベント一覧確認
+
+対象バケットに関連するイベントを取得し、`PutBucketPolicy`だけを表示する。
+
+```bash
+aws cloudtrail lookup-events \
+  --profile learning \
+  --region ap-northeast-1 \
+  --lookup-attributes AttributeKey=ResourceName,AttributeValue=nobu-terraform-iac-lab-upload \
+  --query 'Events[?EventName==`PutBucketPolicy`].{EventTime:EventTime,EventName:EventName,Username:Username,EventId:EventId}' \
+  --output table \
+  --no-cli-pager
+```
+
+変更直後はCloudTrailへイベントが反映されていない場合がある。イベントが表示されない場合は、数分待ってから再確認する。
+
+## Event IDを指定した詳細確認
+
+一覧で確認したEvent IDを設定する。
+
+```bash
+EVENT_ID="<確認したEventId>"
+```
+
+```bash
+aws cloudtrail lookup-events \
+  --profile learning \
+  --region ap-northeast-1 \
+  --lookup-attributes AttributeKey=EventId,AttributeValue="$EVENT_ID" \
+  --output table \
+  --no-cli-pager
+```
+
+## CloudTrailイベントレコードの保存
+
+```bash
+mkdir -p 02_Day_Learning/evidence
+```
+
+```bash
+aws cloudtrail lookup-events \
+  --profile learning \
+  --region ap-northeast-1 \
+  --lookup-attributes AttributeKey=EventId,AttributeValue="$EVENT_ID" \
+  --query 'Events[0].CloudTrailEvent' \
+  --output text \
+  --no-cli-pager \
+  > 02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
+```
+
+```bash
+cat 02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
+```
+
+## sed・grepによる主要項目確認
+
+イベントレコードから主要項目を抽出する。
+
+```bash
+grep -o \
+  '"eventTime":"[^"]*"\|"eventName":"[^"]*"\|"eventSource":"[^"]*"\|"awsRegion":"[^"]*"\|"sourceIPAddress":"[^"]*"\|"bucketName":"[^"]*"\|"errorCode":"[^"]*"\|"errorMessage":"[^"]*"' \
+  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
+```
+
+IAMユーザーまたはIAMロールのARNを確認する。
+
+```bash
+grep -o \
+  '"arn":"[^"]*"' \
+  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
+```
+
+## 結果の読み方
+
+- `eventName=PutBucketPolicy`: Bucket Policy変更操作
+- `eventSource=s3.amazonaws.com`: S3 APIへの操作
+- `bucketName`: 操作対象バケット
+- `userIdentity`: 操作を実行したIAMユーザーまたはIAMロール
+- `sourceIPAddress`: 操作元IPアドレス
+- `userAgent`: AWS CLI、Webコンソール、SDKなどの操作方法
+- `errorCode`なし: API操作が正常終了した可能性が高い
+- `errorCode`あり: API操作が失敗している
+- `requestParameters`: APIへ渡された変更内容
+- `eventID`: CloudTrailイベントを一意に識別するID
+
+CloudTrailイベントが記録されていても、変更後設定が正しいことまでは証明できない。
+
+Bucket Policyの変更後確認、アプリケーション動作確認、CloudTrail確認を組み合わせて作業結果を判断する。
+
+## 確認結果記載例
+
+```text
+CloudTrail Event historyでPutBucketPolicyイベントを確認した。
+
+実行者、実行時刻、対象AWSアカウント、対象バケットおよび
+接続元IPアドレスが想定どおりであることを確認した。
+
+イベントレコードにerrorCodeおよびerrorMessageは記録されておらず、
+Bucket Policy変更APIが正常終了したことを確認した。
+
+CloudTrail Event ID:
+<EventId>
+```
+
+## イベントが確認できない場合の記載例
+
+```text
+CloudTrail Event historyでPutBucketPolicyイベントを検索したが、
+確認時点では対象イベントを確認できなかった。
+
+CloudTrailへの反映遅延の可能性を考慮し、時間を置いて再確認する。
+後続作業は、変更後Bucket Policyの確認結果を基に継続可否を判断する。
+```
+
+## 注意事項
+
+- Event historyはリージョン単位で確認する
+- 検索時は東京リージョンを選択する
+- Event historyで確認できる期間は過去90日間となる
+- Event historyは管理イベントが対象となる
+- S3オブジェクトの取得や保存などのデータイベント確認には、別途CloudTrail TrailまたはEvent Data Storeの設定が必要となる
+
+## 9. Bucket Policyの切り戻し
+
+変更後に障害や想定外の影響が発生した場合、変更前にバックアップしたBucket Policyを再適用する。
+
+切り戻しもAWS設定変更に該当するため、原則として責任者へ状況を報告し、切り戻し承認を得てから実施する。
+
+## 切り戻し判断基準
+
+次の事象が発生した場合、切り戻しを検討する。
+
+- RailsアプリケーションからS3へアクセスできない
+- 既存バッチや外部システムのS3アクセスが失敗する
+- 想定外の`AccessDenied`が発生する
+- Bucket Policyに意図しない設定が反映されている
+- `IsPublic`が`True`になっている
+- AWSサービスからのアクセスが失敗する
+- 変更作業の継続が困難と判断された
+
+## 切り戻し前の確認
+
+### 操作アカウント確認
+
+```bash
+aws sts get-caller-identity \
+  --profile learning \
+  --output table \
+  --no-cli-pager
+```
+
+期待値:
+
+```text
+Account: 445405559057
+```
+
+### 対象バケット確認
+
+```bash
+aws s3api head-bucket \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --no-cli-pager
+```
+
+### 変更前Policyバックアップ確認
+
+```bash
+ls -l \
+  02_Day_Learning/before/bucket-policy-before.json
+```
+
+```bash
+cat \
+  02_Day_Learning/before/bucket-policy-before.json
+```
+
+次の内容を確認する。
+
+- `DenyInsecureTransport`が存在すること
+- `DenyOutdatedTLS`が存在しないこと
+- 対象バケットARNが正しいこと
+- ファイルが空でないこと
+
+### 切り戻し直前Policyの保存
+
+障害調査に利用できるよう、切り戻し前の現在Policyを保存する。
+
+```bash
+mkdir -p 02_Day_Learning/rollback
+```
+
+```bash
+aws s3api get-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --query Policy \
+  --output text \
+  --no-cli-pager \
+  > 02_Day_Learning/rollback/bucket-policy-before-rollback.json
+```
+
+```bash
+cat \
+  02_Day_Learning/rollback/bucket-policy-before-rollback.json
+```
+
+取得するスクリーンショット:
+
+```text
+20_Bucket_Policy切り戻し前確認.png
+```
+
+## 切り戻し実施
+
+以下のコマンドは、変更前にバックアップしたBucket Policyを対象バケットへ再適用する。
+
+```bash
+aws s3api put-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --policy file://02_Day_Learning/before/bucket-policy-before.json \
+  --no-cli-pager
+```
+
+正常終了時は通常何も表示されない。
+
+実行直後に終了ステータスを確認する。
+
+```bash
+echo $?
+```
+
+期待値:
+
+```text
+0
+```
+
+`0`以外の場合は切り戻し失敗として扱い、後続の設定変更を行わず、エラー内容を報告する。
+
+## 切り戻し後Policyの確認
+
+```bash
+aws s3api get-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --query Policy \
+  --output text \
+  --no-cli-pager \
+  > 02_Day_Learning/rollback/bucket-policy-after-rollback.json
+```
+
+変更前バックアップと切り戻し後Policyを比較する。
+
+```bash
+cmp \
+  02_Day_Learning/before/bucket-policy-before.json \
+  02_Day_Learning/rollback/bucket-policy-after-rollback.json
+```
+
+実行直後に終了ステータスを確認する。
+
+```bash
+echo $?
+```
+
+結果の読み方:
+
+```text
+0: ファイル内容が一致する
+1: ファイル内容が異なる
+2: ファイルの読み込みなどでエラーが発生した
+```
+
+Policy内の重要項目を確認する。
+
+```bash
+grep -n \
+  'DenyInsecureTransport\|DenyOutdatedTLS\|s3:TlsVersion' \
+  02_Day_Learning/rollback/bucket-policy-after-rollback.json
+```
+
+期待結果:
+
+```text
+DenyInsecureTransportが存在する
+DenyOutdatedTLSが存在しない
+s3:TlsVersionが存在しない
+```
+
+## Public判定の確認
+
+```bash
+aws s3api get-bucket-policy-status \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --output table \
+  --no-cli-pager
+```
+
+期待値:
+
+```text
+IsPublic: False
+```
+
+## Bucket-level Public Access Blockの確認
+
+```bash
+aws s3api get-public-access-block \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --output table \
+  --no-cli-pager
+```
+
+期待値:
+
+```text
+BlockPublicAcls        True
+IgnorePublicAcls       True
+BlockPublicPolicy      True
+RestrictPublicBuckets  True
+```
+
+## 正常系アクセステスト
+
+```bash
+aws s3api list-objects-v2 \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --max-items 10 \
+  --output table \
+  --no-cli-pager
+```
+
+期待結果:
+
+```text
+オブジェクト一覧を取得できる
+```
+
+Webアプリケーション環境が起動している場合は、Railsアプリケーションからの画像表示・アップロードも再確認する。
+
+## Webコンソールによる切り戻し後確認
+
+1. 対象バケットの「アクセス許可」タブを開く
+2. 「バケットポリシー」を確認する
+3. `DenyInsecureTransport`が存在することを確認する
+4. `DenyOutdatedTLS`が削除されていることを確認する
+5. パブリックアクセスに関する警告がないことを確認する
+6. 正常系動作が復旧していることを確認する
+
+取得するスクリーンショット:
+
+```text
+21_Bucket_Policy切り戻し後確認.png
+22_切り戻し後動作確認.png
+```
+
+## CloudTrailによる切り戻し履歴確認
+
+切り戻し操作も`PutBucketPolicy`イベントとして記録される。
+
+```bash
+aws cloudtrail lookup-events \
+  --profile learning \
+  --region ap-northeast-1 \
+  --lookup-attributes AttributeKey=ResourceName,AttributeValue=nobu-terraform-iac-lab-upload \
+  --query 'Events[?EventName==`PutBucketPolicy`].{EventTime:EventTime,EventName:EventName,Username:Username,EventId:EventId}' \
+  --output table \
+  --no-cli-pager
+```
+
+変更時と切り戻し時の両方で`PutBucketPolicy`が記録されるため、イベント時刻とEvent IDを使用して切り戻し操作を識別する。
+
+## 切り戻し結果記載例
+
+```text
+Bucket Policy変更後、既存処理でアクセスエラーが発生したため、
+責任者へ報告し、承認後に切り戻しを実施した。
+
+変更前に取得したBucket Policyを再適用し、
+切り戻し後Policyが変更前バックアップと一致することを確認した。
+
+Bucket Policy StatusはIsPublic=Falseであり、
+正常系アクセステストが成功することを確認した。
+
+CloudTrailで切り戻し時のPutBucketPolicyイベントを確認した。
+```
+
+## 注意事項
+
+- 元からBucket Policyが存在するため、`delete-bucket-policy`は使用しない
+- 切り戻し前の現在Policyも証跡として保存する
+- 切り戻し後はPolicy確認だけでなく、既存処理の復旧も確認する
+- 切り戻しが失敗した場合は、繰り返し変更せず責任者へ報告する
+- 本番環境では緊急時の承認方法と連絡先を事前に確認する
+
+## 10. 作業結果・証跡・報告内容の整理
+
+Bucket Policy変更作業の結果と証跡を整理し、第三者が作業内容、確認結果、問題の有無を判断できる状態にする。
+
+本番作業では、現場指定のExcel手順書、証跡台帳、チケット、Teamsなどへ結果を記録する。
+
+## 作業完了条件
+
+次の項目がすべて完了していることを確認する。
+
+- 対象AWSアカウントと対象バケットを確認した
+- 変更前Bucket Policyをバックアップした
+- 変更内容と影響範囲を確認した
+- 承認済みのBucket Policyを反映した
+- 変更後Bucket Policyが想定どおりであることを確認した
+- `IsPublic=False`であることを確認した
+- Bucket-level Public Access Blockがすべて有効であることを確認した
+- AWS CLIによる正常系アクセステストが成功した
+- アプリケーション動作確認を実施した、または未実施理由を記録した
+- CloudTrailで`PutBucketPolicy`イベントを確認した
+- 切り戻し手順を準備した
+- 証跡と作業結果を整理した
+
+## 証跡ファイルの確認
+
+```bash
+find 02_Day_Learning \
+  -type f \
+  -print
+```
+
+想定するファイル構成:
+
+```text
+02_Day_Learning/
+├── before/
+│   ├── bucket-policy-before.json
+│   ├── bucket-policy-current.json
+│   └── bucket-policy-before-formatted.json
+├── after/
+│   ├── bucket-policy-after.json
+│   ├── bucket-policy-applied.json
+│   └── bucket-policy-after-formatted.json
+├── rollback/
+│   ├── bucket-policy-before-rollback.json
+│   └── bucket-policy-after-rollback.json
+└── evidence/
+    └── cloudtrail-put-bucket-policy-event.json
+```
+
+ファイルが空でないことを確認する。
+
+```bash
+find 02_Day_Learning \
+  -type f \
+  -size 0 \
+  -print
+```
+
+何も表示されなければ、空ファイルは存在しない。
+
+## スクリーンショット一覧
+
+```text
+01_操作アカウント確認.png
+02_S3対象バケット確認.png
+03_Bucket_Policy変更前確認.png
+04_変更候補と影響範囲確認.png
+05_Bucket_Policyバックアップ確認.png
+06_変更後Policy案確認.png
+07_Policy事前検証結果.png
+08_Bucket_Policy変更直前確認.png
+09_Bucket_Policy変更後確認.png
+10_Public判定確認.png
+11_S3正常系アクセス確認.png
+12_Railsアプリケーション動作確認.png
+13_CloudTrail_PutBucketPolicy一覧確認.png
+14_CloudTrail_PutBucketPolicy詳細確認.png
+```
+
+スクリーンショットには、可能な範囲で次の情報を含める。
+
+- 対象AWSアカウント
+- 対象リージョン
+- 対象バケット
+- 確認した設定項目
+- 設定値
+- 作業日時
+
+認証情報、秘密情報、不要な個人情報は含めない。
+
+## 作業結果一覧
+
+| 確認項目 | 変更前 | 変更後 | 判定 |
+|---|---|---|---|
+| 対象バケット | nobu-terraform-iac-lab-upload | 同左 | 正常 |
+| Bucket Policy Status | IsPublic=False | IsPublic=False | 正常 |
+| DenyInsecureTransport | 設定あり | 設定あり | 正常 |
+| DenyOutdatedTLS | 設定なし | 設定あり | 正常 |
+| Bucket-level Public Access Block | 4項目すべて有効 | 4項目すべて有効 | 正常 |
+| AWS CLIアクセステスト | 成功 | 成功 | 正常 |
+| Railsアプリケーション動作確認 | 実施状況を記載 | 実施結果を記載 | 判定を記載 |
+| CloudTrail変更履歴 | 対象外 | PutBucketPolicy確認 | 正常 |
+| 切り戻し手順 | 準備済み | 準備済み | 正常 |
+
+## 作業報告記載例
+
+```text
+作業名:
+S3 Bucket Policy TLS制限追加
+
+対象AWSアカウント:
+445405559057
+
+対象リージョン:
+ap-northeast-1
+
+対象バケット:
+nobu-terraform-iac-lab-upload
+
+実施内容:
+既存のDenyInsecureTransportを維持したまま、
+TLS 1.2未満の通信を拒否するDenyOutdatedTLSを追加した。
+
+変更前確認:
+Bucket Policy StatusがIsPublic=Falseであることを確認した。
+Bucket-level Public Access Blockの4項目がすべて有効であることを確認した。
+変更前Bucket Policyをバックアップした。
+
+変更後確認:
+DenyInsecureTransportが維持されていることを確認した。
+DenyOutdatedTLSが追加されていることを確認した。
+Bucket Policy StatusがIsPublic=Falseであることを確認した。
+AWS CLIによる正常系アクセステストが成功した。
+
+アプリケーション動作確認:
+実施結果または未実施理由を記載する。
+
+CloudTrail確認:
+PutBucketPolicyイベントを確認した。
+実行者、実行時刻、対象バケットおよび実行結果が想定どおりであることを確認した。
+
+切り戻し:
+変更前Bucket Policyを使用した切り戻し手順を準備済み。
+
+作業結果:
+正常終了
+```
+
+## 未実施項目がある場合の記載例
+
+```text
+Bucket Policy変更およびAWS CLIによる正常系確認は完了した。
+
+Webアプリケーション環境が停止中のため、
+RailsアプリケーションからのS3アクセス確認は未実施とした。
+
+アプリケーション環境の再構築後に追加確認を実施する必要がある。
+```
+
+## 異常が発生した場合の報告項目
+
+- 発生日時
+- 発生した手順番号
+- 対象AWSアカウント
+- 対象バケット
+- 実行した操作
+- エラーメッセージ
+- AWS CLIの終了ステータス
+- 影響範囲
+- 後続作業の停止状況
+- 切り戻し実施の有無
+- 切り戻し結果
+- CloudTrail Event ID
+- 関係者への報告状況
+
+## Teams報告例
+
+```text
+S3 Bucket Policy変更作業が完了した。
+
+対象:
+nobu-terraform-iac-lab-upload
+
+実施内容:
+TLS 1.2未満の通信を拒否するDenyOutdatedTLSを追加した。
+
+確認結果:
+・変更後Policyは想定どおり
+・IsPublic=False
+・Public Access Blockは4項目すべて有効
+・AWS CLI正常系アクセス成功
+・CloudTrailでPutBucketPolicyイベント確認済み
+
+問題:
+なし
+
+切り戻し:
+変更前Policyをバックアップ済み
+```
+
+## Day 2で習得した内容
+
+- Bucket Policy変更前の状態確認
+- Bucket Policyのバックアップ
+- 変更候補と影響範囲の整理
+- 変更後Policy案の作成と事前検証
+- 承認後の設定変更
+- 変更後設定と正常系動作の確認
+- CloudTrailによる変更履歴確認
+- 切り戻し手順の準備と実施
+- 証跡整理と作業報告
+
+## Day 2完了後の状態
+
+Day 2完了時点で、S3 Bucket Policy変更について次の一連の作業を説明・実施できる状態となる。
+
+```text
+変更前確認
+→ 影響調査
+→ バックアップ
+→ 変更案作成
+→ 事前検証
+→ 承認確認
+→ 設定変更
+→ 変更後確認
+→ CloudTrail確認
+→ 切り戻し
+→ 作業報告
+```
 
