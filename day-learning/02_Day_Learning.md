@@ -790,3 +790,224 @@ JSON構文およびIAM Access AnalyzerによるPolicy検証を実施した。
 
 - [S3 Policy condition keys](https://docs.aws.amazon.com/AmazonS3/latest/userguide/amazon-s3-policy-keys.html)
 - [IAM Access Analyzer validate-policy](https://docs.aws.amazon.com/cli/latest/reference/accessanalyzer/validate-policy.html)
+
+## 6. 承認確認とBucket Policyの変更実施
+
+事前検証済みの変更後Bucket Policyを対象バケットへ反映する。
+
+この手順はAWS設定を変更するため、実施前に対象・変更内容・切り戻し方法を再確認する。
+
+### 実施前確認
+
+- 対象AWSアカウントが`445405559057`であること
+- 対象バケットが`nobu-terraform-iac-lab-upload`であること
+- 変更前Policyをバックアップ済みであること
+- 変更後PolicyのJSON構文確認が完了していること
+- 変更内容と影響範囲を確認済みであること
+- 切り戻しコマンドを準備済みであること
+- 学習環境以外では作業承認を取得済みであること
+
+### 操作アカウントの再確認
+
+```bash
+aws sts get-caller-identity \
+  --profile learning \
+  --output table \
+  --no-cli-pager
+```
+
+期待値:
+
+```text
+Account: 445405559057
+Arn: arn:aws:iam::445405559057:user/nobu
+```
+
+### 対象バケットの再確認
+
+```bash
+aws s3api head-bucket \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --no-cli-pager
+```
+
+### 現在のBucket Policyが変更前バックアップと一致することを確認
+
+現在のPolicyを一時ファイルへ保存する。
+
+```bash
+aws s3api get-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --query Policy \
+  --output text \
+  --no-cli-pager \
+  > 02_Day_Learning/before/bucket-policy-current.json
+```
+
+比較用に両方のJSONを整形する。
+
+```bash
+python3 -m json.tool \
+  02_Day_Learning/before/bucket-policy-before.json \
+  > 02_Day_Learning/before/bucket-policy-before-formatted.json
+
+python3 -m json.tool \
+  02_Day_Learning/before/bucket-policy-current.json \
+  > 02_Day_Learning/before/bucket-policy-current-formatted.json
+```
+
+差分を確認する。
+
+```bash
+diff -u \
+  02_Day_Learning/before/bucket-policy-before-formatted.json \
+  02_Day_Learning/before/bucket-policy-current-formatted.json
+```
+
+出力がなければ、バックアップ取得後にBucket Policyが変更されていない。
+
+差分が表示された場合は、他の作業者や処理によってPolicyが変更された可能性があるため、変更作業を中止して確認する。
+
+### Webコンソールによる変更前確認
+
+1. Amazon S3コンソールを開く
+2. 対象バケットを開く
+3. 「アクセス許可」タブを開く
+4. 「バケットポリシー」を確認する
+5. 現在のPolicyが変更前バックアップと一致することを確認する
+6. 変更前画面のスクリーンショットを取得する
+
+取得するスクリーンショット:
+
+```text
+12_Bucket_Policy変更直前確認.png
+```
+
+### Bucket Policyの変更実施
+
+以下のコマンドはBucket Policyを実際に変更する。
+
+```bash
+aws s3api put-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --policy file://02_Day_Learning/after/bucket-policy-after.json \
+  --no-cli-pager
+```
+
+正常終了した場合、通常は何も表示されない。
+
+コマンド実行後、終了ステータスを確認する。
+
+```bash
+echo $?
+```
+
+期待値:
+
+```text
+0
+```
+
+`0`以外の場合は変更失敗として扱い、エラー内容を確認する。
+
+### 変更直後のBucket Policy確認
+
+```bash
+aws s3api get-bucket-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --query Policy \
+  --output text \
+  --no-cli-pager \
+  > 02_Day_Learning/after/bucket-policy-applied.json
+```
+
+```bash
+python3 -m json.tool \
+  02_Day_Learning/after/bucket-policy-applied.json \
+  > 02_Day_Learning/after/bucket-policy-applied-formatted.json
+```
+
+変更後Policy案と実際に反映されたPolicyを比較する。
+
+```bash
+diff -u \
+  02_Day_Learning/after/bucket-policy-after-formatted.json \
+  02_Day_Learning/after/bucket-policy-applied-formatted.json
+```
+
+出力がなければ、想定したPolicyが反映されている。
+
+### Public判定の確認
+
+```bash
+aws s3api get-bucket-policy-status \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --output table \
+  --no-cli-pager
+```
+
+期待値:
+
+```text
+IsPublic: False
+```
+
+### Webコンソールによる変更後確認
+
+1. 対象バケットの「アクセス許可」タブを再読み込みする
+2. 「バケットポリシー」を確認する
+3. `DenyInsecureTransport`が残っていることを確認する
+4. `DenyOutdatedTLS`が追加されていることを確認する
+5. パブリックアクセスに関する警告がないことを確認する
+6. 変更後画面のスクリーンショットを取得する
+
+取得するスクリーンショット:
+
+```text
+13_Bucket_Policy変更後確認.png
+```
+
+### 異常時の対応
+
+次の場合は後続作業へ進まず、切り戻しを検討する。
+
+- AWS CLIが異常終了した
+- 意図しないPolicyが反映された
+- `IsPublic`が`True`になった
+- Webコンソールにパブリックアクセス警告が表示された
+- S3を利用する処理でアクセスエラーが発生した
+
+### 作業結果記載例
+
+```text
+承認済みの変更後Bucket Policyを対象バケットへ反映した。
+
+変更後確認の結果、既存のDenyInsecureTransportが維持され、
+DenyOutdatedTLSが追加されていることを確認した。
+
+Bucket Policy StatusはIsPublic=Falseであり、
+意図しないパブリックアクセスが発生していないことを確認した。
+```
+
+### 注意事項
+
+Webアプリケーション環境を停止している場合、S3を利用するアプリケーションの動作確認は実施できない。
+
+その場合は、Bucket Policy変更確認までを実施し、アプリケーション動作確認を未実施項目として記録する。
+
+
