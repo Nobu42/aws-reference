@@ -780,3 +780,169 @@ Policy内容が一致することを確認した。
 
 本手順ではバックアップ取得のみを行い、設定変更は実施していない。
 ```
+## 5. 変更後Bucket Policy案の作成と事前検証
+
+変更後のBucket Policy案をローカルファイルとして作成し、AWSへ反映する前に内容・差分・構文を確認する。
+
+この手順ではAWS上の設定変更を行わない。
+
+### 変更内容
+
+既存の`DenyInsecureTransport`を維持し、TLS 1.2未満の通信を拒否する`DenyOutdatedTLS`を追加する。
+
+`aws:PrincipalIsAWSService`を使用し、AWSサービスプリンシパルからの呼び出しを拒否対象から除外する。
+
+### 変更後Policyファイルの作成
+
+```bash
+mkdir -p 02_Day_Learning/after
+
+vi 02_Day_Learning/after/bucket-policy-after.json
+```
+
+以下を入力する。
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyInsecureTransport",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::nobu-terraform-iac-lab-upload",
+        "arn:aws:s3:::nobu-terraform-iac-lab-upload/*"
+      ],
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
+      }
+    },
+    {
+      "Sid": "DenyOutdatedTLS",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::nobu-terraform-iac-lab-upload",
+        "arn:aws:s3:::nobu-terraform-iac-lab-upload/*"
+      ],
+      "Condition": {
+        "NumericLessThan": {
+          "s3:TlsVersion": 1.2
+        },
+        "Bool": {
+          "aws:PrincipalIsAWSService": "false"
+        }
+      }
+    }
+  ]
+}
+```
+
+### JSON構文の確認
+
+```bash
+python3 -m json.tool \
+  02_Day_Learning/after/bucket-policy-after.json
+```
+
+正常な場合、整形されたJSONが表示される。
+
+構文エラーが表示された場合はAWSへ反映せず、カンマ・括弧・引用符などを修正する。
+
+### 変更前後の差分確認
+
+```bash
+diff -u \
+  02_Day_Learning/before/bucket-policy-before.json \
+  02_Day_Learning/after/bucket-policy-after.json
+```
+
+変更前ファイルが1行JSONのため、差分が読みにくい場合は整形版を作成する。
+
+```bash
+python3 -m json.tool \
+  02_Day_Learning/before/bucket-policy-before.json \
+  > 02_Day_Learning/before/bucket-policy-before-formatted.json
+
+python3 -m json.tool \
+  02_Day_Learning/after/bucket-policy-after.json \
+  > 02_Day_Learning/after/bucket-policy-after-formatted.json
+```
+
+```bash
+diff -u \
+  02_Day_Learning/before/bucket-policy-before-formatted.json \
+  02_Day_Learning/after/bucket-policy-after-formatted.json
+```
+
+期待する差分は`DenyOutdatedTLS`ステートメントの追加のみとなる。
+
+### IAM Access AnalyzerによるPolicy検証
+
+このコマンドはPolicyを検証するだけで、S3バケットへ反映しない。
+
+```bash
+aws accessanalyzer validate-policy \
+  --profile learning \
+  --region ap-northeast-1 \
+  --policy-document file://02_Day_Learning/after/bucket-policy-after.json \
+  --policy-type RESOURCE_POLICY \
+  --validate-policy-resource-type AWS::S3::Bucket \
+  --output table \
+  --no-cli-pager
+```
+
+結果の読み方:
+
+- 出力なし: 指摘事項なし
+- `ERROR`: Policyとして機能しない問題
+- `SECURITY_WARNING`: 過剰な権限などのセキュリティ上の問題
+- `WARNING`: Policy記述上の問題
+- `SUGGESTION`: 改善提案
+
+`AccessDenied`となった場合は、実行ユーザーにIAM Access Analyzerの検証権限がない可能性がある。権限を勝手に追加せず、JSON構文確認とレビュー結果を記録する。
+
+### 事前確認項目
+
+- 既存の`DenyInsecureTransport`が維持されていること
+- 追加した`Sid`が`DenyOutdatedTLS`であること
+- `Effect`が`Deny`であること
+- TLS 1.2未満だけを拒否すること
+- バケット本体とバケット内オブジェクトの両ARNが含まれること
+- AWSサービスプリンシパルを拒否対象から除外していること
+- 意図しない`Allow`や既存ステートメント削除がないこと
+
+### 影響範囲
+
+TLS 1.0またはTLS 1.1を使用するクライアントは、対象バケットへアクセスできなくなる。
+
+変更前に以下の利用状況を確認する必要がある。
+
+- RailsアプリケーションからのS3アクセス
+- AWS CLIおよびAWS SDKのバージョン
+- オンプレミス環境からのアクセス
+- 外部システムやバッチ処理
+- S3へアクセスするAWSサービス
+- 複数AWSアカウントからのアクセス
+
+### 作業結果記載例
+
+```text
+変更後Bucket Policy案を作成し、変更前Policyとの差分を確認した。
+
+既存のDenyInsecureTransportを維持したまま、
+TLS 1.2未満の通信を拒否するDenyOutdatedTLSを追加した。
+
+JSON構文およびIAM Access AnalyzerによるPolicy検証を実施した。
+本手順ではAWS上のBucket Policy変更は実施していない。
+```
+
+### 公式資料
+
+- [S3 Policy condition keys](https://docs.aws.amazon.com/AmazonS3/latest/userguide/amazon-s3-policy-keys.html)
+- [IAM Access Analyzer validate-policy](https://docs.aws.amazon.com/cli/latest/reference/accessanalyzer/validate-policy.html)
