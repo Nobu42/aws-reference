@@ -22,6 +22,7 @@ The assumed project is:
 
 - System: bank transfer and electronic storage system.
 - Work area: AWS security, AWS network optimization, and improvement.
+- Confirmed project start date: July 2, 2026.
 - Period: July to September, with possible extension.
 - Role: AWS cloud engineer expected to work independently.
 - Work style: remote is possible, but onsite may happen until the user gets used to the project.
@@ -29,6 +30,28 @@ The assumed project is:
 - Direct customer coordination may be limited, but communication with NTT Data-side members may happen.
 - Investigation using the internet is expected to be possible to some extent.
 - AI usage may be available in the project environment.
+- The client bank identity is confidential conversation context. Do not write the client name into public portfolio documents or repository files.
+
+## Operations Shell Preparation
+
+Prepare a small clean-room shell lab that imitates common characteristics observed in an NTT Data-related financial operations environment.
+
+The lab should include:
+
+- A large shared Bash function file loaded with `source`.
+- Configuration loaded from a separate conf file.
+- `declare` variables and constants.
+- Strict argument validation and abnormal-case checks.
+- Explicit return codes, many `return` paths, and top-level exit status handling.
+- An AWS CLI execution wrapper.
+- Log functions suitable for job execution.
+- Multi-account or profile selection considerations.
+- `sed` and `awk` based output handling where practical.
+- Callers that use the common functions for S3 and other AWS checks.
+
+This must be a clean-room learning implementation based only on general observed characteristics. Do not reproduce or copy scripts from another project.
+
+Do not assume the July project uses this shell structure. Treat it as transferable financial-operations shell reading practice until the actual project tools are confirmed.
 
 ## Expected Work
 
@@ -274,6 +297,16 @@ Do not create new chargeable resources unless the user explicitly asks or the ta
   - `ansible/` for Ansible-related work.
 - When adding an important Markdown reference, consider adding it to `README.md`.
 
+## Autonomous Documentation Work
+
+Markdownファイルの作成・更新を依頼された場合は、内容、構成、ファイル名について確認質問を行わず、合理的な仮定で完成まで進める。
+
+- 不明点は作業を停止せず、「前提」「未確認事項」「要確認事項」として文書内に記載する
+- 既存ファイルのスタイルと命名規則へ合わせる
+- 必要な関連リンクとREADMEの目次も更新する
+- 作成、修正、内容確認まで一度に完了する
+- ユーザーが「確認不要」と指定した場合、途中案の承認を求めない
+
 ## Preferred Learning Flow
 
 The current learning flow is:
@@ -291,3 +324,4 @@ The current learning flow is:
 
 When the user asks what to do next, recommend the next item in this flow unless a more urgent issue exists.
 
+Reserve the final week before the July 2, 2026 project start primarily for review, repetition, mock tickets, procedure writing, evidence capture, and reporting practice. Avoid filling the final week with large new technical topics.
