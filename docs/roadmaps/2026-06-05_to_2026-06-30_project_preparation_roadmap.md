@@ -33,9 +33,38 @@
 
 | 領域 | 時間 | 比率 | 内容 |
 | :--- | :--- | :--- | :--- |
-| ハンズオン・模擬変更 | 40時間 | 約60% | S3、CloudTrail、CloudWatch、GuardDuty、VPC/SG、RDS、Lambda |
-| 手順書・証跡整理 | 18時間 | 約25% | 変更前確認、変更後確認、切り戻し、スクリーンショット想定 |
-| 報告・説明練習 | 10時間 | 約15% | Teams報告、初日質問、作業説明、面談で話せる整理 |
+| AWSハンズオン・模擬変更 | 34時間 | 約50% | S3、CloudTrail、CloudWatch、GuardDuty、VPC/SG、RDS、Lambda |
+| 現場シェル読解・利用 | 12時間 | 約18% | 共通関数、conf、declare、return、終了コード、sed、awk |
+| 手順書・証跡整理 | 14時間 | 約21% | 変更前確認、変更後確認、切り戻し、スクリーンショット想定 |
+| 報告・説明練習 | 8時間 | 約11% | Teams報告、初日質問、作業説明、面談で話せる整理 |
+
+## 2.1 6月9日時点の進捗と改訂理由
+
+6月6日から6月9日にかけて、S3セキュリティ確認とBucket Policy変更ドリルを予定より深く実施した。
+
+実施済み:
+
+- S3 Public Access Block、Bucket Policy、ACL、暗号化、Versioning、Loggingなどの確認
+- Bucket Policy変更前バックアップ
+- TLS 1.2未満を拒否するPolicyの追加
+- 変更後確認と正常系アクセステスト
+- CloudTrailによる`PutBucketPolicy`変更履歴確認
+- 変更前Policyへの切り戻し
+- 切り戻し後の設定、疎通、CloudTrail確認
+
+また、NTTデータ系金融現場で使用されているAWS API関連シェルについて、次の特徴を確認した。
+
+- Bashで作成された大規模な共通関数ファイル
+- `declare`による変数宣言
+- 関数内での厳格な引数・異常系チェック
+- 多数の`return`と最上位の終了コード管理
+- confファイルからの設定読み込み
+- マルチアカウント利用を意識した構造
+- AWS CLIコマンドを変数へ格納して実行
+- JSON解析に`sed`、`awk`などを使用
+- JP1などのジョブ管理を意識したログと終了ステータス
+
+この情報を踏まえ、6月9日以降はAWS設定変更だけでなく、既存の共通関数シェルを読んで安全に利用する練習を追加する。
 
 ## 3. 方針
 
@@ -49,6 +78,10 @@
 - Teamsで報告できる文章まで作る
 - 完璧な網羅より、案件で出そうな作業を深く練習する
 - 6月後半は新規作成より模擬作業とリハーサルを優先する
+- 現場想定の主要手順ではPythonと`jq`を必須にしない
+- AWS CLI、Webコンソール、`grep`、`sed`、`awk`、`diff`、`cmp`を中心にする
+- 共通関数シェルは全体を暗記せず、必要な関数の入力、処理、戻り値、呼び出し関係を追う
+- 関数ファイルの自作より、既存関数を安全に利用する練習を優先する
 
 おすすめの進め方:
 
@@ -78,6 +111,7 @@
 | 8 | RDS / Lambdaの主要セキュリティ設定を確認できる | Public設定、SG、暗号化、ログ、Function URLなど |
 | 9 | 証跡を残せる | JSON、差分、スクリーンショット、テスト結果を整理できる |
 | 10 | Teamsで報告できる | 変更前、変更後、要確認の報告文を出せる |
+| 11 | 現場形式の共通関数シェルを利用できる | conf、引数、関数、戻り値、終了コード、ログの流れを追える |
 
 ## 5. 使う主要ファイル
 
@@ -98,6 +132,8 @@
 | ネットワーク横断 | [91_aws_network_settings_checklist.md](../references/91_aws_network_settings_checklist.md) |
 | 手順書テンプレート | [s3_bucket_policy_change_procedure_template.md](../templates/s3_bucket_policy_change_procedure_template.md) |
 | S3ケーススタディ | [case_study_s3_bucket_policy_change.md](../case_studies/case_study_s3_bucket_policy_change.md) |
+| Day 1 S3確認ドリル | [01_Day_Learning.md](../../day-learning/01_Day_Learning.md) |
+| Day 2 Bucket Policy変更ドリル | [02_Day_Learning.md](../../day-learning/02_Day_Learning.md) |
 
 ## 6. 日別ロードマップ
 
@@ -105,204 +141,161 @@
 
 テーマ: 全体整理と開始準備
 
-やること:
+進捗: 完了
 
-- このロードマップを読む
-- READMEから主要リファレンスへ辿れることを確認する
-- 6月中にやる模擬作業テーマを決める
-- `90` と `91` の横断チェックリストをざっと読む
-- GitHubに見せる前提で、READMEの目次が分かりやすいか確認する
+実施内容:
 
-成果物:
+- ロードマップと主要リファレンスの確認
+- 案件対策の優先順位整理
+- Day Learning形式での学習開始準備
 
-- 案件対策ロードマップ
-- 今後使う主要リファレンス一覧の把握
+### 6月6日（土）から6月9日（火）
 
-完了条件:
+テーマ: S3セキュリティ確認・Bucket Policy変更総合ドリル
 
-- 「6月中は新規作成より模擬作業中心」と決める
-- 明日以降の作業入口が明確になっている
+進捗: 完了
 
-### 6月6日（土） 4時間
+実施内容:
 
-テーマ: S3セキュリティ確認ドリル 1
-
-やること:
-
-- `01_s3_security_cli_reference.md` を使ってS3設定を確認する
-- Public Access Blockを確認する
-- Object Ownership / ACLを確認する
-- Default Encryptionを確認する
-- Versioning / Loggingを確認する
-- 証跡ディレクトリを作ってJSONを保存する
+- Day 1としてS3セキュリティ設定をGUIとAWS CLIで確認
+- Day 2としてBucket Policyの変更前確認、影響調査、バックアップを実施
+- `DenyOutdatedTLS`を追加し、変更後設定と正常系アクセスを確認
+- CloudTrailで変更イベントを確認
+- 変更前Policyへの切り戻しを実施
+- 切り戻し後Policy、Public判定、Public Access Block、オブジェクト一覧を確認
+- CloudTrailで切り戻しイベントを確認
 
 成果物:
 
-- S3設定確認証跡
-- S3確認メモ
+- [01_Day_Learning.md](../../day-learning/01_Day_Learning.md)
+- [02_Day_Learning.md](../../day-learning/02_Day_Learning.md)
+- 変更前、変更後、切り戻しPolicy
+- CloudTrailイベント証跡
 
 完了条件:
 
-- S3バケットを見た時に、Public / ACL / 暗号化 / ログの確認順を説明できる
-
-### 6月7日（日） 4時間
-
-テーマ: S3バケットポリシー変更ドリル
-
-やること:
-
-- `02_s3_bucket_policy_cli_reference.md` を読む
-- 変更前Bucket Policyを保存する
-- Policy差分の見方を練習する
-- Public判定、Principal、Action、Resource、Conditionを確認する
-- 切り戻し用Policyを準備する
-- `case_study_s3_bucket_policy_change.md` を読み、作業手順に落とす
-
-成果物:
-
-- S3バケットポリシー変更手順メモ
-- 切り戻し手順
-- Teams報告文の下書き
-
-完了条件:
-
-- 「S3バケットポリシー変更が20個程度ある」と言われても、確認順を説明できる
-
-### 6月8日（月） 2時間
-
-テーマ: S3作業手順書化
-
-やること:
-
-- Markdown版手順書テンプレートにS3変更ドリルを記入する
-- 変更前確認、実施内容、変更後確認、切り戻しを埋める
-- 証跡一覧を作る
-- Webコンソールで撮るべき画面を整理する
-
-成果物:
-
-- S3変更手順書の完成版に近い下書き
-
-完了条件:
-
-- Excel手順書に転記できる粒度になっている
-
-### 6月9日（火） 2時間
-
-テーマ: CloudTrail基礎確認
-
-やること:
-
-- `03_cloudtrail_cli_reference.md` を読む
-- Trail一覧、Trail Statusを確認する
-- Event Historyの検索を練習する
-- S3、IAM、EC2、RDS、Lambdaの変更イベント名を整理する
-
-成果物:
-
-- CloudTrailイベント検索メモ
-
-完了条件:
-
-- `lookup-events` で対象操作を探せる
+- S3セキュリティ設定の確認順を説明できる
+- Bucket Policy変更を「変更前確認、変更、変更後確認、切り戻し、CloudTrail確認」まで実行できる
+- `Principal`、`Action`、`Resource`、`Condition`を説明できる
 
 ### 6月10日（水） 2時間
 
-テーマ: CloudTrail証跡と変更履歴調査
+テーマ: CloudTrail基礎・変更履歴調査
 
 やること:
 
-- S3またはSG変更を想定してCloudTrailで追う練習をする
-- EventName、Username、EventTime、SourceIPAddress、UserAgentを見る
-- CloudTrail証跡を作業後確認に組み込む
+- `03_cloudtrail_cli_reference.md`を読む
+- Trail一覧、Trail Status、Event Historyの違いを確認する
+- Management EventとData Eventの違いを整理する
+- `lookup-events`でS3以外の変更イベントも検索する
+- EventName、Username、EventTime、SourceIPAddress、UserAgent、エラー有無を確認する
+- 生JSONと読みやすい要約を分けて保存する
 
 成果物:
 
+- Day 3 CloudTrailイベント検索メモ
 - CloudTrail変更履歴確認テンプレート
 
 完了条件:
 
-- 「誰が、いつ、何をしたか」を説明できる
+- 任意の変更操作について「誰が、いつ、何をしたか」を説明できる
+- Management EventとData Eventの違いを説明できる
 
 ### 6月11日（木） 2時間
 
-テーマ: CloudWatch Logs / Metric Filter
+テーマ: 現場シェル基礎・共通関数ファイルの読み方
 
 やること:
 
-- `04_cloudwatch_cli_reference.md` を読む
-- Log Group、Retention、Metric Filter、Alarmを確認する
-- CloudTrail連携ログがある前提で検知の流れを整理する
-- Logs Insightsの基本クエリを確認する
+- Bashの`source`、`declare`、関数、引数、`return`、`exit`を確認する
+- 共通関数ファイルから関数名一覧を抽出する
+- 関数ごとに入力、参照conf、実行コマンド、戻り値を整理する
+- `return`が呼び出し元へ伝播し、最終的に`exit`される流れを追う
+- 正常、引数異常、AWS API異常、想定外異常の終了コードを整理する
 
 成果物:
 
-- CloudWatch確認メモ
+- 共通関数ファイル読解メモ
+- 関数仕様整理表
 
 完了条件:
 
-- Log Group、Metric Filter、Alarmの役割を説明できる
+- 大きな関数ファイルを上から読むのではなく、必要な関数を起点に処理を追える
+- `return`と`exit`の役割を説明できる
 
 ### 6月12日（金） 2時間
 
-テーマ: MFAなし管理コンソールログイン検知の設計理解
+テーマ: 共通関数を利用したS3確認シェル演習
 
 やること:
 
-- `06_mfa_console_login_detection.md` を読む
-- `ConsoleLogin` と `additionalEventData.MFAUsed` を確認する
-- 検知の流れを図解レベルで説明できるようにする
-- 作業手順と切り戻しを確認する
+- confファイルからアカウントID、リージョン、対象バケットを取得する
+- 共通関数を`source`する個別シェルを作成する
+- 引数個数、必須値、対象アカウントを厳格に確認する
+- AWS CLI実行結果を戻り値で判定する
+- `grep`、`sed`、`awk`を使って必要項目を確認する
+- 正常系と異常系で終了コード、標準出力、標準エラー、ログを確認する
 
 成果物:
 
-- MFAなしログイン検知の説明メモ
+- 学習用共通関数シェル
+- 共通関数を利用するS3確認シェル
+- 正常系・異常系テスト結果
 
 完了条件:
 
-- 面談で出た「CloudTrailをCloudWatchに連携し、MFAなし管理コンソールログインを検知」を説明できる
+- 既存関数の引数と戻り値を確認して、安全に呼び出せる
+- 対象アカウント不一致やAWS API失敗時に処理を停止できる
 
 ### 6月13日（土） 4時間
 
-テーマ: MFAなしログイン検知ハンズオン
+テーマ: CloudWatch・MFAなしログイン検知ハンズオン
 
 やること:
 
+- `04_cloudwatch_cli_reference.md`と`06_mfa_console_login_detection.md`を読む
+- Log Group、Retention、Metric Filter、Alarmの役割を確認する
 - CloudTrailからCloudWatch Logs連携の設定を確認する
-- Metric Filter作成手順を確認する
-- Alarm作成手順を確認する
-- テスト方法を整理する
-- 切り戻しを確認する
+- `ConsoleLogin`と`additionalEventData.MFAUsed`を確認する
+- Metric FilterとAlarmの作成手順を確認する
+- テスト方法、変更後確認、切り戻しを整理する
+- GUI、AWS CLI、証跡、報告の流れをまとめる
 
 成果物:
 
 - MFAなしログイン検知手順書
+- CloudWatch確認メモ
 - 証跡一覧
 - Teams報告文
 
 完了条件:
 
+- 「CloudTrailをCloudWatchへ連携し、MFAなしログインを検知する」流れを説明できる
 - 実作業として依頼されても、手順書を見ながら進められる
 
 ### 6月14日（日） 4時間
 
-テーマ: CloudTrail / CloudWatch総合ドリル
+テーマ: CloudTrail / CloudWatch / 現場シェル総合ドリル
 
 やること:
 
 - CloudTrail変更履歴確認
 - CloudWatch Logs確認
 - Metric Filter / Alarm確認
+- 共通関数を利用した確認処理を実行する
+- 正常系と異常系の戻り値・ログを確認する
 - 変更後確認と切り戻しの流れを1本にまとめる
 - スクリーンショット証跡の撮影ポイントを整理する
 
 成果物:
 
-- CloudTrail / CloudWatch総合作業メモ
+- CloudTrail / CloudWatch / シェル総合作業メモ
+- 終了コード・ログ確認結果
 
 完了条件:
 
 - 監査ログ、検知、証跡のつながりを説明できる
+- 共通関数を利用した個別シェルの処理結果を説明できる
 
 ### 6月15日（月） 2時間
 
@@ -444,43 +437,27 @@
 
 ### 6月22日（月） 2時間
 
-テーマ: EC2 Security確認
+テーマ: EC2 / RDS Security確認
 
 やること:
 
 - `08_ec2_security_cli_reference.md` を読む
 - Public IP、Security Group、IAM Role、IMDSv2を確認する
 - EBS暗号化を確認する
-- CloudWatch AgentやOS側確認も整理する
-
-成果物:
-
-- EC2 Security確認メモ
-
-完了条件:
-
-- EC2のセキュリティ確認ポイントを短く説明できる
-
-### 6月23日（火） 2時間
-
-テーマ: RDS Security確認
-
-やること:
-
 - `09_rds_security_cli_reference.md` を読む
 - PubliclyAccessible、DB Subnet Group、SGを確認する
-- 暗号化、Backup、Deletion Protection、Logsを確認する
-- Snapshot Public共有の確認を整理する
+- RDS暗号化、Backup、Deletion Protection、Logsを確認する
 
 成果物:
 
-- RDS Security確認メモ
+- EC2 / RDS Security確認メモ
 
 完了条件:
 
-- RDSを外部公開していないことを複数観点で説明できる
+- EC2とRDSの主要なセキュリティ確認ポイントを短く説明できる
+- RDSを外部公開していないことを複数観点で確認できる
 
-### 6月24日（水） 2時間
+### 6月23日（火） 2時間
 
 テーマ: Lambda Security確認
 
@@ -489,7 +466,7 @@
 - `10_lambda_security_cli_reference.md` を読む
 - Execution Role、Resource-based policyを確認する
 - VPC Config、環境変数、KMS、Logsを確認する
-- Function URLの `AWS_IAM` / `NONE` の違いを整理する
+- Function URLの`AWS_IAM`と`NONE`の違いを整理する
 
 成果物:
 
@@ -498,6 +475,31 @@
 完了条件:
 
 - Function URLの公開リスクを説明できる
+- Lambdaの権限とネットワーク設定を確認できる
+
+### 6月24日（水） 2時間
+
+テーマ: 現場シェル応用・マルチアカウントと異常系
+
+やること:
+
+- confを切り替えて複数アカウント・環境で利用する構造を確認する
+- AWSアカウントID不一致時に処理を停止する
+- AWS CLIコマンドを変数へ格納する既存形式を読む
+- JSONを`sed`、`awk`で解析する処理の前提と弱点を確認する
+- 関数の戻り値が最終終了コードへ伝播することを確認する
+- JP1などから実行された場合の正常・異常判定を整理する
+
+成果物:
+
+- マルチアカウント対応シェル確認メモ
+- 異常系テスト結果
+- 終了コード一覧
+
+完了条件:
+
+- 誤ったアカウントや引数で処理を実行しない仕組みを説明できる
+- ログと終了コードから失敗箇所を追跡できる
 
 ### 6月25日（木） 2時間
 
@@ -539,17 +541,20 @@
 
 ### 6月27日（土） 4時間
 
-テーマ: 模擬作業 1 S3バケットポリシー変更
+テーマ: 模擬作業 1 S3バケットポリシー変更・現場シェル利用
 
 やること:
 
 - 作業チケットを想定する
 - 変更前確認を行う
+- 共通関数とconfの仕様を確認する
+- 既存関数を呼び出す個別作業シェルを準備する
 - S3 Bucket Policyの変更案を作る
 - 影響範囲を整理する
 - 変更またはドライランを行う
 - 変更後確認を行う
 - 切り戻しを行う
+- ログと終了コードを確認する
 - Teams報告文を書く
 
 成果物:
@@ -557,11 +562,13 @@
 - 模擬作業一式
 - 手順書
 - 証跡
+- 個別作業シェルと実行ログ
 - 報告文
 
 完了条件:
 
 - 案件で一番出そうなS3作業を一通りリハーサルできている
+- 共通関数を利用した作業結果を説明できる
 
 ### 6月28日（日） 4時間
 
@@ -619,6 +626,9 @@
 - 切り戻し判断者は誰か
 - S3バケットポリシー変更対象一覧はどこにあるか
 - 開発環境へのテキスト持ち込みルールはどうなっているか
+- AWS API共通関数シェルの利用手順と修正可能範囲はどこか
+- confファイルの管理方法とアカウント切替方法は何か
+- JP1へ返す終了コードとログ確認方法は何か
 ```
 
 成果物:
@@ -658,9 +668,9 @@
 | 週 | 期間 | 重点テーマ | ゴール |
 | :--- | :--- | :--- | :--- |
 | Week 1 | 6/5 - 6/7 | S3基礎とBucket Policy | S3作業の入口を掴む |
-| Week 2 | 6/8 - 6/14 | S3手順書、CloudTrail、CloudWatch、MFA検知 | 監査ログと検知を説明できる |
+| Week 2 | 6/8 - 6/14 | S3総合ドリル、CloudTrail、CloudWatch、現場シェル基礎 | 設定変更、監査、共通関数利用を説明できる |
 | Week 3 | 6/15 - 6/21 | GuardDuty、VPC、SG、NACL、DNS、Flow Logs | 調査とネットワーク影響確認ができる |
-| Week 4 | 6/22 - 6/28 | EC2、RDS、Lambda、横断チェック、模擬作業 | 実務ドリルで一人称の感覚を作る |
+| Week 4 | 6/22 - 6/28 | EC2、RDS、Lambda、現場シェル応用、横断チェック、模擬作業 | 実務ドリルで一人称の感覚を作る |
 | Final | 6/29 - 6/30 | 初日準備、説明練習、整理 | 初日に落ち着いて入る |
 
 ## 8. 優先順位
@@ -671,10 +681,11 @@
 | :--- | :--- | :--- |
 | 1 | S3バケットポリシー変更ドリル | 案件で具体的に出ている |
 | 2 | CloudTrail / CloudWatch / MFAなし検知 | 面談で重点キャッチアップに挙がった |
-| 3 | SG / VPCネットワーク影響調査 | S3以外にもVPC/MFAなど横断対応がある |
-| 4 | GuardDuty Finding調査 | 面談で話題になり、評価材料にもなった |
-| 5 | RDS / Lambda / EC2確認 | 横断的に見られることの補強 |
+| 3 | 共通関数シェルの読解・利用 | 実際のNTTデータ系金融現場で利用されている可能性が高い |
+| 4 | SG / VPCネットワーク影響調査 | S3以外にもVPC/MFAなど横断対応がある |
+| 5 | GuardDuty Finding調査 | 面談で話題になり、評価材料にもなった |
 | 6 | 手順書・証跡・Teams報告 | NTTデータ系現場で重要になりやすい |
+| 7 | RDS / Lambda / EC2確認 | 横断的に見られることの補強 |
 
 ## 9. 1日の作業テンプレート
 
@@ -696,6 +707,16 @@
 02:00 - 03:00  変更後確認・切り戻し・証跡整理
 03:00 - 03:40  手順書化・報告文作成
 03:40 - 04:00  振り返り・次回準備
+```
+
+現場シェル学習日:
+
+```text
+00:00 - 00:15  対象関数、引数、conf、終了コードを確認
+00:15 - 00:45  呼び出し元からAWS CLI実行箇所まで処理を追跡
+00:45 - 01:20  共通関数を利用した個別処理を実行
+01:20 - 01:40  正常系・異常系のログと戻り値を確認
+01:40 - 02:00  関数仕様と調査結果を記録
 ```
 
 ## 10. 毎回残すメモ
@@ -725,6 +746,9 @@ AnsibleでRailsアプリケーションのデプロイも検証しています�
 MFAなし管理コンソールログイン検知、VPC / SG / NACL / Endpoint、RDS、Lambdaの確認手順をMarkdownで整理しています。
 
 作業時は、変更前確認、影響範囲、変更後確認、切り戻し、証跡取得をセットで進める想定で準備しています。
+
+参画前学習では、金融系運用を意識して、共通関数、conf、引数チェック、戻り値、
+終了コード、ログを使ったAWS CLIシェルの読解と利用も練習しています。
 ```
 
 ## 12. 追加提案
@@ -776,6 +800,23 @@ GuardDuty Findingを確認し、対象リソース、重要度、推奨対応を
 が重要。
 ```
 
+### 12.4 現場シェルは作り直さず、既存方式へ合わせる
+
+現場の共通関数シェルは、長期間の運用、JP1連携、マルチアカウント、実行環境制約などを考慮して作成されている可能性がある。
+
+そのため、参画直後に新しい技術へ置き換えたり、共通関数を大きく変更したりしない。
+
+基本姿勢:
+
+```text
+1. 呼び出し元と対象関数を特定する
+2. 引数、conf、戻り値、ログを確認する
+3. 既存の命名規則とエラー処理へ合わせる
+4. 修正範囲を最小限にする
+5. 正常系と異常系をテストする
+6. 共通関数変更時は影響範囲と利用箇所を確認する
+```
+
 ## 13. 完了判定
 
 6月30日に以下を確認する。
@@ -794,3 +835,6 @@ GuardDuty Findingを確認し、対象リソース、重要度、推奨対応を
 | 10 | Teams報告文を短く書ける |  |
 | 11 | 初日に聞く質問リストがある |  |
 | 12 | GitHub / README / リファレンスを見せられる状態 |  |
+| 13 | 共通関数シェルの入力、処理、戻り値、ログを追える |  |
+| 14 | 共通関数を利用する個別シェルを実行・説明できる |  |
+| 15 | 対象アカウント不一致やAWS API異常時の処理を説明できる |  |
