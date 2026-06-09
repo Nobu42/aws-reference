@@ -165,6 +165,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 | Day 5 MFAなし管理コンソールログイン検知ドリル | [05_Day_Learning.md](../../day-learning/05_Day_Learning.md) |
 | Day 6 CloudWatch・MFAなしログイン検知ハンズオン | [06_Day_Learning.md](../../day-learning/06_Day_Learning.md) |
 | Day 7 CloudTrail・CloudWatch総合調査ドリル | [07_Day_Learning.md](../../day-learning/07_Day_Learning.md) |
+| Day 8 GuardDuty基礎確認・Finding一次調査 | [08_Day_Learning.md](../../day-learning/08_Day_Learning.md) |
 
 ## 6. 日別ロードマップ
 
@@ -330,6 +331,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 
 成果物:
 
+- [Day 8 GuardDuty基礎確認・Finding一次調査](../../day-learning/08_Day_Learning.md)
 - GuardDuty Finding調査メモ
 
 完了条件:

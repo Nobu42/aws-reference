@@ -703,6 +703,8 @@ Trail名を確認後、対象Trailの状態を確認する。
 TRAIL_NAME="<trail-name>"
 ```
 
+`describe-trails`で確認した`HomeRegion`が`REGION`と異なる場合は、以降のTrail確認コマンドでHome Regionを指定する。Shadow TrailやOrganization Trailが表示された場合は、管理アカウントと操作権限も確認する。
+
 ```bash
 aws cloudtrail get-trail-status \
   --profile "$PROFILE" \
