@@ -175,6 +175,12 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 | Day 15 EC2・RDS Security確認 | [15_Day_Learning.md](../../day-learning/15_Day_Learning.md) |
 | Day 16 Lambda Security確認 | [16_Day_Learning.md](../../day-learning/16_Day_Learning.md) |
 | Day 17 運用シェル基礎・読解演習 | [17_Day_Learning.md](../../day-learning/17_Day_Learning.md) |
+| Day 18 AWSセキュリティ横断チェック | [18_Day_Learning.md](../../day-learning/18_Day_Learning.md) |
+| Day 19 作業手順書・証跡整理 | [19_Day_Learning.md](../../day-learning/19_Day_Learning.md) |
+| Day 20 模擬作業1 S3 Bucket Policy変更 | [20_Day_Learning.md](../../day-learning/20_Day_Learning.md) |
+| Day 21 模擬作業2 GuardDuty Finding・CloudTrail横断調査 | [21_Day_Learning.md](../../day-learning/21_Day_Learning.md) |
+| Day 22 案件初日準備・受入情報整理 | [22_Day_Learning.md](../../day-learning/22_Day_Learning.md) |
+| Day 23 最終リハーサル・説明練習・公開前確認 | [23_Day_Learning.md](../../day-learning/23_Day_Learning.md) |
 
 ## 6. 日別ロードマップ
 
@@ -554,6 +560,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 成果物:
 
 - セキュリティ横断チェック結果
+- [Day 18 AWSセキュリティ横断チェック](../../day-learning/18_Day_Learning.md)
 
 完了条件:
 
@@ -574,6 +581,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 
 - 作業手順書テンプレートの実例
 - 証跡一覧テンプレート
+- [Day 19 作業手順書・証跡整理](../../day-learning/19_Day_Learning.md)
 
 完了条件:
 
@@ -600,6 +608,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 - 手順書
 - 証跡
 - 報告文
+- [Day 20 模擬作業1 S3 Bucket Policy変更](../../day-learning/20_Day_Learning.md)
 
 完了条件:
 
@@ -607,36 +616,30 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 
 ### 6月28日（日） 4時間
 
-テーマ: 模擬作業 2 ネットワーク変更またはFinding調査
+テーマ: 模擬作業 2 GuardDuty Finding・CloudTrail横断調査
 
 やること:
 
-以下のどちらかを選ぶ。
-
-候補A: Security Group変更
-
-- Source / Destination / Portを整理する
-- SG変更を行う
-- 疎通確認する
-- Flow LogsまたはCloudTrailを確認する
-- 切り戻す
-
-候補B: GuardDuty / CloudTrail調査
-
-- Findingまたは想定イベントを起点にする
+- Findingまたは想定Findingを起点にする
 - 対象リソースを特定する
+- Severity、Resource Role、Action、発生時刻を確認する
 - CloudTrailで変更履歴を確認する
 - SG / VPC / IAMの関連設定を確認する
-- 報告文を作る
+- 事実、推測、未確認事項を分ける
+- 推奨対応と一次調査報告を作る
+
+Security Group変更はDay 12・Day 13で扱っているため、Day 21では面談で重点領域として挙がったGuardDuty・CloudTrailの横断調査を優先する。
 
 成果物:
 
 - 模擬作業一式
 - 調査報告メモ
+- [Day 21 模擬作業2 GuardDuty Finding・CloudTrail横断調査](../../day-learning/21_Day_Learning.md)
 
 完了条件:
 
-- 変更作業または調査作業を「一人称で進める」感覚を掴む
+- Finding調査を「一人称で進める」感覚を掴む
+- 事実、推測、未確認事項を分けて報告できる
 
 ### 6月29日（月） 2時間
 
@@ -671,10 +674,13 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 - 初日質問リスト
 - 自己紹介メモ
 - Teamsテンプレート
+- [Day 22 案件初日準備・受入情報整理](../../day-learning/22_Day_Learning.md)
 
 完了条件:
 
 - 初日に慌てず確認すべきことを聞ける
+- 現場固有情報を公開リポジトリへ残さず整理できる
+- 最初の作業依頼を安全に着手できる形へ分解できる
 
 ### 6月30日（火） 2時間
 
@@ -692,11 +698,13 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 
 - 初日用メモ
 - 最終チェック結果
+- [Day 23 最終リハーサル・説明練習・公開前確認](../../day-learning/23_Day_Learning.md)
 
 完了条件:
 
 - 案件初日に必要な資料と説明が手元にある
 - 前日は詰め込みすぎず、余力を残す
+- Repositoryの現在状態と公開可否を説明できる
 
 ## 7. 週ごとの重点テーマ
 
