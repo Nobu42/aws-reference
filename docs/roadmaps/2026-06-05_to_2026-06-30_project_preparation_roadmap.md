@@ -171,6 +171,10 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 | Day 11 Security Group・Network ACL確認 | [11_Day_Learning.md](../../day-learning/11_Day_Learning.md) |
 | Day 12 Security Group変更影響調査・手順書作成 | [12_Day_Learning.md](../../day-learning/12_Day_Learning.md) |
 | Day 13 Security Group変更・確認・切り戻しドリル | [13_Day_Learning.md](../../day-learning/13_Day_Learning.md) |
+| Day 14 DNS・VPC Endpoint・Flow Logs確認 | [14_Day_Learning.md](../../day-learning/14_Day_Learning.md) |
+| Day 15 EC2・RDS Security確認 | [15_Day_Learning.md](../../day-learning/15_Day_Learning.md) |
+| Day 16 Lambda Security確認 | [16_Day_Learning.md](../../day-learning/16_Day_Learning.md) |
+| Day 17 運用シェル基礎・読解演習 | [17_Day_Learning.md](../../day-learning/17_Day_Learning.md) |
 
 ## 6. 日別ロードマップ
 
@@ -462,6 +466,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 成果物:
 
 - DNS / Endpoint / Flow Logs確認メモ
+- [Day 14 DNS・VPC Endpoint・Flow Logs確認ドリル](../../day-learning/14_Day_Learning.md)
 
 完了条件:
 
@@ -483,6 +488,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 成果物:
 
 - EC2 / RDS Security確認メモ
+- [Day 15 EC2・RDS Security確認ドリル](../../day-learning/15_Day_Learning.md)
 
 完了条件:
 
@@ -503,6 +509,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 成果物:
 
 - Lambda Security確認メモ
+- [Day 16 Lambda Security確認ドリル](../../day-learning/16_Day_Learning.md)
 
 完了条件:
 
@@ -527,6 +534,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 - 運用シェル読解メモ
 - 異常系テスト結果
 - 終了コード一覧
+- [Day 17 運用シェル基礎・読解演習](../../day-learning/17_Day_Learning.md)
 
 完了条件:
 
