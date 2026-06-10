@@ -166,6 +166,11 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 | Day 6 CloudWatch・MFAなしログイン検知ハンズオン | [06_Day_Learning.md](../../day-learning/06_Day_Learning.md) |
 | Day 7 CloudTrail・CloudWatch総合調査ドリル | [07_Day_Learning.md](../../day-learning/07_Day_Learning.md) |
 | Day 8 GuardDuty基礎確認・Finding一次調査 | [08_Day_Learning.md](../../day-learning/08_Day_Learning.md) |
+| Day 9 GuardDutyサンプルFinding調査・後片付け | [09_Day_Learning.md](../../day-learning/09_Day_Learning.md) |
+| Day 10 VPC・Subnet・Route Table確認 | [10_Day_Learning.md](../../day-learning/10_Day_Learning.md) |
+| Day 11 Security Group・Network ACL確認 | [11_Day_Learning.md](../../day-learning/11_Day_Learning.md) |
+| Day 12 Security Group変更影響調査・手順書作成 | [12_Day_Learning.md](../../day-learning/12_Day_Learning.md) |
+| Day 13 Security Group変更・確認・切り戻しドリル | [13_Day_Learning.md](../../day-learning/13_Day_Learning.md) |
 
 ## 6. 日別ロードマップ
 
@@ -350,6 +355,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 
 成果物:
 
+- [Day 9 GuardDutyサンプルFinding調査・後片付け](../../day-learning/09_Day_Learning.md)
 - GuardDuty調査手順テンプレート
 
 完了条件:
@@ -369,6 +375,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 
 成果物:
 
+- [Day 10 VPC・Subnet・Route Table確認](../../day-learning/10_Day_Learning.md)
 - VPC / Route確認メモ
 
 完了条件:
@@ -388,6 +395,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 
 成果物:
 
+- [Day 11 Security Group・Network ACL確認](../../day-learning/11_Day_Learning.md)
 - SG / NACL確認メモ
 
 完了条件:
@@ -408,6 +416,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 
 成果物:
 
+- [Day 12 Security Group変更影響調査・手順書作成](../../day-learning/12_Day_Learning.md)
 - SG変更手順書
 
 完了条件:
@@ -429,6 +438,7 @@ NTTデータ関連の金融現場で観察した運用シェルの特徴を参�
 
 成果物:
 
+- [Day 13 Security Group変更・確認・切り戻しドリル](../../day-learning/13_Day_Learning.md)
 - SG変更の実施証跡
 - 疎通確認結果
 - 切り戻し証跡

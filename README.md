@@ -30,7 +30,7 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | 検証後にリソースを削除したい | [cleanup_network.sh](./scripts/cleanup_network.sh)、[check_cleanup.sh](./scripts/check_cleanup.sh) |
 | 作業手順書テンプレートを使いたい | [Markdown版](./docs/templates/s3_bucket_policy_change_procedure_template.md)、[Excel版](./docs/templates/s3_bucket_policy_change_procedure_template.xlsx) |
 | 案件初日までの学習計画を確認したい | [2026-06-05 to 2026-06-30 案件対策ロードマップ](./docs/roadmaps/2026-06-05_to_2026-06-30_project_preparation_roadmap.md) |
-| 日別の案件対策ドリルを進めたい | [Day 1 S3確認](./day-learning/01_Day_Learning.md)、[Day 2 Bucket Policy変更](./day-learning/02_Day_Learning.md)、[Day 3 CloudTrail](./day-learning/03_Day_Learning.md)、[Day 4 CloudWatch](./day-learning/04_Day_Learning.md)、[Day 5 MFAなしログイン検知設計](./day-learning/05_Day_Learning.md)、[Day 6 MFAなしログイン検知ハンズオン](./day-learning/06_Day_Learning.md)、[Day 7 CloudTrail・CloudWatch総合調査](./day-learning/07_Day_Learning.md)、[Day 8 GuardDuty基礎確認](./day-learning/08_Day_Learning.md) |
+| 日別の案件対策ドリルを進めたい | [Day 1 S3確認](./day-learning/01_Day_Learning.md)、[Day 2 Bucket Policy変更](./day-learning/02_Day_Learning.md)、[Day 3 CloudTrail](./day-learning/03_Day_Learning.md)、[Day 4 CloudWatch](./day-learning/04_Day_Learning.md)、[Day 5 MFAなしログイン検知設計](./day-learning/05_Day_Learning.md)、[Day 6 MFAなしログイン検知ハンズオン](./day-learning/06_Day_Learning.md)、[Day 7 CloudTrail・CloudWatch総合調査](./day-learning/07_Day_Learning.md)、[Day 8 GuardDuty基礎確認](./day-learning/08_Day_Learning.md)、[Day 9 GuardDutyサンプルFinding調査](./day-learning/09_Day_Learning.md)、[Day 10 VPC・Route Table確認](./day-learning/10_Day_Learning.md)、[Day 11 Security Group・Network ACL確認](./day-learning/11_Day_Learning.md)、[Day 12 Security Group変更影響調査](./day-learning/12_Day_Learning.md)、[Day 13 Security Group変更ドリル](./day-learning/13_Day_Learning.md) |
 
 ## 日別学習
 
@@ -46,6 +46,11 @@ AWS Webコンソール、AWS CLI、証跡取得、結果報告を組み合わせ
 | Day 6 | CloudWatch・MFAなしログイン検知ハンズオン | [06_Day_Learning.md](./day-learning/06_Day_Learning.md) |
 | Day 7 | CloudTrail・CloudWatch総合調査ドリル | [07_Day_Learning.md](./day-learning/07_Day_Learning.md) |
 | Day 8 | GuardDuty基礎確認・Finding一次調査 | [08_Day_Learning.md](./day-learning/08_Day_Learning.md) |
+| Day 9 | GuardDutyサンプルFinding調査・後片付け | [09_Day_Learning.md](./day-learning/09_Day_Learning.md) |
+| Day 10 | VPC・Subnet・Route Table確認 | [10_Day_Learning.md](./day-learning/10_Day_Learning.md) |
+| Day 11 | Security Group・Network ACL確認 | [11_Day_Learning.md](./day-learning/11_Day_Learning.md) |
+| Day 12 | Security Group変更影響調査・手順書作成 | [12_Day_Learning.md](./day-learning/12_Day_Learning.md) |
+| Day 13 | Security Group変更・確認・切り戻しドリル | [13_Day_Learning.md](./day-learning/13_Day_Learning.md) |
 
 ## 案件対策リファレンス
 
