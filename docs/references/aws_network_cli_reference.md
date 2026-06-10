@@ -2093,6 +2093,16 @@ aws ec2 describe-vpc-attribute \
   --output table
 ```
 
+## 公式ドキュメント
+
+- [Amazon VPCとは](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/what-is-amazon-vpc.html)
+- [VPCネットワークアーキテクチャを確認する](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/vpc-network-inventory.html)
+- [Subnet Route Table](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/subnet-route-tables.html)
+- [Security Group](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/vpc-security-groups.html)
+- [Network ACLルール](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/nacl-rules.html)
+- [VPC Flow Logs](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/flow-logs.html)
+- [AWS CLIの設定](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-chap-configure.html)
+
 ## トラブルシュート
 
 ### `Unable to locate credentials`

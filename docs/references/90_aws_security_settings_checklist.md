@@ -823,15 +823,11 @@ AWSセキュリティ設定確認中に、追加確認が必要な項目があ�
 
 ## 24. 公式ドキュメント
 
-- AWS Well-Architected Framework Security Pillar
-  - https://docs.aws.amazon.com/wellarchitected/latest/framework/security.html
-- AWS Security Hub Foundational Security Best Practices
-  - https://docs.aws.amazon.com/securityhub/latest/userguide/fsbp-standard.html
-- IAM security audit guidelines
-  - https://docs.aws.amazon.com/IAM/latest/UserGuide/security-audit-guide.html
-- Amazon S3 Block Public Access
-  - https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html
-- CloudTrail User Guide
-  - https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html
-- Amazon GuardDuty User Guide
-  - https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html
+- [AWS Well-Architected Framework セキュリティの柱](https://docs.aws.amazon.com/ja_jp/wellarchitected/latest/framework/security.html)
+- [AWS Security Hub Foundational Security Best Practices標準](https://docs.aws.amazon.com/ja_jp/securityhub/latest/userguide/fsbp-standard.html)
+- [IAMのセキュリティ監査ガイドライン](https://docs.aws.amazon.com/ja_jp/IAM/latest/UserGuide/security-audit-guide.html)
+- [Amazon S3ストレージへのパブリックアクセスをブロックする](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/access-control-block-public-access.html)
+- [AWS CloudTrailユーザーガイド](https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/cloudtrail-user-guide.html)
+- [Amazon GuardDutyとは](https://docs.aws.amazon.com/ja_jp/guardduty/latest/ug/what-is-guardduty.html)
+- [AWS KMS Key Policy](https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/key-policies.html)
+- [AWS KMS Keyのローテーション](https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/rotate-keys.html)

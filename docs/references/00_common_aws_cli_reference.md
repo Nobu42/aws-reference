@@ -1619,16 +1619,15 @@ Write-Host "Ready: $EvidenceDir"
 
 ## 37. 公式ドキュメント
 
-- [AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/)
-- [Configuring settings for the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
-- [Configuration and credential file settings in the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
-- [Configuring environment variables for the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html)
-- [Controlling command output in the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-output.html)
-- [Setting the output format in the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-output-format.html)
-- [Filtering output in the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-filter.html)
-- [Using the pagination options in the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-pagination.html)
-- [Using quotation marks and literals with strings in the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-parameters-quoting-strings.html)
-- [Accessing help and resources for the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-help.html)
-- [Command line return codes in the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-usage-returncodes.html)
-- [list-profiles - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/configure/list-profiles.html)
-- [get-caller-identity - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/sts/get-caller-identity.html)
+AWS CLI Command Referenceには日本語版がないため、設定方法や共通動作は日本語ユーザーガイドを参照する。コマンド固有のオプションは `aws <service> <command> help` で確認する。
+
+- [AWS CLIの設定](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-chap-configure.html)
+- [設定ファイルと認証情報ファイルの設定](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-configure-files.html)
+- [AWS CLIで使用する環境変数](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-configure-envvars.html)
+- [AWS CLIのコマンド出力を制御する](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-usage-output.html)
+- [出力形式を設定する](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-usage-output-format.html)
+- [AWS CLIの出力をフィルタリングする](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-usage-filter.html)
+- [AWS CLIのページ分割オプションを使用する](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-usage-pagination.html)
+- [AWS CLIで文字列に引用符を使用する](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-usage-parameters-quoting-strings.html)
+- [AWS CLIのヘルプを使用する](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-usage-help.html)
+- [AWS CLIのリターンコード](https://docs.aws.amazon.com/ja_jp/cli/latest/userguide/cli-usage-returncodes.html)

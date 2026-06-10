@@ -1239,15 +1239,10 @@ Subnet、Route Table、Security Group、Network ACL、VPC Endpoint、Flow Logs�
 
 ## 25. 公式ドキュメント
 
-- [describe-vpcs - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-vpcs.html)
-- [describe-subnets - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-subnets.html)
-- [describe-route-tables - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-route-tables.html)
-- [describe-security-groups - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-security-groups.html)
-- [describe-security-group-rules - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-security-group-rules.html)
-- [describe-network-acls - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-network-acls.html)
-- [describe-network-interfaces - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-network-interfaces.html)
-- [describe-vpc-endpoints - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-vpc-endpoints.html)
-- [describe-flow-logs - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-flow-logs.html)
-- [Describe your VPC network architecture](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-inventory.html)
-- [Reachability Analyzer using the AWS CLI](https://docs.aws.amazon.com/vpc/latest/reachability/getting-started-cli.html)
-
+- [VPCネットワークアーキテクチャを確認する](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/vpc-network-inventory.html)
+- [Subnet Route Table](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/subnet-route-tables.html)
+- [Security Group](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/vpc-security-groups.html)
+- [Network ACLルール](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/nacl-rules.html)
+- [AWS PrivateLinkとVPC Endpointの概念](https://docs.aws.amazon.com/ja_jp/vpc/latest/privatelink/concepts.html)
+- [VPC Flow Logs](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/flow-logs.html)
+- [AWS CLIでReachability Analyzerを開始する](https://docs.aws.amazon.com/ja_jp/vpc/latest/reachability/getting-started-cli.html)

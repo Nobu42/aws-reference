@@ -1392,15 +1392,10 @@ Parameter Groupやログ設定は再起動要否やログ量増加の影響が�
 
 ## 23. 公式ドキュメント
 
-- [describe-db-instances - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-instances.html)
-- [modify-db-instance - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/modify-db-instance.html)
-- [describe-db-parameter-groups - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-parameter-groups.html)
-- [describe-db-parameters - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-parameters.html)
-- [modify-db-parameter-group - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/modify-db-parameter-group.html)
-- [reset-db-parameter-group - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/reset-db-parameter-group.html)
-- [describe-db-log-files - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-log-files.html)
-- [download-db-log-file-portion - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/download-db-log-file-portion.html)
-- [describe-db-snapshots - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-snapshots.html)
-- [describe-db-snapshot-attributes - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/describe-db-snapshot-attributes.html)
-- [modify-db-snapshot-attribute - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/modify-db-snapshot-attribute.html)
-- [create-db-snapshot - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/rds/create-db-snapshot.html)
+- [VPC内のDB Instanceを操作する](https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/UserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html)
+- [Amazon RDSリソースを暗号化する](https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/UserGuide/Overview.Encryption.html)
+- [DB Parameter Groupを操作する](https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/UserGuide/USER_WorkingWithParamGroups.html)
+- [Amazon RDSログファイルを監視する](https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/UserGuide/USER_LogAccess.html)
+- [自動バックアップを操作する](https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html)
+- [DB Snapshotを作成する](https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/UserGuide/USER_CreateSnapshot.html)
+- [DB Instanceを削除する](https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/UserGuide/USER_DeleteInstance.html)

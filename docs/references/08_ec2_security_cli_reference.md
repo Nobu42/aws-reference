@@ -1231,14 +1231,9 @@ IMDSv2必須化やIAM Role変更はアプリやAgentへ影響する可能性が�
 
 ## 21. 公式ドキュメント
 
-- [describe-instances - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html)
-- [modify-instance-metadata-options - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/modify-instance-metadata-options.html)
-- [describe-iam-instance-profile-associations - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-iam-instance-profile-associations.html)
-- [Use instance profiles - AWS Identity and Access Management](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html)
-- [describe-volumes - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-volumes.html)
-- [get-ebs-encryption-by-default - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/get-ebs-encryption-by-default.html)
-- [describe-security-groups - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-security-groups.html)
-- [describe-security-group-rules - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-security-group-rules.html)
-- [list-attached-role-policies - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-role-policies.html)
-- [list-role-policies - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/iam/list-role-policies.html)
-- [get-role-policy - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/iam/get-role-policy.html)
+- [EC2でInstance Profileを使用する](https://docs.aws.amazon.com/ja_jp/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html)
+- [EC2 Instance Metadata Serviceの設定](https://docs.aws.amazon.com/ja_jp/AWSEC2/latest/UserGuide/configuring-instance-metadata-options.html)
+- [Amazon EBS暗号化](https://docs.aws.amazon.com/ja_jp/ebs/latest/userguide/ebs-encryption.html)
+- [EBS暗号化をデフォルトで有効にする](https://docs.aws.amazon.com/ja_jp/ebs/latest/userguide/encryption-by-default.html)
+- [Security Groupルール](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/security-group-rules.html)
+- [IAMのセキュリティのベストプラクティス](https://docs.aws.amazon.com/ja_jp/IAM/latest/UserGuide/best-practices.html)

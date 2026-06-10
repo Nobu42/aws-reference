@@ -1325,15 +1325,8 @@ CloudWatch Alarmの通知経路テストを実施しました。
 
 ## 31. 公式ドキュメント
 
-- [AWS Management Console sign-in events - AWS CloudTrail](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-event-reference-aws-console-sign-in-events.html)
-- [Filter pattern syntax for CloudWatch Logs](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html)
-- [test-metric-filter - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/test-metric-filter.html)
-- [put-metric-filter - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/put-metric-filter.html)
-- [describe-metric-filters - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/describe-metric-filters.html)
-- [filter-log-events - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/filter-log-events.html)
-- [start-query - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/start-query.html)
-- [get-query-results - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/get-query-results.html)
-- [put-metric-alarm - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/cloudwatch/put-metric-alarm.html)
-- [describe-alarms - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/cloudwatch/describe-alarms.html)
-- [set-alarm-state - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/cloudwatch/set-alarm-state.html)
-
+- [AWS Management Consoleへのサインインイベント](https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/cloudtrail-event-reference-aws-console-sign-in-events.html)
+- [CloudWatch LogsでCloudTrailログファイルを監視する](https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/monitor-cloudtrail-log-files-with-cloudwatch-logs.html)
+- [CloudWatch LogsのFilter Pattern構文](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html)
+- [Metric Filterを使用してログイベントからメトリクスを作成する](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/MonitoringLogData.html)
+- [CloudWatch Alarmを使用する](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html)

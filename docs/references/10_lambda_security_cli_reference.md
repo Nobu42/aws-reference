@@ -1693,23 +1693,10 @@ Secrets ManagerまたはSSM Parameter Storeへの移行要否について、
 
 ## 26. 公式ドキュメント
 
-- AWS CLI `get-function-configuration`
-  - https://docs.aws.amazon.com/cli/latest/reference/lambda/get-function-configuration.html
-- AWS CLI `update-function-configuration`
-  - https://docs.aws.amazon.com/cli/latest/reference/lambda/update-function-configuration.html
-- AWS CLI `create-function-url-config`
-  - https://docs.aws.amazon.com/cli/latest/reference/lambda/create-function-url-config.html
-- AWS CLI `list-function-url-configs`
-  - https://docs.aws.amazon.com/cli/latest/reference/lambda/list-function-url-configs.html
-- AWS Lambda Function URL作成
-  - https://docs.aws.amazon.com/lambda/latest/dg/urls-configuration.html
-- AWS Lambda Function URLアクセス制御
-  - https://docs.aws.amazon.com/lambda/latest/dg/urls-auth.html
-- AWS Lambda VPC接続
-  - https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html
-- AWS Lambda環境変数
-  - https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html
-- AWS Lambda CloudWatch Logs
-  - https://docs.aws.amazon.com/lambda/latest/dg/monitoring-cloudwatchlogs.html
-- AWS Lambda Log Group設定
-  - https://docs.aws.amazon.com/lambda/latest/dg/monitoring-cloudwatchlogs-loggroups.html
+- [Lambda Function URLを作成・管理する](https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/urls-configuration.html)
+- [Lambda Function URLのアクセス制御](https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/urls-auth.html)
+- [Lambda FunctionをVPCへ接続する](https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/configuration-vpc.html)
+- [Lambda環境変数を使用する](https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/configuration-envvars.html)
+- [LambdaからCloudWatch Logsへログを送信する](https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/monitoring-cloudwatchlogs.html)
+- [LambdaのCloudWatch Log Groupを設定する](https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/monitoring-cloudwatchlogs-loggroups.html)
+- [Lambda Execution Role](https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/lambda-intro-execution-role.html)

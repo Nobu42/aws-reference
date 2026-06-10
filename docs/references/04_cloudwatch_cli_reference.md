@@ -1500,16 +1500,8 @@ CloudWatch Logsで対象イベントを確認したところ、
 
 ## 29. 公式ドキュメント
 
-- [create-log-group - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/create-log-group.html)
-- [put-retention-policy - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/put-retention-policy.html)
-- [filter-log-events - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/filter-log-events.html)
-- [start-query - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/start-query.html)
-- [get-query-results - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/get-query-results.html)
-- [Filter pattern syntax for CloudWatch Logs](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html)
-- [put-metric-filter - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/put-metric-filter.html)
-- [test-metric-filter - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/test-metric-filter.html)
-- [describe-metric-filters - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/logs/describe-metric-filters.html)
-- [put-metric-alarm - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/cloudwatch/put-metric-alarm.html)
-- [describe-alarms - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/cloudwatch/describe-alarms.html)
-- [delete-alarms - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/cloudwatch/delete-alarms.html)
-
+- [Amazon CloudWatch Logsとは](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/WhatIsCloudWatchLogs.html)
+- [CloudWatch LogsのFilter Pattern構文](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html)
+- [Metric Filterを使用してログイベントからメトリクスを作成する](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/MonitoringLogData.html)
+- [CloudWatch Logs Insightsでログデータを分析する](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/AnalyzingLogData.html)
+- [CloudWatch Alarmを使用する](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html)

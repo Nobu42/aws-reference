@@ -788,8 +788,8 @@ JSON構文およびIAM Access AnalyzerによるPolicy検証を実施した。
 
 ### 公式資料
 
-- [S3 Policy condition keys](https://docs.aws.amazon.com/AmazonS3/latest/userguide/amazon-s3-policy-keys.html)
-- [IAM Access Analyzer validate-policy](https://docs.aws.amazon.com/cli/latest/reference/accessanalyzer/validate-policy.html)
+- [条件キーを使用したS3 Bucket Policyの例](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/amazon-s3-policy-keys.html)
+- [IAM Access AnalyzerでPolicyを検証する](https://docs.aws.amazon.com/ja_jp/IAM/latest/UserGuide/access-analyzer-policy-validation.html)
 
 ## 6. 承認確認とBucket Policyの変更実施
 

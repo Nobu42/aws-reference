@@ -38,6 +38,10 @@ unalias aws 2>/dev/null || true
 unset AWS_ENDPOINT_URL
 unset LOCALSTACK_HOST
 
+# AWS CLI v2のページャーを、このセットアップ処理全体で無効化する。
+# exportすることで、All_Setup.shから実行する子スクリプトにも設定を引き継ぐ。
+export AWS_PAGER=""
+
 # 最後にSSH設定を表示するため、必要な値が取れない場合は分かりやすく停止する。
 get_required_value() {
   local label="$1"

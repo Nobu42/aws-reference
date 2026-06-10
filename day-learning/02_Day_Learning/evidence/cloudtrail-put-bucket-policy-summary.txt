@@ -1,0 +1,11 @@
+----------------------------------------------------------
+|                      LookupEvents                      |
++---------------+----------------------------------------+
+|  EventId      |  0cb1001f-0af7-47da-a3a1-6e578329333b  |
+|  EventName    |  PutBucketPolicy                       |
+|  EventTime    |  2026-06-11T06:13:58+09:00             |
+|  ReadOnly     |  false                                 |
+|  ResourceName |  nobu-terraform-iac-lab-upload         |
+|  ResourceType |  AWS::S3::Bucket                       |
+|  Username     |  nobu                                  |
++---------------+----------------------------------------+

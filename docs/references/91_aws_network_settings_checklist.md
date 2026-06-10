@@ -1198,23 +1198,13 @@ AWSネットワーク確認中に、追加確認が必要な項目がありま�
 
 ## 32. 公式ドキュメント
 
-- Amazon VPC Route Tables
-  - https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Route_Tables.html
-- Subnet Route Tables
-  - https://docs.aws.amazon.com/vpc/latest/userguide/subnet-route-tables.html
-- Security Groups
-  - https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html
-- Network ACLs
-  - https://docs.aws.amazon.com/vpc/latest/userguide/nacl-rules.html
-- NAT Gateways
-  - https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-nat-gateway.html
-- Gateway VPC Endpoints
-  - https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html
-- VPC Flow Logs
-  - https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html
-- Reachability Analyzer
-  - https://docs.aws.amazon.com/vpc/latest/userguide/reachability-analyzer.html
-- Route 53 Private Hosted Zones
-  - https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zone-private-creating.html
-- ALB Target Health
-  - https://docs.aws.amazon.com/elasticloadbalancing/latest/application/check-target-health.html
+- [Amazon VPC Route Table](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/VPC_Route_Tables.html)
+- [Subnet Route Table](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/subnet-route-tables.html)
+- [Security Group](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/vpc-security-groups.html)
+- [Network ACLルール](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/nacl-rules.html)
+- [NAT Gateway](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/vpc-nat-gateway.html)
+- [Gateway VPC Endpoint](https://docs.aws.amazon.com/ja_jp/vpc/latest/privatelink/gateway-endpoints.html)
+- [VPC Flow Logs](https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/flow-logs.html)
+- [Reachability Analyzerとは](https://docs.aws.amazon.com/ja_jp/vpc/latest/reachability/what-is-reachability-analyzer.html)
+- [Route 53 Private Hosted Zoneを作成する](https://docs.aws.amazon.com/ja_jp/Route53/latest/DeveloperGuide/hosted-zone-private-creating.html)
+- [ALB Target GroupのHealth Statusを確認する](https://docs.aws.amazon.com/ja_jp/elasticloadbalancing/latest/application/check-target-health.html)

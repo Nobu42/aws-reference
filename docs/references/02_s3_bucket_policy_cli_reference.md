@@ -1262,14 +1262,9 @@ S3バケット <bucket-name> のBucket Policy変更作業で想定外の結果�
 
 ## 33. 公式ドキュメント
 
-- [get-bucket-policy - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-policy.html)
-- [put-bucket-policy - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/s3api/put-bucket-policy.html)
-- [delete-bucket-policy - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/s3api/delete-bucket-policy.html)
-- [get-bucket-policy-status - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-policy-status.html)
-- [Bucket policies for Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html)
-- [Examples of Amazon S3 bucket policies](https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-bucket-policies.html)
-- [Policies and permissions in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-policy-language-overview.html)
-- [IAM JSON policy element reference](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html)
-- [validate-policy - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/accessanalyzer/validate-policy.html)
-- [Validate policies with IAM Access Analyzer](https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-policy-validation.html)
-
+- [Amazon S3のバケットポリシー](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/bucket-policies.html)
+- [Amazon S3バケットポリシーの例](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/example-bucket-policies.html)
+- [Amazon S3のポリシーとアクセス許可](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/access-policy-language-overview.html)
+- [条件キーを使用したバケットポリシーの例](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/amazon-s3-policy-keys.html)
+- [IAM JSONポリシー要素のリファレンス](https://docs.aws.amazon.com/ja_jp/IAM/latest/UserGuide/reference_policies_elements.html)
+- [IAM Access Analyzerでポリシーを検証する](https://docs.aws.amazon.com/ja_jp/IAM/latest/UserGuide/access-analyzer-policy-validation.html)

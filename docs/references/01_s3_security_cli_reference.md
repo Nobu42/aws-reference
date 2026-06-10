@@ -1357,12 +1357,10 @@ Public Access BlockとBucket Policyの組み合わせ、
 
 ## 33. 公式ドキュメント
 
-- [s3api - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/s3api/index.html)
-- [get-public-access-block - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/s3api/get-public-access-block.html)
-- [get-bucket-policy-status - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-policy-status.html)
-- [s3control - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/s3control/index.html)
-- [Blocking public access to your Amazon S3 storage](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html)
-- [Controlling ownership of objects and disabling ACLs for your bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html)
-- [Protecting data with encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html)
-- [How S3 Versioning works](https://docs.aws.amazon.com/AmazonS3/latest/userguide/versioning-workflows.html)
-- [Enabling Amazon S3 server access logging](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-server-access-logging.html)
+- [Amazon S3のセキュリティのベストプラクティス](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/security-best-practices.html)
+- [Amazon S3ストレージへのパブリックアクセスをブロックする](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/access-control-block-public-access.html)
+- [オブジェクトの所有権を制御し、ACLを無効にする](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/about-object-ownership.html)
+- [暗号化によるデータの保護](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/UsingEncryption.html)
+- [S3 Versioningの仕組み](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/versioning-workflows.html)
+- [Amazon S3サーバーアクセスログを有効にする](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/enable-server-access-logging.html)
+- [Amazon S3 Access Pointの使用](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/using-access-points.html)

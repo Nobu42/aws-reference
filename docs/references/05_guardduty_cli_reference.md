@@ -1282,17 +1282,9 @@ GuardDutyのサンプルFindingを作成し、CLIおよびConsoleで検知確認
 
 ## 32. 公式ドキュメント
 
-- [list-detectors - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/guardduty/list-detectors.html)
-- [get-detector - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/guardduty/get-detector.html)
-- [create-detector - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/guardduty/create-detector.html)
-- [list-findings - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/guardduty/list-findings.html)
-- [get-findings - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/guardduty/get-findings.html)
-- [get-findings-statistics - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/guardduty/get-findings-statistics.html)
-- [create-sample-findings - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/guardduty/create-sample-findings.html)
-- [archive-findings - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/guardduty/archive-findings.html)
-- [update-findings-feedback - AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/reference/guardduty/update-findings-feedback.html)
-- [Severity levels of GuardDuty findings](https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_findings-severity.html)
-- [Finding details - Amazon GuardDuty](https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_findings-summary.html)
-- [Filtering findings in GuardDuty](https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_filter-findings.html)
-- [GuardDuty finding types](https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_finding-types-active.html)
-
+- [Amazon GuardDutyとは](https://docs.aws.amazon.com/ja_jp/guardduty/latest/ug/what-is-guardduty.html)
+- [GuardDuty Findingの重要度レベル](https://docs.aws.amazon.com/ja_jp/guardduty/latest/ug/guardduty_findings-severity.html)
+- [GuardDuty Findingの詳細](https://docs.aws.amazon.com/ja_jp/guardduty/latest/ug/guardduty_findings-summary.html)
+- [GuardDuty Findingをフィルタリングする](https://docs.aws.amazon.com/ja_jp/guardduty/latest/ug/guardduty_filter-findings.html)
+- [GuardDuty Finding Type](https://docs.aws.amazon.com/ja_jp/guardduty/latest/ug/guardduty_finding-types-active.html)
+- [GuardDuty Findingを理解・生成する](https://docs.aws.amazon.com/ja_jp/guardduty/latest/ug/guardduty_findings.html)

@@ -1466,3 +1466,13 @@ aws cloudtrail lookup-events --profile "$PROFILE" --region "$REGION" --max-resul
 | `aws logs filter-log-events` | ログに個人情報や業務データが含まれる可能性がある |
 
 実行する場合は、取得目的、承認、保存先、マスキング方針、削除方針を明確にする。
+
+## 公式ドキュメント
+
+- [AWS Security Hubとは](https://docs.aws.amazon.com/ja_jp/securityhub/latest/userguide/what-is-securityhub.html)
+- [AWS Configとは](https://docs.aws.amazon.com/ja_jp/config/latest/developerguide/WhatIsConfig.html)
+- [IAM Access Analyzerとは](https://docs.aws.amazon.com/ja_jp/IAM/latest/UserGuide/what-is-access-analyzer.html)
+- [Amazon GuardDutyとは](https://docs.aws.amazon.com/ja_jp/guardduty/latest/ug/what-is-guardduty.html)
+- [AWS CloudTrailユーザーガイド](https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/cloudtrail-user-guide.html)
+- [AWS Secrets Managerとは](https://docs.aws.amazon.com/ja_jp/secretsmanager/latest/userguide/intro.html)
+- [AWS WAFとは](https://docs.aws.amazon.com/ja_jp/waf/latest/developerguide/what-is-aws-waf.html)
