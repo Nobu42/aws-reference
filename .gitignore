@@ -1,1 +1,24 @@
-scripts/*.pem
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Runtime secrets and local infrastructure state
+.env
+.env.*
+*.tfvars
+*.tfstate
+*.tfstate.*
+
+# AWS operation evidence generated during learning
+/evidence/
+/day-learning/*/evidence/
+/day-learning/*/before/
+/day-learning/*/after/
+/day-learning/*/rollback/
+
+# Local temporary files
+.DS_Store
+*.log
+*.retry
