@@ -1,5 +1,63 @@
 # Day 3 Learning: CloudTrail基礎・変更履歴調査
 
+## Day 3の実施方針
+
+Day 3では、CloudTrailの次の2つを分けて確認する。
+
+| 確認対象 | 内容 |
+|---|---|
+| Event History | Trailを作成していなくても、過去90日間のManagement Eventを検索できる |
+| Trail | Management EventやData Eventを継続的に記録し、S3などへ配信する設定 |
+
+現在の学習用AWSアカウントでは、Event Historyで`PutBucketPolicy`などを確認できる一方、初期状態ではTrailが存在しない。
+
+Trailが存在しないままでは、Trail設定、ログ記録状態、ログ保存先S3、Event Selector、`PutObject` Data Eventを実物で確認できない。
+
+そのため、Day 3では`All_Setup.sh`とは独立した一時検証用Trailを作成し、確認後に削除する。
+
+実案件では、既存Trail、組織Trail、CloudTrail Lake、監査ログ集約構成が存在する可能性がある。承認なしでTrailを作成・変更・削除しない。
+
+## Day 3の実施順序
+
+```text
+1. Event HistoryでManagement Eventを確認する
+2. 一時検証用Trailとログ保存先S3バケットを作成する
+3. Trail設定、稼働状態、Event Selectorを確認する
+4. TrailログがS3へ配信されることを確認する
+5. 必要に応じて、対象S3バケットのWrite-only Data eventsを有効化する
+6. Rails Active Storageから画像をアップロードする
+7. Trail保存先S3ログからPutObjectを確認する
+8. Event Selectorを変更前設定へ切り戻す
+9. 一時検証用Trailとログ保存先S3バケットを削除する
+```
+
+## 使用する検証スクリプト
+
+- [CloudTrail一時Trail検証スクリプト](../scripts/cloudtrail_trail_lab/README.md)
+- [CloudTrail S3 Data Events検証スクリプト](../scripts/cloudtrail_s3_data_events/README.md)
+
+一時Trailを作成する。
+
+```bash
+cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
+
+./01_create_cloudtrail_trail.sh
+```
+
+Trail作成後、設定とログ配信状態を確認する。
+
+```bash
+./02_check_cloudtrail_trail.sh
+```
+
+Day 3の確認とData Event検証が完了した後、一時Trailを削除する。
+
+```bash
+./03_delete_cloudtrail_trail.sh
+```
+
+作成・削除スクリプトは実行前に確認文字列の入力を求める。Caller Identity、対象Trail名、ログ保存先S3バケット名を確認してから実行する。
+
 ## 1. CloudTrailの役割を理解する
 
 CloudTrailは、AWSアカウント内で実行されたAPI操作を記録・調査するためのサービスである。
@@ -561,7 +619,17 @@ CloudTrailのTrailは、AWS API操作ログをS3バケットやCloudWatch Logs�
 
 Event Historyは過去90日間のManagement Eventを確認する機能であり、Trailを作成していない場合でも利用できる。
 
-この手順では、作成済みTrailの有無と設定内容を確認する。設定変更は行わない。
+この手順では、作成済みTrailの有無と設定内容を確認する。Section 5内では設定変更を行わない。
+
+学習用AWSアカウントでは、先に一時Trail作成スクリプトを実行し、実物のTrailを確認する。
+
+```bash
+cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
+
+./01_create_cloudtrail_trail.sh
+```
+
+実案件では、Trailが存在しない場合でも独断で作成しない。組織Trail、CloudTrail Lake、別監査基盤の有無を確認し、承認された手順に従う。
 
 ## Webコンソールによる確認
 
@@ -656,9 +724,11 @@ Trail名を変数へ設定する。
 TRAIL_NAME="<確認したTrail名>"
 ```
 
-Trailが存在しない場合は、後続のTrail詳細確認と稼働状態確認を実施できない。
+Trailが存在しない場合は、後続のTrail詳細確認、稼働状態確認、S3ログ配信確認、Data Event検証を実施できない。
 
-その場合は、未設定であることを確認結果として記録し、Event Historyの検索学習を継続する。
+学習環境では、[CloudTrail一時Trail検証スクリプト](../scripts/cloudtrail_trail_lab/README.md)を使用して一時Trailを作成する。
+
+実案件では、未設定であることを確認結果として記録し、既存の監査構成と変更承認を確認する。
 
 ## 特定Trailの設定詳細確認
 
@@ -755,6 +825,13 @@ Trailが未設定でも、直ちにセキュリティ上の問題とは断定し
 - 学習環境のためTrailを作成していない
 - 要件上Trailが必要だが未設定になっている
 
+学習環境と実案件では、次のように対応を分ける。
+
+| 環境 | 対応 |
+|---|---|
+| 学習環境 | 専用スクリプトで一時Trailを作成し、確認後に削除する |
+| 実案件 | 独断で作成せず、組織Trailや監査基盤を確認して変更承認を得る |
+
 ## 確認結果記載例: Trailあり
 
 ```text
@@ -807,6 +884,14 @@ printf 'TRAIL_NAME=%s\n' "$TRAIL_NAME"
 ```
 
 Trailが存在しない場合、この手順は実施できない。
+
+学習環境では、次の確認スクリプトを実行すると、Trail設定、稼働状態、Event Selector、ログ保存先S3の設定、配信済みログオブジェクトをまとめて確認できる。
+
+```bash
+cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
+
+./02_check_cloudtrail_trail.sh
+```
 
 ## Webコンソールによる確認
 
@@ -1041,6 +1126,118 @@ Trail設定、保存先S3バケット、Bucket PolicyおよびKMS Key Policyの
 
 影響調査および承認が必要なため、設定変更は実施していない。
 ```
+
+## 6.1. Trail保存先S3とPutObject Data Eventを確認する
+
+Trailを作成すると、CloudTrailが記録したイベントをログファイルとしてS3へ継続的に配信できる。
+
+Trail作成直後は、最初のログファイルが配信されるまで数分かかる場合がある。
+
+### Trailログ保存先S3を確認する
+
+```bash
+cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
+
+./02_check_cloudtrail_trail.sh
+```
+
+確認項目:
+
+```text
+IsLogging=True
+LatestDeliveryErrorに値がない
+Trailログ保存先S3バケットが設定されている
+S3へCloudTrailログオブジェクトが配信されている
+Management Eventを記録するEvent Selectorが設定されている
+```
+
+Trailログ保存先S3にログがまだ表示されない場合は、数分待ってから確認スクリプトを再実行する。
+
+### PutObjectを確認する理由
+
+`PutBucketPolicy`はBucket Policyという設定を変更するManagement Eventである。
+
+Rails Active Storageが画像をS3へ保存するときの`PutObject`は、S3オブジェクトを操作するData Eventである。
+
+```text
+PutBucketPolicy:
+S3バケット設定の変更
+Management Event
+Event Historyとlookup-eventsで確認できる
+
+PutObject:
+S3オブジェクトの保存
+Data Event
+通常のEvent Historyとlookup-eventsでは確認できない
+```
+
+### 対象バケットのWrite-only Data eventsを有効化する
+
+Data eventsは有料であり、多数発生する可能性がある。検証では対象バケットとWrite Eventに限定する。
+
+```bash
+cd /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events
+
+./01_enable_s3_data_events.sh \
+  nobu-iac-lab-trail \
+  nobu-terraform-iac-lab-upload
+```
+
+スクリプトは変更前Event Selectorを証跡として保存する。既存設定が想定した単純なManagement Event設定と異なる場合は、上書きせず停止する。
+
+### Rails Active Storageから画像をアップロードする
+
+WebブラウザからRailsアプリケーションへログインし、新しい画像をアップロードする。
+
+記録する項目:
+
+- 操作時刻
+- アプリケーション上の操作結果
+- 投稿または画像の識別情報
+- S3へ新しいオブジェクトが保存されたこと
+
+### Trail保存先S3ログからPutObjectを確認する
+
+ログ配信まで数分待ってから実行する。
+
+```bash
+./03_check_s3_putobject_events.sh \
+  nobu-iac-lab-trail \
+  nobu-terraform-iac-lab-upload
+```
+
+確認項目:
+
+```text
+eventName=PutObject
+requestParameters.bucketName=対象バケット
+userIdentity.arn=Web EC2のIAM Role Session
+userAgentにAWS SDK for Rubyを示す情報が含まれる
+errorCodeとerrorMessageが記録されていない
+```
+
+### Event Selectorを切り戻す
+
+Data eventsの確認後は、有効化スクリプトが表示した証跡ディレクトリを指定して変更前設定へ切り戻す。
+
+```bash
+./02_restore_s3_event_selectors.sh \
+  ../../evidence/cloudtrail_s3_data_events/<実行日時>_enable_s3_data_events
+```
+
+切り戻し後、対象バケットのData events設定が削除され、変更前Event Selectorと一致することを確認する。
+
+### 一時Trailを削除する
+
+Day 3の確認がすべて完了したら、一時Trailとログ保存先S3バケットを削除する。
+
+```bash
+cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
+
+./03_delete_cloudtrail_trail.sh
+```
+
+実案件では、既存Trail、Event Selector、監査ログ保存先を独断で変更・削除しない。
 
 ## 7. AWS CLIでEvent Historyを検索する
 
@@ -2722,7 +2919,11 @@ Event Historyによる過去90日間のManagement Event確認は可能である�
 ・Management EventとData Eventの違い
 ・AWSアカウントとリージョンの確認
 ・WebコンソールによるEvent History検索
+・一時検証用Trailの作成と削除
 ・Trail設定とログ記録状態の確認
+・Trailログ保存先S3へのログ配信確認
+・Event Selectorの確認と切り戻し
+・Rails Active StorageのPutObject Data Event確認
 ・lookup-eventsによるイベント検索
 ・Event IDによる詳細確認
 ・実行者、対象リソース、変更内容、エラーの確認
@@ -2735,6 +2936,12 @@ Event Historyによる過去90日間のManagement Event確認は可能である�
 
 ```text
 ・Management EventとData Eventの違いを説明できる
+・Event HistoryとTrailの違いを説明できる
+・一時検証用Trailを作成し、設定と稼働状態を確認できる
+・Trailログ保存先S3へのログ配信を確認できる
+・対象S3バケットに限定してData eventsを有効化し、変更前設定へ切り戻せる
+・Rails Active StorageによるPutObjectをTrail保存先S3ログから確認できる
+・学習終了後に一時Trailとログ保存先S3バケットを削除できる
 ・lookup-eventsで目的のイベントを検索できる
 ・Event IDを使用してイベントを特定できる
 ・実行者、実行時刻、対象リソース、変更内容を説明できる
@@ -2742,5 +2949,3 @@ Event Historyによる過去90日間のManagement Event確認は可能である�
 ・読みやすい要約と生JSON証跡を分けて保存できる
 ・調査結果をTeamsや作業報告へ記載できる
 ```
-
-
