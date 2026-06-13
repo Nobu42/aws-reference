@@ -335,11 +335,11 @@ S3への通信でTLS 1.2以上を必須とする
     "arn:aws:s3:::nobu-terraform-iac-lab-upload/*"
   ],
   "Condition": {
-    "NumericLessThan": {
-      "s3:TlsVersion": "1.2"
-    },
     "Bool": {
       "aws:PrincipalIsAWSService": "false"
+    },
+    "NumericLessThan": {
+      "s3:TlsVersion": "1.2"
     }
   }
 }
@@ -675,11 +675,11 @@ vi 02_Day_Learning/after/bucket-policy-after.json
         "arn:aws:s3:::nobu-terraform-iac-lab-upload/*"
       ],
       "Condition": {
-        "NumericLessThan": {
-          "s3:TlsVersion": 1.2
-        },
         "Bool": {
           "aws:PrincipalIsAWSService": "false"
+        },
+        "NumericLessThan": {
+          "s3:TlsVersion": "1.2"
         }
       }
     }
@@ -947,7 +947,44 @@ diff -u \
   02_Day_Learning/after/bucket-policy-applied-formatted.json
 ```
 
-出力がなければ、想定したPolicyが反映されている。
+出力がなければ、適用予定Policyと実際に反映されたPolicyが文字列として一致している。
+
+差分が表示された場合でも、直ちに適用失敗とは判断しない。AWSがPolicyを保存・返却するときに、JSONオブジェクト内の項目順序や値の表現を正規化する場合がある。
+
+今回確認した正規化の例:
+
+```diff
+- "NumericLessThan": {
+-   "s3:TlsVersion": 1.2
+- },
+  "Bool": {
+    "aws:PrincipalIsAWSService": "false"
++ },
++ "NumericLessThan": {
++   "s3:TlsVersion": "1.2"
+  }
+```
+
+この例では、次の差分だけが発生している。
+
+- `Bool`と`NumericLessThan`の表示順序が変わった
+- 数値表現の`1.2`が文字列表現の`"1.2"`へ変わった
+
+JSONオブジェクト内の項目順序はPolicyの評価結果へ影響しない。また、`NumericLessThan`は数値条件演算子であるため、この例ではPolicyの評価内容は変わらない。
+
+差分が表示された場合は、少なくとも次を確認する。
+
+```text
+・Statementの追加・削除が想定どおりか
+・Effect、Principal、Action、Resourceが想定どおりか
+・Condition演算子とCondition Keyが想定どおりか
+・Condition値が想定どおりか
+・表示順序や値表現だけの差分か
+・Access AnalyzerによるPolicy検証結果に問題がないか
+・変更後のアプリケーション動作に問題がないか
+```
+
+今後の不要な差分を減らすため、変更予定PolicyはAWSが返却する形式に合わせ、`Bool`を先に記載し、`s3:TlsVersion`を文字列の`"1.2"`として記載する。
 
 ### Public判定の確認
 
@@ -1041,20 +1078,31 @@ aws s3api get-bucket-policy \
 
 ### Policy内容の表示
 
-JSONを読みやすくするため、ステートメントの区切りで改行して表示する。
+取得した1行JSONを、`awk`で作成したJSON整形スクリプトを使用して読みやすくする。
+
+このスクリプトは表示用の改行とインデントを追加する。元の`bucket-policy-applied.json`は変更しない。
 
 ```bash
-sed 's/},{/},\
-{/g' \
-  02_Day_Learning/after/bucket-policy-applied.json
+../scripts/format_json_awk.sh \
+  02_Day_Learning/after/bucket-policy-applied.json \
+  > 02_Day_Learning/after/bucket-policy-applied-formatted.json
+```
+
+整形結果を表示する。
+
+```bash
+cat \
+  02_Day_Learning/after/bucket-policy-applied-formatted.json
 ```
 
 ### 必須設定の存在確認
 
+整形後ファイルを対象に、重要項目が存在することを確認する。
+
 ```bash
-grep -n \
-  'DenyInsecureTransport\|DenyOutdatedTLS\|s3:TlsVersion\|aws:PrincipalIsAWSService' \
-  02_Day_Learning/after/bucket-policy-applied.json
+grep -nE \
+  'DenyInsecureTransport|DenyOutdatedTLS|s3:TlsVersion|aws:PrincipalIsAWSService' \
+  02_Day_Learning/after/bucket-policy-applied-formatted.json
 ```
 
 期待する確認項目:
@@ -1066,18 +1114,20 @@ s3:TlsVersion
 aws:PrincipalIsAWSService
 ```
 
+`grep`は項目の存在を素早く確認するために使用する。Policy内の正しい位置や条件関係までは判断できないため、整形結果と`diff -u`も併せて確認する。
+
 ### TLSバージョン設定の確認
 
 ```bash
-grep -o \
-  '"s3:TlsVersion":[^,}]*' \
-  02_Day_Learning/after/bucket-policy-applied.json
+grep -n \
+  '"s3:TlsVersion"' \
+  02_Day_Learning/after/bucket-policy-applied-formatted.json
 ```
 
 期待値:
 
 ```text
-"s3:TlsVersion":1.2
+"s3:TlsVersion": "1.2"
 ```
 
 ## Public判定の確認
