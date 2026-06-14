@@ -132,7 +132,8 @@ Trailが存在しないエラーになった場合だけ作成する。
   nobu-terraform-iac-lab-upload
 ```
 
-Railsから新しい画像をアップロードし、数分待ってから確認する。
+Event Selectorの反映を待つため、有効化後に5分程度待ってから新しい画像をアップロードする。
+画像アップロード後は、CloudTrailログ配信を5分から15分程度待ってから確認する。
 
 ```bash
 /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/03_check_s3_putobject_events.sh \
@@ -926,8 +927,10 @@ CloudTrailログファイルが配信後に変更・削除されていないか�
 ### S3ログ保存先
 
 ```text
-S3BucketName=<ログ保存先バケット>
+S3BucketName=nobu-iac-lab-cloudtrail-445405559057
 ```
+
+`S3BucketName`には、CloudTrailイベントログの保存先S3バケット名が表示される。
 
 次の確認が必要となる。
 
@@ -941,10 +944,10 @@ S3BucketName=<ログ保存先バケット>
 ### CloudWatch Logs連携
 
 ```text
-CloudWatchLogsLogGroupArn=<Log Group ARN>
+CloudWatchLogsLogGroupArn=None
 ```
 
-値が設定されている場合、CloudTrailイベントをCloudWatch Logsへ配信する構成である。
+`None`の場合、CloudWatch Logsへの配信は設定されていない。Log Group ARNが表示される場合、CloudTrailイベントをCloudWatch Logsへ配信する構成である。
 
 Metric FilterやAlarmを使用して、MFAなしログインやCloudTrail停止などを検知できる。
 
@@ -1318,6 +1321,9 @@ Data eventsは有料であり、多数発生する可能性がある。検証で
 
 ### Rails Active Storageから画像をアップロードする
 
+Event Selectorの変更が反映される前にアップロードすると、Data eventが記録されない可能性がある。
+有効化スクリプトの完了後、5分程度待ってから新しい画像をアップロードする。
+
 WebブラウザからRailsアプリケーションへログインし、新しい画像をアップロードする。
 
 記録する項目:
@@ -1329,7 +1335,7 @@ WebブラウザからRailsアプリケーションへログインし、新しい
 
 ### Trail保存先S3ログからPutObjectを確認する
 
-ログ配信まで数分待ってから実行する。
+ログ配信まで5分から15分程度待ってから実行する。
 
 ```bash
 /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/03_check_s3_putobject_events.sh \

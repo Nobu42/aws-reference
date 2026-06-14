@@ -1325,12 +1325,18 @@
         cmd: "curl --silent --show-error --fail --unix-socket {{ puma_socket }} http://localhost/"
       register: puma_curl_result
       changed_when: false
+      retries: 12
+      delay: 2
+      until: puma_curl_result.rc == 0
 
     - name: Check Rails response through nginx
       ansible.builtin.command:
         cmd: "curl --silent --show-error --fail http://localhost:3000/"
       register: nginx_curl_result
       changed_when: false
+      retries: 12
+      delay: 2
+      until: nginx_curl_result.rc == 0
 
     - name: Show Rails sample application status
       ansible.builtin.debug:

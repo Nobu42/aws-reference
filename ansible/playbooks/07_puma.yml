@@ -213,6 +213,9 @@
         cmd: "curl --silent --show-error --fail --unix-socket {{ puma_socket }} http://localhost/"
       register: puma_curl_result
       changed_when: false
+      retries: 12
+      delay: 2
+      until: puma_curl_result.rc == 0
 
     # nginx経由でRailsが応答できるか確認する。
     # ALBもこの3000番へ転送するため、ここが通ればALB確認に進める。
@@ -221,6 +224,9 @@
         cmd: "curl --silent --show-error --fail http://localhost:3000/"
       register: nginx_curl_result
       changed_when: false
+      retries: 12
+      delay: 2
+      until: nginx_curl_result.rc == 0
 
     # 確認結果を表示する。
     - name: Show Puma and nginx status

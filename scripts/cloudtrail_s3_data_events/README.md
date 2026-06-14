@@ -106,6 +106,9 @@ Data Eventを切り戻しても、一時TrailとTrailログ保存先S3バケッ�
 
 ### 2. Railsから新しい画像をアップロードする
 
+Event Selectorの変更が反映される前にアップロードすると、Data eventが記録されない可能性がある。
+有効化スクリプトの完了後、5分程度待ってから新しい画像をアップロードする。
+
 WebブラウザからRailsアプリケーションへログインし、新しい画像をアップロードする。
 
 確認する情報:
@@ -117,7 +120,7 @@ WebブラウザからRailsアプリケーションへログインし、新しい
 
 ### 3. PutObjectを確認する
 
-CloudTrailログ配信まで数分待ってから実行する。
+CloudTrailログ配信まで5分から15分程度待ってから実行する。
 
 ```bash
 /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/03_check_s3_putobject_events.sh \
@@ -148,9 +151,18 @@ ls -dt \
   /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/*_enable_s3_data_events
 ```
 
+今回使用する有効化証跡ディレクトリを変数へ設定してから切り戻す。
+
 ```bash
+ENABLE_EVIDENCE_DIR=$(
+  ls -dt /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/*_enable_s3_data_events \
+    | head -n 1
+)
+
+printf 'Restore source: %s\n' "$ENABLE_EVIDENCE_DIR"
+
 /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
-  /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/<実行日時>_enable_s3_data_events
+  "$ENABLE_EVIDENCE_DIR"
 ```
 
 切り戻し後、変更前と変更後のEvent Selectorを比較し、対象バケットのData events設定が削除されていることを確認する。
