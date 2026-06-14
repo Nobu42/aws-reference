@@ -1,5 +1,18 @@
 # Day 16 Learning: Lambda Security確認ドリル
 
+## 学習開始前に実行するスクリプト
+
+現在の個人ラボではLambda Functionが0件であることを確認するDayのため、開始前スクリプトは不要である。
+
+```text
+All_Setup.sh: 不要
+Ansible: 不要
+CloudTrail一時Trail: 不要
+S3 Data Event: 不要
+```
+
+Lambda Functionが0件の場合も、想定どおりの確認結果として扱う。
+
 ## 1. 今日の目的
 
 AWS Lambdaの権限、公開経路、ネットワーク、秘密情報、暗号化、ログを横断的に確認し、Function URLの公開リスクを説明できる状態を目指す。

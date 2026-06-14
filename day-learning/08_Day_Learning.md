@@ -1,5 +1,18 @@
 # Day 8 Learning: GuardDuty基礎確認・Finding一次調査
 
+## 学習開始前に実行するスクリプト
+
+Day 8は既存GuardDuty DetectorとFindingを読み取り専用で確認するため、開始前スクリプトは不要である。
+
+```text
+All_Setup.sh: 不要
+Ansible: 不要
+CloudTrail一時Trail: 不要
+S3 Data Event: 不要
+```
+
+GuardDuty Detectorが存在しない場合は、勝手に有効化せず、Detector未設定として記録する。
+
 ## 1. 今日の目的
 
 Amazon GuardDutyのDetector、Finding、Severity、対象リソース、Actionを確認し、Findingを受け取った際の一次調査と報告を行える状態を目指す。

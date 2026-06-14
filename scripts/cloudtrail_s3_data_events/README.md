@@ -55,12 +55,33 @@ aws cloudtrail describe-trails \
 
 ## 実行順序
 
+## 実行場所と切り戻しルール
+
+スクリプトはどのディレクトリからでも、絶対パスで実行できる。`cd`は不要。
+
+```text
+スクリプト:
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/
+
+有効化・切り戻し証跡:
+/Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/
+```
+
+Data Eventは有料であるため、次のいずれかの時点で必ず切り戻す。
+
+```text
+・PutObject確認が完了した直後
+・PutObjectが見つからず、検証をいったん終了するとき
+・Day 3を途中で終了するとき
+・一時Trailを削除する前
+```
+
+Data Eventを切り戻しても、一時TrailとTrailログ保存先S3バケットは残る。Day 3全体の終了時に、`cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh`で削除する。
+
 ### 1. Data eventsを有効化する
 
 ```bash
-cd /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events
-
-./01_enable_s3_data_events.sh \
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/01_enable_s3_data_events.sh \
   nobu-iac-lab-trail \
   nobu-terraform-iac-lab-upload
 ```
@@ -99,7 +120,7 @@ WebブラウザからRailsアプリケーションへログインし、新しい
 CloudTrailログ配信まで数分待ってから実行する。
 
 ```bash
-./03_check_s3_putobject_events.sh \
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/03_check_s3_putobject_events.sh \
   nobu-iac-lab-trail \
   nobu-terraform-iac-lab-upload
 ```
@@ -120,9 +141,16 @@ CloudTrail Event Historyと`lookup-events`は、S3 Object-level Data eventsの�
 
 有効化スクリプトの完了時に表示された証跡ディレクトリを指定する。
 
+パスを忘れた場合は、有効化証跡を新しい順に表示する。
+
 ```bash
-./02_restore_s3_event_selectors.sh \
-  ../../evidence/cloudtrail_s3_data_events/<実行日時>_enable_s3_data_events
+ls -dt \
+  /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/*_enable_s3_data_events
+```
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
+  /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/<実行日時>_enable_s3_data_events
 ```
 
 切り戻し後、変更前と変更後のEvent Selectorを比較し、対象バケットのData events設定が削除されていることを確認する。

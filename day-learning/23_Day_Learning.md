@@ -1,5 +1,24 @@
 # Day 23 Learning: 最終リハーサル・説明練習・公開前確認
 
+## 学習開始前に実行するスクリプト
+
+Day 23は最終確認日であり、新しいAWS環境を起動しない。
+
+```text
+All_Setup.sh: 実行しない
+Ansible: 実行しない
+CloudTrail一時Trail: 作成しない
+S3 Data Event: 有効化しない
+```
+
+残存リソースが気になる場合は、AWS設定を作成する代わりに、既存のクリーンアップ結果とコストを確認する。
+
+```bash
+/Users/nobu/aws-reference/scripts/check_cleanup.sh
+
+/Users/nobu/aws-reference/scripts/check_cost.sh
+```
+
 ## 1. 今日の目的
 
 案件初日に必要な資料、説明、質問、作業姿勢を最終確認し、新しい知識を増やさずに落ち着いて参画できる状態へ整える。

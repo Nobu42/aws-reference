@@ -42,7 +42,8 @@ unset LOCALSTACK_HOST
 usage() {
   cat <<'USAGE'
 Usage:
-  ./02_check_cloudtrail_trail.sh [trail-name]
+  /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh \
+    [trail-name]
 
 Environment variables:
   PROFILE, REGION, EXPECTED_ACCOUNT_ID, TRAIL_NAME, EVIDENCE_BASE_DIR
@@ -276,3 +277,11 @@ fi
 
 echo "Trail check completed."
 echo "Evidence: $EVIDENCE_DIR"
+echo
+echo "Next action:"
+echo "  To check Rails PutObject, enable S3 Data Events:"
+echo "  $REPOSITORY_ROOT/scripts/cloudtrail_s3_data_events/01_enable_s3_data_events.sh \\"
+echo "    $TRAIL_NAME_VALUE nobu-terraform-iac-lab-upload"
+echo
+echo "  If all Day 3 checks and Data Event restore are completed, delete the temporary Trail:"
+echo "  $SCRIPT_DIR/03_delete_cloudtrail_trail.sh"

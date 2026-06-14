@@ -47,15 +47,17 @@ unset LOCALSTACK_HOST
 usage() {
   cat <<'USAGE'
 Usage:
-  ./01_create_cloudtrail_trail.sh [trail-name] [trail-bucket-name]
+  /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/01_create_cloudtrail_trail.sh \
+    [trail-name] [trail-bucket-name]
 
 Environment variables:
   PROFILE, REGION, EXPECTED_ACCOUNT_ID, TRAIL_NAME, TRAIL_PREFIX
   EVIDENCE_BASE_DIR, SKIP_CONFIRM
 
 Example:
-  ./01_create_cloudtrail_trail.sh
-  SKIP_CONFIRM=true ./01_create_cloudtrail_trail.sh
+  /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/01_create_cloudtrail_trail.sh
+  SKIP_CONFIRM=true \
+    /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/01_create_cloudtrail_trail.sh
 USAGE
 }
 
@@ -344,5 +346,11 @@ aws cloudtrail get-trail-status \
   --output table
 
 echo "Temporary Trail creation completed."
-echo "Next: ./02_check_cloudtrail_trail.sh"
 echo "Evidence: $EVIDENCE_DIR"
+echo
+echo "Next:"
+echo "  $SCRIPT_DIR/02_check_cloudtrail_trail.sh"
+echo
+echo "Do not delete the Trail yet."
+echo "Delete it only after Day 3 checks and S3 Data Event restore are completed:"
+echo "  $SCRIPT_DIR/03_delete_cloudtrail_trail.sh"

@@ -1,5 +1,18 @@
 # Day 9 Learning: GuardDutyサンプルFinding調査・後片付けドリル
 
+## 学習開始前に実行するスクリプト
+
+Day 9は既存GuardDuty DetectorへサンプルFindingを作成する。開始前スクリプトは不要だが、Detectorが存在し有効であることが前提となる。
+
+```text
+All_Setup.sh: 不要
+Ansible: 不要
+CloudTrail一時Trail: 不要
+S3 Data Event: 不要
+```
+
+Detectorが存在しない場合は、Day 9のために自動作成せず、Day 8の確認結果とGuardDuty利用方針を見直す。作成したサンプルFindingは本文の手順でArchiveして終了する。
+
 ## 1. 今日の目的
 
 GuardDutyのサンプルFindingを限定的に作成し、Finding確認、一次調査、関連サービスへの横展開、報告、Archive、CloudTrailによる操作履歴確認までを一連の作業として実施する。

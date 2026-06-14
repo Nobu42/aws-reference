@@ -1,5 +1,28 @@
 # Day 15 Learning: EC2・RDS Security確認ドリル
 
+## 学習開始前に実行するスクリプト
+
+Day 15はEC2、EBS、IAM Role、RDS、Security Groupを実物確認するため、`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
+
+```bash
+/Users/nobu/aws-reference/scripts/All_Setup.sh
+```
+
+`sample-vpc`が前日から残っている場合は、`All_Setup.sh`を再実行しない。
+前日の環境を破棄して新規構築する場合は、先に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
+アプリケーション状態とCloudWatch Agentによるログを確認する場合は、Ansibleも実行する。
+
+```bash
+read -r -s -p "DB master password: " DB_MASTER_PASSWORD
+echo
+export DB_MASTER_PASSWORD
+
+/Users/nobu/aws-reference/ansible/run_site_local.sh
+```
+
+CloudTrail一時TrailとS3 Data Eventは不要である。学習終了後、後続の横断確認を続けない場合は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
 ## 1. 今日の目的
 
 EC2とRDSの主要なセキュリティ設定を横断的に確認し、現在状態、良好な設定、改善候補、影響範囲を説明できる状態を目指す。

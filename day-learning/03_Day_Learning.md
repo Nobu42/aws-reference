@@ -1,5 +1,48 @@
 # Day 3 Learning: CloudTrail基礎・変更履歴調査
 
+## 学習開始前に実行するスクリプト
+
+Day 3開始時に一時Trailが残っている場合は、状態確認だけを実行する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
+```
+
+一時Trailが存在しない場合は、作成後に状態を確認する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/01_create_cloudtrail_trail.sh
+
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
+```
+
+Rails Active Storageから画像をアップロードして`PutObject`を確認する場合だけ、`sample-vpc`が存在しないときに`All_Setup.sh`を実行する。
+
+```bash
+/Users/nobu/aws-reference/scripts/All_Setup.sh
+```
+
+`sample-vpc`が前日から残っている場合は、`All_Setup.sh`を再実行しない。続いてAnsibleを実行する。
+前日の環境を破棄して新規構築する場合は、先に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
+```bash
+read -r -s -p "DB master password: " DB_MASTER_PASSWORD
+echo
+export DB_MASTER_PASSWORD
+
+/Users/nobu/aws-reference/ansible/run_site_local.sh
+```
+
+S3 Data Eventは学習開始時に有効化しない。Railsから画像をアップロードする直前に有効化し、確認直後に必ず切り戻す。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/01_enable_s3_data_events.sh \
+  nobu-iac-lab-trail \
+  nobu-terraform-iac-lab-upload
+```
+
+Day 3終了時は、Data Eventの切り戻し後に一時Trailを削除する。詳しい切り戻しコマンドは後続手順を使用する。
+
 ## Day 3の実施方針
 
 Day 3では、CloudTrailの次の2つを分けて確認する。
@@ -31,6 +74,104 @@ Trailが存在しないままでは、Trail設定、ログ記録状態、ログ�
 9. 一時検証用Trailとログ保存先S3バケットを削除する
 ```
 
+## 実行場所と終了処理
+
+CloudTrail関連スクリプトは、**現在のディレクトリに関係なく、次の絶対パスで実行する**。
+
+```text
+Trail作成・確認・削除:
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/
+
+S3 Data Event有効化・PutObject確認・切り戻し:
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/
+
+ローカル証跡保存先:
+/Users/nobu/aws-reference/evidence/
+```
+
+削除・切り戻しの判断:
+
+| 対象 | 実施タイミング | 実行する処理 |
+|---|---|---|
+| S3 Data Event設定 | `PutObject`確認直後。Day 3を途中終了する場合も必ず実施する | `02_restore_s3_event_selectors.sh` |
+| 一時TrailとCloudTrailログ用S3バケット | Day 3の全確認終了後 | `03_delete_cloudtrail_trail.sh` |
+| ローカル証跡 | 内容確認・報告・復習が完了するまで削除しない | 必要になった時点で手動整理する |
+| Rails画像保存先S3バケット | この手順では削除しない | 対象外 |
+
+重要:
+
+```text
+Data Eventを切り戻してもTrailは残る。
+Trailを削除してもローカル証跡は残る。
+Trail削除スクリプトはRails画像保存先S3バケットを削除しない。
+```
+
+## 迷わないための実行コマンド一覧
+
+### Day 3開始時
+
+Trailが存在するか分からない場合は、最初に確認する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
+```
+
+Trailが存在しないエラーになった場合だけ作成する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/01_create_cloudtrail_trail.sh
+```
+
+### Rails画像アップロードのPutObjectを確認する場合
+
+画像アップロード直前にData Eventを有効化する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/01_enable_s3_data_events.sh \
+  nobu-iac-lab-trail \
+  nobu-terraform-iac-lab-upload
+```
+
+Railsから新しい画像をアップロードし、数分待ってから確認する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/03_check_s3_putobject_events.sh \
+  nobu-iac-lab-trail \
+  nobu-terraform-iac-lab-upload
+```
+
+### PutObject確認直後または途中終了時
+
+有効化時の証跡ディレクトリを確認する。
+
+```bash
+ls -dt \
+  /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/*_enable_s3_data_events
+```
+
+今回の有効化時刻と一致する絶対パスを指定し、Data Eventを切り戻す。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
+  /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/<実行日時>_enable_s3_data_events
+```
+
+切り戻し後の期待値:
+
+```text
+ManagementEvents=True
+ReadWriteType=All
+DataResourceCount=0
+```
+
+### Day 3終了時
+
+必要な確認、Data Event切り戻し、証跡確認が完了した後、一時TrailとCloudTrailログ用S3バケットを削除する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
+```
+
 ## 使用する検証スクリプト
 
 - [CloudTrail一時Trail検証スクリプト](../scripts/cloudtrail_trail_lab/README.md)
@@ -39,21 +180,19 @@ Trailが存在しないままでは、Trail設定、ログ記録状態、ログ�
 一時Trailを作成する。
 
 ```bash
-cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
-
-./01_create_cloudtrail_trail.sh
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/01_create_cloudtrail_trail.sh
 ```
 
 Trail作成後、設定とログ配信状態を確認する。
 
 ```bash
-./02_check_cloudtrail_trail.sh
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
 ```
 
 Day 3の確認とData Event検証が完了した後、一時Trailを削除する。
 
 ```bash
-./03_delete_cloudtrail_trail.sh
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
 ```
 
 作成・削除スクリプトは実行前に確認文字列の入力を求める。Caller Identity、対象Trail名、ログ保存先S3バケット名を確認してから実行する。
@@ -624,9 +763,7 @@ Event Historyは過去90日間のManagement Eventを確認する機能であり�
 学習用AWSアカウントでは、先に一時Trail作成スクリプトを実行し、実物のTrailを確認する。
 
 ```bash
-cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
-
-./01_create_cloudtrail_trail.sh
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/01_create_cloudtrail_trail.sh
 ```
 
 実案件では、Trailが存在しない場合でも独断で作成しない。組織Trail、CloudTrail Lake、別監査基盤の有無を確認し、承認された手順に従う。
@@ -888,9 +1025,7 @@ Trailが存在しない場合、この手順は実施できない。
 学習環境では、次の確認スクリプトを実行すると、Trail設定、稼働状態、Event Selector、ログ保存先S3の設定、配信済みログオブジェクトをまとめて確認できる。
 
 ```bash
-cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
-
-./02_check_cloudtrail_trail.sh
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
 ```
 
 ## Webコンソールによる確認
@@ -1136,9 +1271,7 @@ Trail作成直後は、最初のログファイルが配信されるまで数分
 ### Trailログ保存先S3を確認する
 
 ```bash
-cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
-
-./02_check_cloudtrail_trail.sh
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
 ```
 
 確認項目:
@@ -1176,9 +1309,7 @@ Data Event
 Data eventsは有料であり、多数発生する可能性がある。検証では対象バケットとWrite Eventに限定する。
 
 ```bash
-cd /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events
-
-./01_enable_s3_data_events.sh \
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/01_enable_s3_data_events.sh \
   nobu-iac-lab-trail \
   nobu-terraform-iac-lab-upload
 ```
@@ -1201,7 +1332,7 @@ WebブラウザからRailsアプリケーションへログインし、新しい
 ログ配信まで数分待ってから実行する。
 
 ```bash
-./03_check_s3_putobject_events.sh \
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/03_check_s3_putobject_events.sh \
   nobu-iac-lab-trail \
   nobu-terraform-iac-lab-upload
 ```
@@ -1221,8 +1352,8 @@ errorCodeとerrorMessageが記録されていない
 Data eventsの確認後は、有効化スクリプトが表示した証跡ディレクトリを指定して変更前設定へ切り戻す。
 
 ```bash
-./02_restore_s3_event_selectors.sh \
-  ../../evidence/cloudtrail_s3_data_events/<実行日時>_enable_s3_data_events
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
+  /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/<実行日時>_enable_s3_data_events
 ```
 
 切り戻し後、対象バケットのData events設定が削除され、変更前Event Selectorと一致することを確認する。
@@ -1232,9 +1363,7 @@ Data eventsの確認後は、有効化スクリプトが表示した証跡ディ
 Day 3の確認がすべて完了したら、一時Trailとログ保存先S3バケットを削除する。
 
 ```bash
-cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
-
-./03_delete_cloudtrail_trail.sh
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
 ```
 
 実案件では、既存Trail、Event Selector、監査ログ保存先を独断で変更・削除しない。

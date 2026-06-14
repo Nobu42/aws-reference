@@ -1,5 +1,18 @@
 # Day 10 Learning: VPC・Subnet・Route Table確認ドリル
 
+## 学習開始前に実行するスクリプト
+
+Day 10は`sample-vpc`、Subnet、Route Table、IGW、NAT Gatewayを実物確認するため、`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
+
+```bash
+/Users/nobu/aws-reference/scripts/All_Setup.sh
+```
+
+`sample-vpc`が前日から残っている場合は、`All_Setup.sh`を再実行しない。
+前日の環境を破棄して新規構築する場合は、先に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
+Ansible、CloudTrail一時Trail、S3 Data Eventは不要である。学習終了後、後続のネットワーク系Dayを続けない場合は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
 ## 1. 今日の目的
 
 AWS環境のVPC、Subnet、Route Table、Internet Gateway、NAT Gatewayを確認し、各Subnetの通信経路とPublic／Privateの役割を説明できる状態を目指す。

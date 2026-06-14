@@ -1,5 +1,18 @@
 # Day 6 Learning: CloudWatch・MFAなしログイン検知ハンズオン
 
+## 学習開始前に実行するスクリプト
+
+Day 6は専用の検証用Log Group、Metric Filter、Alarmを本文手順で作成する。開始前の環境構築スクリプトは不要である。
+
+```text
+All_Setup.sh: 不要
+Ansible: 不要
+CloudTrail一時Trail: 不要
+S3 Data Event: 不要
+```
+
+本文の切り戻し手順で、Day 6中に作成した検証用リソースだけを削除して終了する。
+
 ## 1. 今日の目的
 
 専用の検証用CloudWatch Logs Log Groupを使用し、MFAなし管理コンソールログインを検知するMetric FilterとCloudWatch Alarmを実際に作成・テスト・削除する。

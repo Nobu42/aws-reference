@@ -1,5 +1,17 @@
 # Day 1 Learning
 
+## 学習開始前に実行するスクリプト
+
+Day 1は既存S3バケットの設定確認である。VPC、EC2、RDS、Railsアプリケーションは使用しないため、`All_Setup.sh`とAnsibleは実行不要である。
+
+```text
+開始前スクリプト: なし
+CloudTrail一時Trail: 不要
+S3 Data Event: 不要
+```
+
+対象バケットが存在しない場合は、Day 1を進めるためだけに`All_Setup.sh`を実行せず、対象環境と構築手順を確認する。
+
 ## 確認順序
 
 1. AWSアカウント・リージョン・対象バケット確認

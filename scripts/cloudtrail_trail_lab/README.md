@@ -54,12 +54,38 @@ S3 key prefix: cloudtrail
 
 ## 実行順序
 
+## 実行場所と削除対象
+
+スクリプトはどのディレクトリからでも、絶対パスで実行できる。`cd`は不要。
+
+```text
+スクリプト:
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/
+
+ローカル証跡:
+/Users/nobu/aws-reference/evidence/cloudtrail_trail_lab/
+```
+
+`03_delete_cloudtrail_trail.sh`が削除するAWSリソース:
+
+```text
+・一時Trail: nobu-iac-lab-trail
+・Trailログ保存先S3バケット: nobu-iac-lab-cloudtrail-445405559057
+```
+
+削除しないもの:
+
+```text
+・Rails画像保存先S3バケット: nobu-terraform-iac-lab-upload
+・ローカル証跡: /Users/nobu/aws-reference/evidence/
+```
+
+一時Trailは、Day 3の確認とS3 Data Event切り戻しが完了した最後に削除する。
+
 ### 1. 一時Trailを作成する
 
 ```bash
-cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
-
-./01_create_cloudtrail_trail.sh
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/01_create_cloudtrail_trail.sh
 ```
 
 ### 2. Trailを確認する
@@ -67,7 +93,7 @@ cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
 Trail作成直後は、最初のログファイルがS3へ配信されるまで数分かかる場合がある。
 
 ```bash
-./02_check_cloudtrail_trail.sh
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
 ```
 
 主な確認項目:
@@ -97,9 +123,7 @@ Rails Active StorageからS3へ画像をアップロードし、`PutObject`を�
 S3 Data eventsを有効化した場合は、先にEvent Selectorを切り戻してから削除する。
 
 ```bash
-cd /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab
-
-./03_delete_cloudtrail_trail.sh
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
 ```
 
 CloudTrailから停止・削除後のログが遅延配信され、S3バケット削除が一時的に失敗する場合がある。削除スクリプトはログ削除とバケット削除を複数回試行する。

@@ -1,5 +1,18 @@
 # Day 21 Learning: 模擬作業2 GuardDuty Finding・CloudTrail横断調査
 
+## 学習開始前に実行するスクリプト
+
+Day 21は既存GuardDuty Findingを起点にした読み取り専用調査であるため、開始前スクリプトは不要である。
+
+```text
+All_Setup.sh: 不要
+Ansible: 不要
+CloudTrail一時Trail: 不要
+S3 Data Event: 不要
+```
+
+調査対象Findingがない場合は、Day 21単独でサンプルFindingを作成しない。必要な場合はDay 9の通知影響確認、作成、Archive手順を別作業として実施する。
+
 ## 1. 今日の目的
 
 GuardDuty Findingを起点に、対象リソース、重要度、検知内容、CloudTrail操作履歴、Network・IAM・S3設定を横断して確認し、一次調査結果を報告する。

@@ -21,7 +21,8 @@ unset LOCALSTACK_HOST
 usage() {
   cat <<'USAGE'
 Usage:
-  ./03_check_s3_putobject_events.sh [trail-name] [bucket-name]
+  /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/03_check_s3_putobject_events.sh \
+    [trail-name] [bucket-name]
 
 Environment variables:
   PROFILE, REGION, EXPECTED_ACCOUNT_ID, TRAIL_NAME, BUCKET_NAME
@@ -208,3 +209,11 @@ echo "=== PutObject summary ==="
 cat "$EVIDENCE_DIR/result/04_putobject_events_summary.txt"
 echo
 echo "Confirm the IAM Role ARN, aws-sdk-ruby userAgent, object key, and event time."
+echo
+echo "Next: Restore S3 Data Event Selectors using the evidence directory created by"
+echo "01_enable_s3_data_events.sh. To find it:"
+echo "  ls -dt $EVIDENCE_BASE_DIR/*_enable_s3_data_events"
+echo
+echo "Restore example:"
+echo "  $SCRIPT_DIR/02_restore_s3_event_selectors.sh \\"
+echo "    $EVIDENCE_BASE_DIR/<timestamp>_enable_s3_data_events"

@@ -1,5 +1,18 @@
 # Day 5 Learning: MFAなし管理コンソールログイン検知の設計理解
 
+## 学習開始前に実行するスクリプト
+
+Day 5は設計理解と読み取り専用確認が中心である。ラボ用VPCやアプリケーションを使用しないため、開始前スクリプトは不要である。
+
+```text
+All_Setup.sh: 不要
+Ansible: 不要
+CloudTrail一時Trail: 作成しない
+S3 Data Event: 不要
+```
+
+既存TrailやCloudWatch Logs連携がない場合も、その状態を確認結果として扱う。Day 5のためだけに新規作成しない。
+
 ## 1. 今日の目的
 
 CloudTrailに記録されるAWS Management Consoleへのログインイベントを理解し、MFAなしログインをCloudWatch Logs、Metric Filter、CloudWatch Alarmで検知する設計を説明できるようにする。

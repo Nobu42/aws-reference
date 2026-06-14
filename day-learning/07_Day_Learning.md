@@ -1,5 +1,23 @@
 # Day 7 Learning: CloudTrail・CloudWatch総合調査ドリル
 
+## 学習開始前に実行するスクリプト
+
+Day 7は既存設定を調査する読み取り専用ドリルである。開始前スクリプトは必須ではない。
+
+```text
+All_Setup.sh: 不要
+Ansible: 不要
+S3 Data Event: 不要
+```
+
+Day 3からCloudTrail一時Trailを残している場合は、次の状態確認だけを実行する。一時Trailがない場合は、Day 7のためだけに作成しない。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
+```
+
+Trail、CloudWatch Logs連携、Metric Filter、Alarmが未設定の場合も、調査結果として記録する。
+
 ## 1. 今日の目的
 
 S3 Bucket Policy変更を題材に、CloudTrailで変更履歴を特定し、現在のS3設定、CloudTrail Trail、CloudWatch Logs連携、Metric Filter、CloudWatch Alarmを横断的に確認する。

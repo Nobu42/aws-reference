@@ -20,14 +20,16 @@ unset LOCALSTACK_HOST
 usage() {
   cat <<'USAGE'
 Usage:
-  ./01_enable_s3_data_events.sh [trail-name] [bucket-name]
+  /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/01_enable_s3_data_events.sh \
+    [trail-name] [bucket-name]
 
 Environment variables:
   PROFILE, REGION, EXPECTED_ACCOUNT_ID, TRAIL_NAME, BUCKET_NAME
   EVIDENCE_BASE_DIR, SKIP_CONFIRM
 
 Example:
-  ./01_enable_s3_data_events.sh nobu-iac-lab-trail nobu-terraform-iac-lab-upload
+  /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/01_enable_s3_data_events.sh \
+    nobu-iac-lab-trail nobu-terraform-iac-lab-upload
 USAGE
 }
 
@@ -290,7 +292,7 @@ aws cloudtrail get-event-selectors \
 if ! grep -Fq "arn:aws:s3:::$BUCKET_NAME_VALUE/" "$EVIDENCE_DIR/after/02_event_selectors_full.json"; then
   echo "ERROR: Target bucket ARN was not found after the change." >&2
   echo "Restore immediately using:" >&2
-  echo "  ./02_restore_s3_event_selectors.sh '$EVIDENCE_DIR'" >&2
+  echo "  $SCRIPT_DIR/02_restore_s3_event_selectors.sh '$EVIDENCE_DIR'" >&2
   exit 1
 fi
 
@@ -298,9 +300,11 @@ cat > "$EVIDENCE_DIR/NEXT_STEPS.txt" <<EOF
 1. Upload a new image from the Rails application.
 2. Wait several minutes for CloudTrail log delivery.
 3. Check PutObject:
-   ./03_check_s3_putobject_events.sh "$TRAIL_NAME_VALUE" "$BUCKET_NAME_VALUE"
+   $SCRIPT_DIR/03_check_s3_putobject_events.sh "$TRAIL_NAME_VALUE" "$BUCKET_NAME_VALUE"
 4. Restore the original Event Selectors:
-   ./02_restore_s3_event_selectors.sh "$EVIDENCE_DIR"
+   $SCRIPT_DIR/02_restore_s3_event_selectors.sh "$EVIDENCE_DIR"
+5. After all Day 3 checks are complete, delete the temporary Trail:
+   $REPOSITORY_ROOT/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
 EOF
 
 echo "================================================"

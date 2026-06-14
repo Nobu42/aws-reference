@@ -1,5 +1,30 @@
 # Day 20 Learning: 模擬作業1 S3 Bucket Policy変更
 
+## 学習開始前に実行するスクリプト
+
+Day 20はRailsアプリケーションを含む変更前・変更後・切り戻し後確認を行うため、最初に日次ラボ環境とアプリケーションを構築する。
+
+`sample-vpc`が存在しない場合:
+
+```bash
+/Users/nobu/aws-reference/scripts/All_Setup.sh
+```
+
+`sample-vpc`が前日から残っている場合は、`All_Setup.sh`を再実行せず、既存環境が正常であることを確認する。
+前日の環境を破棄して新規構築する場合は、先に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
+アプリケーションを構築・再適用する。
+
+```bash
+read -r -s -p "DB master password: " DB_MASTER_PASSWORD
+echo
+export DB_MASTER_PASSWORD
+
+/Users/nobu/aws-reference/ansible/run_site_local.sh
+```
+
+`PutBucketPolicy`はManagement Eventであるため、CloudTrail一時TrailとS3 Data Eventは不要である。模擬作業と切り戻し完了後、`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
 ## 1. 今日の目的
 
 S3 Bucket Policy変更を題材に、作業開始連絡から変更前確認、設定変更、変更後確認、CloudTrail確認、切り戻し、最終報告までを一人称で完遂する。

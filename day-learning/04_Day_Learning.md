@@ -1,5 +1,32 @@
 # Day 4 Learning: CloudWatch Logs・Metric Filter・Alarm確認
 
+## 学習開始前に実行するスクリプト
+
+`/nobu-iac-lab`配下のアプリケーションログを実物で確認するため、`sample-vpc`が存在しないときだけ`All_Setup.sh`を実行する。
+
+```bash
+/Users/nobu/aws-reference/scripts/All_Setup.sh
+```
+
+`sample-vpc`が前日から残っている場合は、`All_Setup.sh`を再実行しない。続いてAnsibleを実行する。
+前日の環境を破棄して新規構築する場合は、先に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
+```bash
+read -r -s -p "DB master password: " DB_MASTER_PASSWORD
+echo
+export DB_MASTER_PASSWORD
+
+/Users/nobu/aws-reference/ansible/run_site_local.sh
+```
+
+Day 4のためだけにCloudTrail一時Trailを作成しない。Day 3から一時Trailを残している場合だけ、状態確認スクリプトを実行する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
+```
+
+S3 Data Eventは不要である。
+
 ## 1. 今日の目的
 
 CloudWatch Logsに保存されたログを確認し、ログから異常を検知してAlarmへつなげる流れを理解する。
@@ -12,6 +39,66 @@ Day 4では設定変更を行わず、既存設定の確認、ログ検索、検
 - [CloudTrail CLIリファレンス](../docs/references/03_cloudtrail_cli_reference.md)
 - [MFAなし管理コンソールログイン検知手順](../docs/references/06_mfa_console_login_detection.md)
 - [Day 3 CloudTrail基礎・変更履歴調査](./03_Day_Learning.md)
+
+## 実行場所・開始前提・終了処理
+
+AWS CLIコマンド自体はどのディレクトリからでも実行できるが、学習時の実行場所を統一する。
+
+```bash
+cd /Users/nobu/aws-reference/day-learning
+pwd
+```
+
+期待値:
+
+```text
+/Users/nobu/aws-reference/day-learning
+```
+
+### 開始前に確認する状態
+
+| 項目 | Day 4での扱い |
+|---|---|
+| アプリケーション環境 | `/nobu-iac-lab`配下のアプリログを確認する場合は、`All_Setup.sh`とAnsibleによる構築・設定が完了していることを確認する |
+| 一時Trail | Day 3から残っている場合は確認対象にできる。存在しない場合もDay 4のためだけに再作成しない |
+| TrailのCloudWatch Logs連携 | 設定済みか未設定かを確認する。Day 4では変更しない |
+| S3 Data Event | Day 4では不要。有効化せず、Day 3で有効化した場合は切り戻し済みであることを確認する |
+| CloudWatch設定 | Log Group、Metric Filter、Alarmの現在値を確認する。Day 4では作成・変更・削除しない |
+
+一時Trailが存在する場合は、必要に応じて次のスクリプトで状態を確認する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
+```
+
+`DataResourceCount=0`であれば、一時TrailにS3 Data Eventは設定されていない。
+
+一時Trailが存在しない場合、上記確認スクリプトは実行しない。CloudTrail Event Historyおよび既存CloudWatch設定の確認を続ける。
+
+### Day 4終了時の判断
+
+Day 4では設定変更を行わないため、CloudWatch設定の切り戻しは不要である。
+
+| 状態 | 終了時の対応 |
+|---|---|
+| Day 3の追加検証などで一時Trailを明示的に使用する | 一時Trailを残し、S3 Data Eventが無効であることを確認する |
+| 一時Trailを後続学習で使用しない | Day 3の専用削除スクリプトで一時Trailとログ保存先バケットを削除する |
+| アプリケーション環境を当日これ以上使用しない | 課金対象リソースを通常のクリーンアップ手順で削除する |
+| ローカル証跡 | 確認・報告が終わるまで残す |
+
+一時Trailを削除する場合:
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
+```
+
+アプリケーション環境を削除する場合:
+
+```bash
+/Users/nobu/aws-reference/scripts/cleanup_network.sh
+```
+
+一時Trail削除スクリプトは、Rails画像保存先の`nobu-terraform-iac-lab-upload`を削除しない。
 
 ## 今日の確認順序
 
@@ -1092,3 +1179,14 @@ ALARM状態へ遷移し、必要に応じてSNSなどへ通知する。
 CloudTrailイベントをMetric Filterで検知するには、
 CloudTrailからCloudWatch Logsへの配信設定が必要になる。
 ```
+
+## Day 4終了時チェック
+
+- [ ] `/Users/nobu/aws-reference/day-learning`から学習を開始した
+- [ ] Day 4ではCloudWatch設定を変更していない
+- [ ] 一時Trailの有無とCloudWatch Logs連携状況を記録した
+- [ ] S3 Data Eventを有効化していない、またはDay 3で切り戻し済みである
+- [ ] 後続学習で一時Trailを使用するか判断した
+- [ ] 不要な一時Trailは専用削除スクリプトで削除した
+- [ ] 当日使用しない課金対象のアプリケーションリソースをクリーンアップした
+- [ ] ローカル証跡を確認・報告用として残した

@@ -45,15 +45,17 @@ unset LOCALSTACK_HOST
 usage() {
   cat <<'USAGE'
 Usage:
-  ./03_delete_cloudtrail_trail.sh [trail-name] [expected-trail-bucket-name]
+  /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh \
+    [trail-name] [expected-trail-bucket-name]
 
 Environment variables:
   PROFILE, REGION, EXPECTED_ACCOUNT_ID, TRAIL_NAME
   EVIDENCE_BASE_DIR, SKIP_CONFIRM
 
 Example:
-  ./03_delete_cloudtrail_trail.sh
-  SKIP_CONFIRM=true ./03_delete_cloudtrail_trail.sh
+  /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
+  SKIP_CONFIRM=true \
+    /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
 USAGE
 }
 
@@ -280,3 +282,4 @@ fi
 
 echo "Temporary Trail and log bucket deletion completed."
 echo "Evidence: $EVIDENCE_DIR"
+echo "Local evidence was not deleted. Keep it until review and reporting are completed."

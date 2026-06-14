@@ -5,6 +5,9 @@ set -euo pipefail
 readonly PROFILE="${PROFILE:-learning}"
 readonly EXPECTED_ACCOUNT_ID="${EXPECTED_ACCOUNT_ID:-445405559057}"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPOSITORY_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
 export AWS_PAGER=""
 unalias aws 2>/dev/null || true
 unset AWS_ENDPOINT_URL
@@ -13,11 +16,12 @@ unset LOCALSTACK_HOST
 usage() {
   cat <<'USAGE'
 Usage:
-  ./02_restore_s3_event_selectors.sh <enable-evidence-directory>
+  /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
+    <enable-evidence-directory>
 
 Example:
-  ./02_restore_s3_event_selectors.sh \
-    ../../evidence/cloudtrail_s3_data_events/20260612_070000_enable_s3_data_events
+  /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
+    /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/20260612_070000_enable_s3_data_events
 USAGE
 }
 
@@ -191,4 +195,8 @@ echo "Original Event Selectors restored."
 echo "Backup and restored selector files match."
 echo "Evidence: $RESTORE_DIR"
 echo "Review the before and after JSON files before deleting any evidence."
+echo
+echo "Data Events are restored. The temporary Trail still exists."
+echo "If all Day 3 checks are complete, delete the temporary Trail:"
+echo "  $REPOSITORY_ROOT/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh"
 echo "================================================"

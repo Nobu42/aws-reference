@@ -1,5 +1,26 @@
 # Day 13 Learning: Security Group変更・確認・切り戻しドリル
 
+## 学習開始前に実行するスクリプト
+
+Day 13はBastion、Webアプリケーション、RDS、Security Groupを使用して疎通変化と切り戻しを確認するため、`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
+
+```bash
+/Users/nobu/aws-reference/scripts/All_Setup.sh
+```
+
+`sample-vpc`が前日から残っている場合は、`All_Setup.sh`を再実行しない。続いてアプリケーションを構築・再適用する。
+前日の環境を破棄して新規構築する場合は、先に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
+```bash
+read -r -s -p "DB master password: " DB_MASTER_PASSWORD
+echo
+export DB_MASTER_PASSWORD
+
+/Users/nobu/aws-reference/ansible/run_site_local.sh
+```
+
+Security Group変更はCloudTrail Event Historyで確認できるManagement Eventであるため、CloudTrail一時TrailとS3 Data Eventは不要である。切り戻し確認後、後続学習で環境を使用しない場合は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
 ## 1. 今日の目的
 
 Day 12で作成したSecurity Group変更手順をもとに、変更前確認、模擬変更、疎通確認、CloudTrail確認、切り戻し、切り戻し後確認、結果報告までを一人で実施する。

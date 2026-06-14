@@ -1,5 +1,28 @@
 # Day 18 Learning: AWSセキュリティ横断チェック
 
+## 学習開始前に実行するスクリプト
+
+Day 18はS3、VPC、EC2、RDS、CloudWatchなどを横断確認するため、`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
+
+```bash
+/Users/nobu/aws-reference/scripts/All_Setup.sh
+```
+
+`sample-vpc`が前日から残っている場合は、`All_Setup.sh`を再実行しない。
+前日の環境を破棄して新規構築する場合は、先に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
+アプリケーション状態とアプリログも横断確認へ含める場合は、Ansibleも実行する。
+
+```bash
+read -r -s -p "DB master password: " DB_MASTER_PASSWORD
+echo
+export DB_MASTER_PASSWORD
+
+/Users/nobu/aws-reference/ansible/run_site_local.sh
+```
+
+CloudTrail一時Trail、CloudWatch Logs連携、GuardDuty Detectorなどは既存状態を評価する。Day 18のためだけに作成・有効化しない。S3 Data Eventも不要である。学習終了後は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
 ## 1. 今日の目的
 
 AWS環境をサービス単位で個別に見るのではなく、外部公開、認証認可、暗号化、監査ログ、検知、復旧の観点で横断確認する。

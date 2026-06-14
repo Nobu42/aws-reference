@@ -1,5 +1,88 @@
 # Day 2 Learning
 
+## 学習開始前に実行するスクリプト
+
+Bucket Policy変更とAWS CLI確認だけを行う場合、開始前スクリプトは不要である。
+
+Railsアプリケーションによる変更前・変更後・切り戻し後の動作確認まで実施する場合は、`sample-vpc`が存在しないときだけ`All_Setup.sh`を実行する。
+
+```bash
+/Users/nobu/aws-reference/scripts/All_Setup.sh
+```
+
+`sample-vpc`が前日から残っている場合は、`All_Setup.sh`を再実行しない。続いてAnsibleを実行する。
+前日の環境を破棄して新規構築する場合は、先に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+
+```bash
+read -r -s -p "DB master password: " DB_MASTER_PASSWORD
+echo
+export DB_MASTER_PASSWORD
+
+/Users/nobu/aws-reference/ansible/run_site_local.sh
+```
+
+`PutBucketPolicy`はManagement Eventであるため、CloudTrail一時TrailとS3 Data Eventは不要である。変更履歴はEvent Historyで確認する。
+
+学習終了後、アプリケーション環境を使用しない場合は次を実行する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cleanup_network.sh
+```
+
+## 実行場所・CloudTrail前提・終了時の状態
+
+Day 2のコマンドは、`02_Day_Learning/`から始まる相対パスを使用する。
+作業開始前に、必ず次のディレクトリへ移動する。
+
+```bash
+cd /Users/nobu/aws-reference/day-learning
+pwd
+```
+
+期待値:
+
+```text
+/Users/nobu/aws-reference/day-learning
+```
+
+### Day 2で使用するディレクトリ
+
+| ディレクトリ | 保存内容 | 終了時の扱い |
+|---|---|---|
+| `02_Day_Learning/before` | 変更前Policyと適用直前Policy | 確認・報告が終わるまで残す |
+| `02_Day_Learning/after` | 変更案と実際に反映されたPolicy | 確認・報告が終わるまで残す |
+| `02_Day_Learning/rollback` | 切り戻し前後のPolicy | 確認・報告が終わるまで残す |
+| `02_Day_Learning/evidence` | CloudTrailイベントなどの証跡 | 確認・報告が終わるまで残す |
+
+これらはローカル証跡であり、AWSリソースではない。Git管理対象から除外されているため、学習直後に削除する必要はない。
+
+### CloudTrailとData Eventの前提
+
+- `PutBucketPolicy`はCloudTrailのManagement Eventである
+- `PutBucketPolicy`はCloudTrail Event Historyから確認できる
+- Day 2ではS3 Data Eventを有効化しない
+- Day 2のためだけに一時Trailを作成する必要はない
+- Day 3で作成した一時Trailが存在していても、Day 2では作成・変更・削除しない
+
+### Day 2終了時のAWS状態
+
+切り戻しドリルまで実施した場合、対象Bucket Policyを変更前の状態へ戻して終了する。
+
+```text
+対象バケット:
+nobu-terraform-iac-lab-upload
+
+終了時のBucket Policy:
+DenyInsecureTransportのみ
+
+削除しないもの:
+・対象S3バケット
+・S3オブジェクト
+・ローカル証跡
+```
+
+一時Trailの削除はDay 3の手順で判断する。Day 2の終了処理として削除しない。
+
 ## 1. 作業目的・対象・前提条件の確認
 
 S3 Bucket Policyの変更作業を想定し、変更前確認、影響調査、変更、動作確認、CloudTrail確認、切り戻しまでの一連の流れを練習する。
@@ -2012,3 +2095,14 @@ Day 2完了時点で、S3 Bucket Policy変更について次の一連の作業�
 → 切り戻し
 → 作業報告
 ```
+
+## Day 2終了時チェック
+
+- [ ] `/Users/nobu/aws-reference/day-learning`からコマンドを実行した
+- [ ] 変更前Policy、変更後Policy、切り戻し用Policyを保存した
+- [ ] `PutBucketPolicy`をManagement EventとしてEvent Historyで確認した
+- [ ] S3 Data Eventを有効化していない
+- [ ] 切り戻しドリル後のBucket Policyが変更前の状態と一致した
+- [ ] 対象S3バケットとオブジェクトを削除していない
+- [ ] ローカル証跡を確認・報告用として残した
+- [ ] 一時Trailの扱いはDay 3の終了手順に従って判断した
