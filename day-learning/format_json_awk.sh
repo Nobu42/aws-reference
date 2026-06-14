@@ -10,13 +10,16 @@ readonly EXIT_FORMAT_ERROR=4
 usage() {
   cat <<'USAGE'
 Usage:
-  format_json_awk.sh <input-json-file> [output-json-file]
+  format_json_awk.sh [input-json-file|-] [output-json-file]
 
 Examples:
-  ./scripts/format_json_awk.sh input.json
-  ./scripts/format_json_awk.sh input.json formatted.json
+  ./format_json_awk.sh input.json
+  ./format_json_awk.sh input.json formatted.json
+  cat input.json | ./format_json_awk.sh
+  cat input.json | ./format_json_awk.sh - formatted.json
 
 Notes:
+  - When input-json-file is omitted or "-", JSON is read from stdin.
   - When output-json-file is omitted, the formatted JSON is written to stdout.
   - The input file is never overwritten.
   - This script formats JSON with awk, but does not perform full JSON validation.
@@ -96,22 +99,35 @@ format_json() {
   ' "$1"
 }
 
-if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+if [ "$#" -gt 2 ]; then
   usage >&2
   exit "$EXIT_USAGE_ERROR"
 fi
 
-readonly INPUT_FILE="$1"
-readonly OUTPUT_FILE="${2:-}"
-
-if [ ! -f "$INPUT_FILE" ]; then
-  echo "ERROR: Input file not found: $INPUT_FILE" >&2
-  exit "$EXIT_FILE_ERROR"
+if [ "$#" -eq 0 ] && [ -t 0 ]; then
+  usage >&2
+  exit "$EXIT_USAGE_ERROR"
 fi
 
-if [ ! -r "$INPUT_FILE" ]; then
-  echo "ERROR: Input file is not readable: $INPUT_FILE" >&2
-  exit "$EXIT_FILE_ERROR"
+INPUT_FILE="${1:--}"
+
+if [ "$INPUT_FILE" = "/dev/stdin" ]; then
+  INPUT_FILE="-"
+fi
+
+readonly INPUT_FILE
+readonly OUTPUT_FILE="${2:-}"
+
+if [ "$INPUT_FILE" != "-" ]; then
+  if [ ! -f "$INPUT_FILE" ]; then
+    echo "ERROR: Input file not found: $INPUT_FILE" >&2
+    exit "$EXIT_FILE_ERROR"
+  fi
+
+  if [ ! -r "$INPUT_FILE" ]; then
+    echo "ERROR: Input file is not readable: $INPUT_FILE" >&2
+    exit "$EXIT_FILE_ERROR"
+  fi
 fi
 
 if [ -z "$OUTPUT_FILE" ]; then
@@ -119,7 +135,7 @@ if [ -z "$OUTPUT_FILE" ]; then
   exit "$EXIT_SUCCESS"
 fi
 
-if [ "$INPUT_FILE" = "$OUTPUT_FILE" ]; then
+if [ "$INPUT_FILE" != "-" ] && [ "$INPUT_FILE" = "$OUTPUT_FILE" ]; then
   echo "ERROR: Input and output files must be different." >&2
   exit "$EXIT_FILE_ERROR"
 fi

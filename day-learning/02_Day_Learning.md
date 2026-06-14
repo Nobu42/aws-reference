@@ -1178,40 +1178,31 @@ cat \
   02_Day_Learning/after/bucket-policy-applied-formatted.json
 ```
 
-### 必須設定の存在確認
+### 適用後Policyの目視確認
 
-整形後ファイルを対象に、重要項目が存在することを確認する。
+整形済みJSON全体を表示し、Statementごとに内容を確認する。
 
 ```bash
-grep -nE \
-  'DenyInsecureTransport|DenyOutdatedTLS|s3:TlsVersion|aws:PrincipalIsAWSService' \
+cat \
   02_Day_Learning/after/bucket-policy-applied-formatted.json
 ```
 
-期待する確認項目:
+確認する場所:
 
 ```text
-DenyInsecureTransport
-DenyOutdatedTLS
-s3:TlsVersion
-aws:PrincipalIsAWSService
+Statement[0]:
+  Sid: DenyInsecureTransport
+  Effect: Deny
+  Condition.Bool.aws:SecureTransport: false
+
+Statement[1]:
+  Sid: DenyOutdatedTLS
+  Effect: Deny
+  Condition.NumericLessThan.s3:TlsVersion: 1.2
+  Condition.Bool.aws:PrincipalIsAWSService: false
 ```
 
-`grep`は項目の存在を素早く確認するために使用する。Policy内の正しい位置や条件関係までは判断できないため、整形結果と`diff -u`も併せて確認する。
-
-### TLSバージョン設定の確認
-
-```bash
-grep -n \
-  '"s3:TlsVersion"' \
-  02_Day_Learning/after/bucket-policy-applied-formatted.json
-```
-
-期待値:
-
-```text
-"s3:TlsVersion": "1.2"
-```
+文字列が存在するだけでなく、各項目が想定したStatementとConditionの内側に配置されていることを確認する。
 
 ## Public判定の確認
 
@@ -1487,41 +1478,37 @@ wc -c \
   02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
 ```
 
-## grepによるイベント詳細確認
+## CloudTrailイベント詳細の目視確認
 
-生JSON全体を表示せず、確認が必要な主要項目だけを抽出する。
-
-```bash
-grep -o \
-  '"eventTime":"[^"]*"\|"eventName":"[^"]*"\|"eventSource":"[^"]*"\|"awsRegion":"[^"]*"\|"sourceIPAddress":"[^"]*"\|"bucketName":"[^"]*"\|"errorCode":"[^"]*"\|"errorMessage":"[^"]*"' \
-  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
-```
-
-IAMユーザーまたはIAMロールのARNを確認する。
+生JSONを整形し、入れ子構造を維持したまま確認する。
 
 ```bash
-grep -o \
-  '"arn":"[^"]*"' \
-  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
+./format_json_awk.sh \
+  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json \
+  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event-formatted.json
+
+cat \
+  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event-formatted.json
 ```
 
-通信に使用されたTLSバージョンを確認する。
+確認するJSONパス:
 
-```bash
-grep -o \
-  '"tlsVersion":"[^"]*"' \
-  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
+```text
+eventTime
+eventName
+eventSource
+awsRegion
+userIdentity.arn
+sourceIPAddress
+userAgent
+requestParameters.bucketName
+requestParameters.bucketPolicy.Statement
+tlsDetails.tlsVersion
+errorCode
+errorMessage
 ```
 
-変更したBucket Policyに、想定したステートメントが含まれることを確認する。
-
-```bash
-grep -o \
-  '"Sid":"DenyInsecureTransport"\|"Sid":"DenyOutdatedTLS"\|"s3:TlsVersion":[^,}]*' \
-  02_Day_Learning/evidence/cloudtrail-put-bucket-policy-event.json
-```
-
-`errorCode`および`errorMessage`が表示されない場合、CloudTrailイベントにはAPIエラーが記録されていない。
+`errorCode`および`errorMessage`が存在しない場合、CloudTrailイベントにはAPIエラーが記録されていない。
 
 ## 結果の読み方
 
@@ -1735,20 +1722,14 @@ echo $?
 2: ファイルの読み込みなどでエラーが発生した
 ```
 
-Policy内の重要項目を確認する。
+`cmp`の終了ステータスが`0`であれば、変更前バックアップと切り戻し後Policyが完全一致している。
+この一致により、`DenyInsecureTransport`が残り、追加した`DenyOutdatedTLS`と`s3:TlsVersion`が削除されたことを確認できる。
+
+必要に応じて、切り戻し後Policy全体を整形して目視確認する。
 
 ```bash
-grep -n \
-  'DenyInsecureTransport\|DenyOutdatedTLS\|s3:TlsVersion' \
+./format_json_awk.sh \
   02_Day_Learning/rollback/bucket-policy-after-rollback.json
-```
-
-期待結果:
-
-```text
-DenyInsecureTransportが存在する
-DenyOutdatedTLSが存在しない
-s3:TlsVersionが存在しない
 ```
 
 ## Public判定の確認

@@ -1816,79 +1816,62 @@ ls -l \
 
 ## 変更時Policyの確認
 
-変更時イベントに`DenyOutdatedTLS`が含まれていることを確認する。
+変更時イベントを整形し、適用したBucket Policyの構造を確認する。
 
 ```bash
-grep -o \
-  '"Sid":"DenyInsecureTransport"\|"Sid":"DenyOutdatedTLS"\|"s3:TlsVersion":[^,}]*' \
-  03_Day_Learning/evidence/put-bucket-policy-change-event.json
+./format_json_awk.sh \
+  03_Day_Learning/evidence/put-bucket-policy-change-event.json \
+  03_Day_Learning/evidence/put-bucket-policy-change-event-formatted.json
+
+cat \
+  03_Day_Learning/evidence/put-bucket-policy-change-event-formatted.json
 ```
 
-期待結果:
+`requestParameters.bucketPolicy.Statement`で次を確認する。
 
 ```text
-"Sid":"DenyInsecureTransport"
-"Sid":"DenyOutdatedTLS"
-"s3:TlsVersion":1.2
+Sid: DenyInsecureTransport
+Sid: DenyOutdatedTLS
+Condition.NumericLessThan.s3:TlsVersion: 1.2
 ```
 
 ## 切り戻し時Policyの確認
 
-切り戻し時イベントでは、`DenyOutdatedTLS`が含まれていないことを確認する。
+切り戻し時イベントも整形し、変更前Policyへ戻ったことを確認する。
 
 ```bash
-grep -o \
-  '"Sid":"DenyInsecureTransport"\|"Sid":"DenyOutdatedTLS"\|"s3:TlsVersion":[^,}]*' \
-  03_Day_Learning/evidence/put-bucket-policy-rollback-event.json
+./format_json_awk.sh \
+  03_Day_Learning/evidence/put-bucket-policy-rollback-event.json \
+  03_Day_Learning/evidence/put-bucket-policy-rollback-event-formatted.json
+
+cat \
+  03_Day_Learning/evidence/put-bucket-policy-rollback-event-formatted.json
 ```
 
-期待結果:
+`requestParameters.bucketPolicy.Statement`で次を確認する。
 
 ```text
-"Sid":"DenyInsecureTransport"
+DenyInsecureTransportが存在する
+DenyOutdatedTLSが存在しない
+s3:TlsVersionが存在しない
 ```
-
-`DenyOutdatedTLS`と`s3:TlsVersion`が表示されなければ、変更前Policyへ切り戻されたことを確認できる。
 
 ## 実行者・接続元・操作方法の確認
 
-変更時イベントを確認する。
-
-```bash
-grep -o \
-  '"eventTime":"[^"]*"\|"userName":"[^"]*"\|"sourceIPAddress":"[^"]*"\|"userAgent":"[^"]*"\|"tlsVersion":"[^"]*"' \
-  03_Day_Learning/evidence/put-bucket-policy-change-event.json
-```
-
-確認項目:
+整形した変更時イベントで、次のJSONパスを確認する。
 
 ```text
-eventTime:
-変更実施時刻
-
-userName:
-操作を実行したIAMユーザー
-
-sourceIPAddress:
-操作元IPアドレス
-
-userAgent:
-AWS CLIまたはWebコンソールなどの操作方法
-
-tlsVersion:
-API操作時に使用されたTLSバージョン
+eventTime: 変更実施時刻
+userIdentity.userName: 操作を実行したIAMユーザー
+sourceIPAddress: 操作元IPアドレス
+userAgent: AWS CLIまたはWebコンソールなどの操作方法
+tlsDetails.tlsVersion: API操作時に使用されたTLSバージョン
 ```
 
 ## エラー有無の確認
 
-```bash
-grep -o \
-  '"errorCode":"[^"]*"\|"errorMessage":"[^"]*"' \
-  03_Day_Learning/evidence/put-bucket-policy-change-event.json \
-  03_Day_Learning/evidence/put-bucket-policy-rollback-event.json
-```
-
-何も表示されない場合、対象CloudTrailイベントには`errorCode`と`errorMessage`が記録されていない。
+整形した変更時イベントと切り戻し時イベントで、`errorCode`と`errorMessage`の有無を目視確認する。
+両項目が存在しない場合、対象CloudTrailイベントにはAPIエラーが記録されていない。
 
 ただし、エラー記録がないことだけでは、反映されたPolicyの内容が正しいことまでは証明できない。
 
@@ -2055,10 +2038,15 @@ wc -c \
 
 ## 基本情報の確認
 
+生JSONを整形し、入れ子構造を維持したまま確認する。
+
 ```bash
-grep -o \
-  '"eventTime":"[^"]*"\|"eventSource":"[^"]*"\|"eventName":"[^"]*"\|"awsRegion":"[^"]*"\|"eventType":"[^"]*"\|"eventCategory":"[^"]*"\|"readOnly":[^,}]*' \
-  03_Day_Learning/evidence/cloudtrail-event.json
+./format_json_awk.sh \
+  03_Day_Learning/evidence/cloudtrail-event.json \
+  03_Day_Learning/evidence/cloudtrail-event-formatted.json
+
+cat \
+  03_Day_Learning/evidence/cloudtrail-event-formatted.json
 ```
 
 期待される確認内容:
@@ -2085,13 +2073,7 @@ false
 
 ## 実行者の確認
 
-```bash
-grep -o \
-  '"type":"[^"]*"\|"userName":"[^"]*"\|"arn":"[^"]*"\|"accountId":"[^"]*"' \
-  03_Day_Learning/evidence/cloudtrail-event.json
-```
-
-確認項目:
+整形結果の`userIdentity`配下を確認する。
 
 | 項目 | 内容 |
 |---|---|
@@ -2104,13 +2086,7 @@ grep -o \
 
 ## 接続元と操作方法の確認
 
-```bash
-grep -o \
-  '"sourceIPAddress":"[^"]*"\|"userAgent":"[^"]*"\|"tlsVersion":"[^"]*"\|"cipherSuite":"[^"]*"' \
-  03_Day_Learning/evidence/cloudtrail-event.json
-```
-
-確認項目:
+整形結果で次のJSONパスを確認する。
 
 ```text
 sourceIPAddress:
@@ -2137,27 +2113,13 @@ CPUアーキテクチャ
 
 ## 対象リソースの確認
 
-```bash
-grep -o \
-  '"bucketName":"[^"]*"\|"ResourceName":"[^"]*"\|"ARN":"[^"]*"\|"type":"AWS::[^"]*"' \
-  03_Day_Learning/evidence/cloudtrail-event.json
-```
-
 `PutBucketPolicy`の場合、`requestParameters.bucketName`と`resources`から対象S3バケットを確認する。
 
 ## APIへ渡された変更内容の確認
 
 Bucket Policy変更イベントでは、`requestParameters.bucketPolicy`に適用したPolicyが記録される。
 
-重要なステートメントを確認する。
-
-```bash
-grep -o \
-  '"Sid":"[^"]*"\|"Effect":"[^"]*"\|"s3:TlsVersion":[^,}]*\|"aws:SecureTransport":"[^"]*"' \
-  03_Day_Learning/evidence/cloudtrail-event.json
-```
-
-確認項目:
+整形結果の`requestParameters.bucketPolicy.Statement`を開き、次を確認する。
 
 ```text
 変更対象のSid
@@ -2170,19 +2132,13 @@ CloudTrailの変更イベントと、実際に反映された設定値を照合�
 
 ## エラー有無の確認
 
-```bash
-grep -o \
-  '"errorCode":"[^"]*"\|"errorMessage":"[^"]*"' \
-  03_Day_Learning/evidence/cloudtrail-event.json
-```
-
 結果の読み方:
 
 ```text
-何も表示されない:
+errorCodeとerrorMessageが存在しない:
 errorCodeとerrorMessageは記録されていない
 
-値が表示される:
+errorCodeまたはerrorMessageが存在する:
 API操作が失敗した可能性があるため、エラー内容を確認する
 ```
 
@@ -2669,54 +2625,22 @@ aws cloudtrail lookup-events \
 
 生JSONは1行で保存されるため、通常確認ではファイル全体を`cat`しない。
 
-## 主要項目の抽出結果を保存する
+## 読みやすい証跡を保存する
 
-### 基本情報
-
-```bash
-grep -o \
-  '"eventTime":"[^"]*"\|"eventSource":"[^"]*"\|"eventName":"[^"]*"\|"awsRegion":"[^"]*"\|"eventCategory":"[^"]*"\|"readOnly":[^,}]*' \
-  03_Day_Learning/evidence/raw/cloudtrail-event.json \
-  > 03_Day_Learning/evidence/extracted/01_basic_information.txt
-```
-
-### 実行者情報
+生JSONを整形したファイルを保存する。
 
 ```bash
-grep -o \
-  '"type":"[^"]*"\|"userName":"[^"]*"\|"arn":"[^"]*"\|"accountId":"[^"]*"' \
+./format_json_awk.sh \
   03_Day_Learning/evidence/raw/cloudtrail-event.json \
-  > 03_Day_Learning/evidence/extracted/02_user_identity.txt
+  03_Day_Learning/evidence/extracted/cloudtrail-event-formatted.json
 ```
 
-### 接続元・操作方法
+整形済み証跡を表示し、基本情報、実行者、接続元、変更内容、エラー有無をJSONパスに沿って確認する。
 
 ```bash
-grep -o \
-  '"sourceIPAddress":"[^"]*"\|"userAgent":"[^"]*"\|"tlsVersion":"[^"]*"' \
-  03_Day_Learning/evidence/raw/cloudtrail-event.json \
-  > 03_Day_Learning/evidence/extracted/03_connection_information.txt
+cat \
+  03_Day_Learning/evidence/extracted/cloudtrail-event-formatted.json
 ```
-
-### Bucket Policy変更内容
-
-```bash
-grep -o \
-  '"bucketName":"[^"]*"\|"Sid":"[^"]*"\|"Effect":"[^"]*"\|"s3:TlsVersion":[^,}]*\|"aws:SecureTransport":"[^"]*"' \
-  03_Day_Learning/evidence/raw/cloudtrail-event.json \
-  > 03_Day_Learning/evidence/extracted/04_request_parameters.txt
-```
-
-### エラー情報
-
-```bash
-grep -o \
-  '"errorCode":"[^"]*"\|"errorMessage":"[^"]*"' \
-  03_Day_Learning/evidence/raw/cloudtrail-event.json \
-  > 03_Day_Learning/evidence/extracted/05_error_information.txt
-```
-
-`05_error_information.txt`が空の場合、対象イベントには`errorCode`と`errorMessage`が記録されていない。
 
 ## 保存した証跡の確認
 

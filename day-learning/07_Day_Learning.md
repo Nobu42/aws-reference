@@ -592,43 +592,37 @@ aws cloudtrail lookup-events \
   --no-cli-pager
 ```
 
-## 10.3 生イベントから重要項目を抽出する
+## 10.3 生イベントを整形して確認する
 
-`grep`を使用して、読み取り時に必要な項目を抽出する。
-
-```bash
-grep -o \
-  '"eventTime":"[^"]*"\|"eventName":"[^"]*"\|"eventSource":"[^"]*"\|"awsRegion":"[^"]*"\|"sourceIPAddress":"[^"]*"\|"bucketName":"[^"]*"\|"errorCode":"[^"]*"\|"errorMessage":"[^"]*"' \
-  "$EVIDENCE_DIR/cloudtrail/02_put_bucket_policy_event_raw.json"
-```
-
-実行者ARN:
+生イベントを整形し、入れ子構造を維持したまま確認する。
 
 ```bash
-grep -o \
-  '"arn":"[^"]*"' \
+./format_json_awk.sh \
   "$EVIDENCE_DIR/cloudtrail/02_put_bucket_policy_event_raw.json" \
-  | head -n 1
+  "$EVIDENCE_DIR/cloudtrail/03_put_bucket_policy_event_formatted.json"
+
+cat \
+  "$EVIDENCE_DIR/cloudtrail/03_put_bucket_policy_event_formatted.json"
 ```
 
-UserAgent:
+確認するJSONパス:
 
-```bash
-grep -o \
-  '"userAgent":"[^"]*"' \
-  "$EVIDENCE_DIR/cloudtrail/02_put_bucket_policy_event_raw.json" \
-  | head -n 1
+```text
+eventTime
+eventName
+eventSource
+awsRegion
+userIdentity.arn
+sourceIPAddress
+userAgent
+requestParameters.bucketName
+requestParameters.bucketPolicy
+tlsDetails.tlsVersion
+errorCode
+errorMessage
 ```
 
-エラー有無:
-
-```bash
-grep -o \
-  '"errorCode":"[^"]*"\|"errorMessage":"[^"]*"' \
-  "$EVIDENCE_DIR/cloudtrail/02_put_bucket_policy_event_raw.json"
-```
-
-何も表示されない場合、CloudTrailイベント内に`errorCode`と`errorMessage`が記録されていない可能性が高い。ただし、変更後設定と対象システムの動作確認を組み合わせて成功を判断する。
+`errorCode`と`errorMessage`が存在しない場合、CloudTrailイベントにはAPIエラーが記録されていない可能性が高い。ただし、変更後設定と対象システムの動作確認を組み合わせて成功を判断する。
 
 ## 10.4 確認する主要フィールド
 

@@ -393,9 +393,11 @@ shasum -a 256 \
 確認:
 
 ```bash
-grep -o '"Sid":"[^"]*"' \
+./format_json_awk.sh \
   "$EVIDENCE_DIR/before/P-03_before_bucket_policy.json"
 ```
+
+整形結果全体を読み、各`Statement`の`Sid`、`Effect`、`Resource`、`Condition`を確認する。
 
 開始状態が異なる場合:
 
@@ -852,7 +854,7 @@ aws s3api get-bucket-policy \
 ```
 
 ```bash
-grep -o '"Sid":"[^"]*"' \
+./format_json_awk.sh \
   "$EVIDENCE_DIR/after/V-01_after_bucket_policy.json"
 ```
 
@@ -1167,17 +1169,13 @@ fi
 cmp exit code: 0
 ```
 
-Statement確認:
+`cmp exit code: 0`であれば、変更前Policyと切り戻し後Policyが完全一致している。
+必要に応じて、切り戻し後Policy全体を整形して確認する。
 
 ```bash
-grep -o '"Sid":"[^"]*"' \
+./format_json_awk.sh \
   "$EVIDENCE_DIR/rollback/R-04_rollback_bucket_policy_after.json"
 ```
-
-期待結果:
-
-- `DenyInsecureTransport`が存在する
-- `DenyOutdatedTLS`が存在しない
 
 ---
 
