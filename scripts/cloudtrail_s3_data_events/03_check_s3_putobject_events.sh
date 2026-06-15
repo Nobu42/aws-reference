@@ -210,10 +210,10 @@ cat "$EVIDENCE_DIR/result/04_putobject_events_summary.txt"
 echo
 echo "Confirm the IAM Role ARN, aws-sdk-ruby userAgent, object key, and event time."
 echo
-echo "Next: Restore S3 Data Event Selectors using the evidence directory created by"
-echo "01_enable_s3_data_events.sh. To find it:"
-echo "  ls -dt $EVIDENCE_BASE_DIR/*_enable_s3_data_events"
-echo
-echo "Restore example:"
+echo "Next: Restore S3 Data Event Selectors."
+echo "Use the exact Evidence directory printed by the successful"
+echo "01_enable_s3_data_events.sh run. Do not automatically select the newest directory,"
+echo "because a failed enable attempt can leave an incomplete evidence directory."
+echo "Restore command:"
 echo "  $SCRIPT_DIR/02_restore_s3_event_selectors.sh \\"
-echo "    $EVIDENCE_BASE_DIR/<timestamp>_enable_s3_data_events"
+echo "    <successful-enable-evidence-directory>"

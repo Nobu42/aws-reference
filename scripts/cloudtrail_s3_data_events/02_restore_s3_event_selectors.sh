@@ -54,6 +54,21 @@ for required_file in \
   "$REGION_FILE"; do
   if [ ! -s "$required_file" ]; then
     echo "ERROR: Required restore file not found or empty: $required_file" >&2
+    echo "The specified directory is incomplete and cannot be used for restore." >&2
+    echo "Use the exact Evidence directory printed by the successful enable run." >&2
+    echo "Complete restore candidates:" >&2
+
+    for candidate in "$REPOSITORY_ROOT"/evidence/cloudtrail_s3_data_events/*_enable_s3_data_events; do
+      [ -d "$candidate" ] || continue
+      [ -s "$candidate/before/05_event_selectors_only.json" ] || continue
+      [ -s "$candidate/before/06_advanced_event_selectors_only.json" ] || continue
+      [ -s "$candidate/trail_name.txt" ] || continue
+      [ -s "$candidate/account_id.txt" ] || continue
+      [ -s "$candidate/region.txt" ] || continue
+      [ -s "$candidate/after/02_event_selectors_full.json" ] || continue
+      echo "  $candidate" >&2
+    done
+
     exit 1
   fi
 done

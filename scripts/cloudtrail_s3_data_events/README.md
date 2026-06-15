@@ -151,19 +151,16 @@ ls -dt \
   /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/*_enable_s3_data_events
 ```
 
-今回使用する有効化証跡ディレクトリを変数へ設定してから切り戻す。
+有効化に成功した際、`01_enable_s3_data_events.sh`が表示した`Evidence`ディレクトリをそのまま指定して切り戻す。
 
 ```bash
-ENABLE_EVIDENCE_DIR=$(
-  ls -dt /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/*_enable_s3_data_events \
-    | head -n 1
-)
-
-printf 'Restore source: %s\n' "$ENABLE_EVIDENCE_DIR"
+ENABLE_EVIDENCE_DIR="/Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/REPLACE_WITH_SUCCESSFUL_ENABLE_EVIDENCE"
 
 /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
   "$ENABLE_EVIDENCE_DIR"
 ```
+
+`ls -dt ... | head -n 1`で最新ディレクトリを自動選択しない。失敗した有効化処理が、復元に使用できない未完了ディレクトリを残す場合がある。
 
 切り戻し後、変更前と変更後のEvent Selectorを比較し、対象バケットのData events設定が削除されていることを確認する。
 

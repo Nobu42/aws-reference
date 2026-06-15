@@ -154,7 +154,7 @@ ls -dt \
 
 ```bash
 /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
-  /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/<実行日時>_enable_s3_data_events
+  /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/REPLACE_WITH_SUCCESSFUL_ENABLE_EVIDENCE
 ```
 
 切り戻し後の期待値:
@@ -1355,17 +1355,16 @@ errorCodeとerrorMessageが記録されていない
 
 ### Event Selectorを切り戻す
 
-Data eventsの確認後は、有効化スクリプトが表示した証跡ディレクトリを指定して変更前設定へ切り戻す。
+Data eventsの確認後は、有効化に成功した際、`01_enable_s3_data_events.sh`が表示した`Evidence`ディレクトリを指定して変更前設定へ切り戻す。
 
 ```bash
-ENABLE_EVIDENCE_DIR=$(
-  ls -dt /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/*_enable_s3_data_events \
-    | head -n 1
-)
+ENABLE_EVIDENCE_DIR="/Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/REPLACE_WITH_SUCCESSFUL_ENABLE_EVIDENCE"
 
 /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
   "$ENABLE_EVIDENCE_DIR"
 ```
+
+`ls -dt ... | head -n 1`による最新ディレクトリの自動選択は行わない。失敗した有効化処理が、復元に使用できない未完了ディレクトリを残す場合がある。
 
 切り戻し後、対象バケットのData events設定が削除され、変更前Event Selectorと一致することを確認する。
 
@@ -1570,20 +1569,22 @@ aws cloudtrail lookup-events \
 
 ## 書き込みイベントだけを表示する
 
-Event Historyの検索結果から、`ReadOnly=false`の変更操作だけを表示する。
+Event Historyの検索結果から、`ReadOnly`が文字列`"false"`である変更操作だけを表示する。
+
+`lookup-events`の`ReadOnly`は真偽値ではなく文字列として返されるため、JMESPathでも文字列として比較する。
 
 ```bash
 aws cloudtrail lookup-events \
   --profile learning \
   --region ap-northeast-1 \
   --max-results 50 \
-  --query 'Events[?ReadOnly==`false`].{
+  --query "Events[?ReadOnly=='false'].{
     EventTime:EventTime,
     EventName:EventName,
     Username:Username,
     ResourceName:Resources[0].ResourceName,
     EventId:EventId
-  }' \
+  }" \
   --output table \
   --no-cli-pager
 ```

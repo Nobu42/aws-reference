@@ -512,7 +512,7 @@ Logs Insightsは、CloudWatch Logsをクエリで検索・集計する機能で�
 ### Webコンソール
 
 1. CloudWatchを開く
-2. 「ログ」から「ログのインサイト」を開く
+2. 「ログ」から「ログ分析」を開く
 3. `/nobu-iac-lab/nginx/access`を選択する
 4. 時間範囲を直近15分または1時間へ絞る
 5. クエリを入力して実行する
@@ -544,12 +544,29 @@ fields @timestamp, @message, @logStream
 
 `start-query`の`--start-time`と`--end-time`はUnix時刻の秒で指定する。
 
-まず、検索対象時間の値を決める。
+まず、検索対象時間の値を決める。Macで直近1時間を検索する場合は、次を実行する。
 
 ```bash
-START_TIME="<検索開始時刻のUnix秒>"
-END_TIME="<検索終了時刻のUnix秒>"
+START_TIME=$(date -v-1H +%s)
+END_TIME=$(date +%s)
+
+printf 'START_TIME=%s\nEND_TIME=%s\n' \
+  "$START_TIME" "$END_TIME"
 ```
+
+`START_TIME`には現在時刻の1時間前、`END_TIME`には現在時刻のUnix秒が設定される。
+
+特定のJST時間帯を検索する場合は、次のように指定する。
+
+```bash
+START_TIME=$(date -j -f '%Y-%m-%d %H:%M:%S' '2026-06-16 05:00:00' +%s)
+END_TIME=$(date -j -f '%Y-%m-%d %H:%M:%S' '2026-06-16 06:00:00' +%s)
+
+printf 'START_TIME=%s\nEND_TIME=%s\n' \
+  "$START_TIME" "$END_TIME"
+```
+
+検索したいJST日時へ置き換えて使用する。Unix秒へ変換された値を手入力する必要はない。
 
 クエリを開始する。
 

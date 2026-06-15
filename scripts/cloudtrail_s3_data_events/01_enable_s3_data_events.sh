@@ -296,6 +296,9 @@ if ! grep -Fq "arn:aws:s3:::$BUCKET_NAME_VALUE/" "$EVIDENCE_DIR/after/02_event_s
   exit 1
 fi
 
+# 復元時に「有効化処理を最後まで完了した証跡」だけを判別できるようにする。
+printf '%s\n' "S3 Data Event enable completed." > "$EVIDENCE_DIR/ENABLE_COMPLETED"
+
 cat > "$EVIDENCE_DIR/NEXT_STEPS.txt" <<EOF
 1. Event Selectorの反映を待つため、5分程度待機する。
 2. Railsアプリケーションから新しい画像をアップロードする。
@@ -311,6 +314,7 @@ EOF
 echo "================================================"
 echo "S3データイベントを有効化した。"
 echo "証跡ディレクトリ: $EVIDENCE_DIR"
+echo "切り戻し時は、上記の証跡ディレクトリをそのまま指定する。"
 echo
 cat "$EVIDENCE_DIR/NEXT_STEPS.txt"
 echo "================================================"
