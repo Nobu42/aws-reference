@@ -1358,21 +1358,20 @@ errorCodeとerrorMessageが記録されていない
 Data eventsの確認後は、有効化スクリプトが表示した証跡ディレクトリを指定して変更前設定へ切り戻す。
 
 ```bash
+ENABLE_EVIDENCE_DIR=$(
+  ls -dt /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/*_enable_s3_data_events \
+    | head -n 1
+)
+
 /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
-  /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/<実行日時>_enable_s3_data_events
+  "$ENABLE_EVIDENCE_DIR"
 ```
 
 切り戻し後、対象バケットのData events設定が削除され、変更前Event Selectorと一致することを確認する。
 
-### 一時Trailを削除する
+### 一時TrailはDay 3終了時まで残す
 
-Day 3の確認がすべて完了したら、一時Trailとログ保存先S3バケットを削除する。
-
-```bash
-/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
-```
-
-実案件では、既存Trail、Event Selector、監査ログ保存先を独断で変更・削除しない。
+後続のEvent History検索はTrailがなくても実施できるが、学習途中での混乱を防ぐため、一時Trailとログ保存先S3バケットはDay 3の全確認終了時まで残す。
 
 ## 7. AWS CLIでEvent Historyを検索する
 
@@ -3008,3 +3007,16 @@ Event Historyによる過去90日間のManagement Event確認は可能である�
 ・読みやすい要約と生JSON証跡を分けて保存できる
 ・調査結果をTeamsや作業報告へ記載できる
 ```
+
+## Day 3終了処理
+
+Day 3の全確認、S3 Data Eventの切り戻し、必要な証跡確認が完了した後、一時Trailとログ保存先S3バケットを削除する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
+```
+
+削除後もEvent Historyによる過去90日間のManagement Event検索は可能である。
+一方、Trail保存先S3を使用するログ確認やS3 Data Eventの追加検証を再度行う場合は、一時Trailを再作成する必要がある。
+
+実案件では、既存Trail、Event Selector、監査ログ保存先を独断で変更・削除しない。
