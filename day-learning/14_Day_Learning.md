@@ -2,7 +2,7 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 14は`sample-vpc`、Private Hosted Zone、EC2、RDS、Route Tableを実物確認するため、`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
+Day 14は`sample-vpc`、Private Hosted Zone、EC2、RDS、Route Tableを実物確認するハンズオンである。`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
 
 ```bash
 /Users/nobu/aws-reference/scripts/All_Setup.sh
@@ -21,7 +21,25 @@ export DB_MASTER_PASSWORD
 /Users/nobu/aws-reference/ansible/run_site_local.sh
 ```
 
-CloudTrail一時TrailとS3 Data Eventは不要である。学習終了後、後続のDay 15を続けない場合は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+CloudTrail一時Trailは作成しない。S3 Data Eventは有効化しない。
+
+起動後、Route 53 Private Hosted ZoneとVPC Endpointの現在状態を確認する。
+
+```bash
+aws route53 list-hosted-zones \
+  --profile learning \
+  --output table \
+  --no-cli-pager
+
+aws ec2 describe-vpc-endpoints \
+  --profile learning \
+  --region ap-northeast-1 \
+  --query 'VpcEndpoints[].{VpcEndpointId:VpcEndpointId,ServiceName:ServiceName,VpcEndpointType:VpcEndpointType,State:State}' \
+  --output table \
+  --no-cli-pager
+```
+
+学習終了後、後続のDay 15を続けない場合は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
 
 ## 1. 今日の目的
 

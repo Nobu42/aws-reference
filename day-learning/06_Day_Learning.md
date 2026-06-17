@@ -2,16 +2,32 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 6は専用の検証用Log Group、Metric Filter、Alarmを本文手順で作成する。開始前の環境構築スクリプトは不要である。
+Day 6は専用の検証用Log Group、Metric Filter、Alarmを実際に作成・テスト・削除するハンズオンである。ラボ用VPCやアプリケーションは使用しない。
 
 ```text
-All_Setup.sh: 不要
-Ansible: 不要
-CloudTrail一時Trail: 不要
-S3 Data Event: 不要
+All_Setup.sh: 実行しない
+Ansible: 実行しない
+CloudTrail一時Trail: 作成しない
+S3 Data Event: 有効化しない
 ```
 
 本文の切り戻し手順で、Day 6中に作成した検証用リソースだけを削除して終了する。
+
+実行場所を統一する。
+
+```bash
+cd /Users/nobu/aws-reference/day-learning
+pwd
+```
+
+作業対象アカウントを確認してから作成系コマンドへ進む。
+
+```bash
+aws sts get-caller-identity \
+  --profile learning \
+  --output table \
+  --no-cli-pager
+```
 
 ## 1. 今日の目的
 

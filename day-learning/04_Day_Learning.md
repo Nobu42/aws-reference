@@ -2,7 +2,9 @@
 
 ## 学習開始前に実行するスクリプト
 
-`/nobu-iac-lab`配下のアプリケーションログを実物で確認するため、`sample-vpc`が存在しないときだけ`All_Setup.sh`を実行する。
+Day 4以降は、可能な限り実リソースを起動して確認する。Day 4はCloudWatch Logsを実物で見る日であるため、原則として日次ラボ環境とアプリケーションを起動してから進める。
+
+`sample-vpc`が存在しない場合:
 
 ```bash
 /Users/nobu/aws-reference/scripts/All_Setup.sh
@@ -19,13 +21,43 @@ export DB_MASTER_PASSWORD
 /Users/nobu/aws-reference/ansible/run_site_local.sh
 ```
 
+起動後、CloudWatch Logsへ送る対象アプリケーションが動いていることを確認する。
+
+```bash
+cd /Users/nobu/aws-reference/ansible
+
+ansible web \
+  --become \
+  --module-name shell \
+  --args 'systemctl is-active puma-nobu-iac-lab && curl --silent --show-error --fail http://localhost:3000/ >/dev/null && echo "Rails response: OK"'
+```
+
+CloudWatch LogsのLog Groupが見えることを確認する。
+
+```bash
+aws logs describe-log-groups \
+  --profile learning \
+  --region ap-northeast-1 \
+  --log-group-name-prefix /nobu-iac-lab \
+  --query 'logGroups[].{LogGroup:logGroupName,RetentionDays:retentionInDays,StoredBytes:storedBytes,KmsKeyId:kmsKeyId,Class:logGroupClass}' \
+  --output table \
+  --no-cli-pager
+```
+
 Day 4のためだけにCloudTrail一時Trailを作成しない。Day 3から一時Trailを残している場合だけ、状態確認スクリプトを実行する。
 
 ```bash
 /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
 ```
 
-S3 Data Eventは不要である。
+S3 Data Eventは有効化しない。
+
+学習終了後、Day 5以降で同じ環境を使わない場合は、課金対象リソースを削除する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cleanup_network.sh
+/Users/nobu/aws-reference/scripts/check_cleanup.sh
+```
 
 ## 1. 今日の目的
 

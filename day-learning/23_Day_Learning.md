@@ -2,7 +2,7 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 23は最終確認日であり、新しいAWS環境を起動しない。
+Day 23は最終確認日であり、新しいAWS環境を起動しない。代わりに、ローカル確認、コスト確認、説明練習を実際に行うハンズオンとする。
 
 ```text
 All_Setup.sh: 実行しない
@@ -17,6 +17,15 @@ S3 Data Event: 有効化しない
 /Users/nobu/aws-reference/scripts/check_cleanup.sh
 
 /Users/nobu/aws-reference/scripts/check_cost.sh
+```
+
+リポジトリ状態も確認する。
+
+```bash
+cd /Users/nobu/aws-reference
+
+git status --short
+git diff --check
 ```
 
 ## 1. 今日の目的

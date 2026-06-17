@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # -----------------------------------------------------------------------------
-# Day 17 hands-on common function file.
+# Day 17ハンズオン用の共通関数ファイル。
 #
-# This file intentionally uses many functions, return codes, declare variables,
-# sed, and awk so that it resembles a conservative operations shell style.
-# It is a clean-room learning artifact, not a copy of any real project.
+# 金融系の保守的な運用シェルを読めるように、関数、戻り値、declare変数、
+# sed、awk、AWS CLIラッパーを意図的に多めに使っている。
+# 実案件のファイルを複製したものではなく、学習用に作成した教材である。
 # -----------------------------------------------------------------------------
 
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
@@ -13,23 +13,23 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   exit 2
 fi
 
-declare -gr OP_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-declare -gr OP_LAB_DIR="$(cd "${OP_LIB_DIR}/.." && pwd)"
-declare -gr OP_REPO_ROOT="$(cd "${OP_LAB_DIR}/../.." && pwd)"
-declare -gr OP_FIXTURE_DIR="${OP_LAB_DIR}/fixtures"
+declare -r OP_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+declare -r OP_LAB_DIR="$(cd "${OP_LIB_DIR}/.." && pwd)"
+declare -r OP_REPO_ROOT="$(cd "${OP_LAB_DIR}/../.." && pwd)"
+declare -r OP_FIXTURE_DIR="${OP_LAB_DIR}/fixtures"
 
-declare -gr OP_RC_OK=0
-declare -gr OP_RC_GENERAL=1
-declare -gr OP_RC_USAGE=2
-declare -gr OP_RC_VALIDATION=10
-declare -gr OP_RC_AWS=20
-declare -gr OP_RC_ACCOUNT=30
+declare -r OP_RC_OK=0
+declare -r OP_RC_GENERAL=1
+declare -r OP_RC_USAGE=2
+declare -r OP_RC_VALIDATION=10
+declare -r OP_RC_AWS=20
+declare -r OP_RC_ACCOUNT=30
 
-declare -g OP_LOG_FILE=""
-declare -g OP_EVIDENCE_DIR=""
-declare -g OP_LAST_STDOUT=""
-declare -g OP_LAST_STDERR=""
-declare -g OP_LAST_RC=0
+OP_LOG_FILE=""
+OP_EVIDENCE_DIR=""
+OP_LAST_STDOUT=""
+OP_LAST_STDERR=""
+OP_LAST_RC=0
 
 op_timestamp() {
   date '+%Y-%m-%d %H:%M:%S'
@@ -156,7 +156,7 @@ op_init_evidence() {
   local work_name="$2"
   local run_id
 
-  run_id="$(date +%Y%m%d_%H%M%S)"
+  run_id="$(date +%Y%m%d_%H%M%S)_$$"
   OP_EVIDENCE_DIR="${OP_REPO_ROOT}/${evidence_root}/${run_id}_${work_name}"
   OP_LOG_FILE="${OP_EVIDENCE_DIR}/run.log"
 
@@ -195,8 +195,14 @@ op_json_value() {
 op_json_has_text() {
   local needle="$1"
   local file_path="$2"
+  local compact_needle
 
   if grep -Fq "$needle" "$file_path"; then
+    return "$OP_RC_OK"
+  fi
+
+  compact_needle="$(printf '%s' "$needle" | sed 's/[[:space:]]//g')"
+  if sed 's/[[:space:]]//g' "$file_path" | grep -Fq "$compact_needle"; then
     return "$OP_RC_OK"
   fi
 

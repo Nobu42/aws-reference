@@ -2,16 +2,28 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 21は既存GuardDuty Findingを起点にした読み取り専用調査であるため、開始前スクリプトは不要である。
+Day 21はGuardDuty Findingを起点にした読み取り専用の横断調査ハンズオンである。既存FindingまたはDay 9で作成したサンプルFindingを対象にする。
 
 ```text
-All_Setup.sh: 不要
-Ansible: 不要
-CloudTrail一時Trail: 不要
-S3 Data Event: 不要
+All_Setup.sh: 実行しない
+Ansible: 実行しない
+CloudTrail一時Trail: 作成しない
+S3 Data Event: 有効化しない
 ```
 
 調査対象Findingがない場合は、Day 21単独でサンプルFindingを作成しない。必要な場合はDay 9の通知影響確認、作成、Archive手順を別作業として実施する。
+
+実行場所とDetectorの状態を確認する。
+
+```bash
+cd /Users/nobu/aws-reference/day-learning
+
+aws guardduty list-detectors \
+  --profile learning \
+  --region ap-northeast-1 \
+  --output table \
+  --no-cli-pager
+```
 
 ## 1. 今日の目的
 

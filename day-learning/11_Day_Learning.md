@@ -2,7 +2,7 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 11は`sample-vpc`内のSecurity Group、Network ACL、関連リソースを実物確認するため、`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
+Day 11は`sample-vpc`内のSecurity Group、Network ACL、関連リソースを実物確認するハンズオンである。`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
 
 ```bash
 /Users/nobu/aws-reference/scripts/All_Setup.sh
@@ -11,7 +11,21 @@ Day 11は`sample-vpc`内のSecurity Group、Network ACL、関連リソースを�
 `sample-vpc`が前日から残っている場合は、`All_Setup.sh`を再実行しない。
 前日の環境を破棄して新規構築する場合は、先に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
 
-設定確認だけであればAnsibleは不要である。CloudTrail一時TrailとS3 Data Eventも不要である。後続のDay 12・13を続けない場合は、学習終了後に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+設定確認だけであればAnsibleは実行しない。CloudTrail一時Trailは作成しない。S3 Data Eventは有効化しない。
+
+起動後、Security GroupとNetwork ACLが見えることを確認する。
+
+```bash
+aws ec2 describe-security-groups \
+  --profile learning \
+  --region ap-northeast-1 \
+  --filters Name=vpc-id,Values=$(aws ec2 describe-vpcs --profile learning --region ap-northeast-1 --filters Name=tag:Name,Values=sample-vpc --query 'Vpcs[0].VpcId' --output text --no-cli-pager) \
+  --query 'SecurityGroups[].{GroupName:GroupName,GroupId:GroupId,Description:Description}' \
+  --output table \
+  --no-cli-pager
+```
+
+後続のDay 12・13を続けない場合は、学習終了後に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
 
 ## 1. 今日の目的
 

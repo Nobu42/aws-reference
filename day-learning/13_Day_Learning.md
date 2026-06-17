@@ -2,7 +2,7 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 13はBastion、Webアプリケーション、RDS、Security Groupを使用して疎通変化と切り戻しを確認するため、`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
+Day 13はBastion、Webアプリケーション、RDS、Security Groupを使用して疎通変化と切り戻しを確認するハンズオンである。`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
 
 ```bash
 /Users/nobu/aws-reference/scripts/All_Setup.sh
@@ -19,7 +19,20 @@ export DB_MASTER_PASSWORD
 /Users/nobu/aws-reference/ansible/run_site_local.sh
 ```
 
-Security Group変更はCloudTrail Event Historyで確認できるManagement Eventであるため、CloudTrail一時TrailとS3 Data Eventは不要である。切り戻し確認後、後続学習で環境を使用しない場合は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+Security Group変更はCloudTrail Event Historyで確認できるManagement Eventであるため、CloudTrail一時Trailは作成しない。S3 Data Eventは有効化しない。
+
+変更前に、アプリケーション応答とPuma状態を確認する。
+
+```bash
+cd /Users/nobu/aws-reference/ansible
+
+ansible web \
+  --become \
+  --module-name shell \
+  --args 'systemctl is-active puma-nobu-iac-lab && curl --silent --show-error --fail http://localhost:3000/ >/dev/null && echo "Rails response: OK"'
+```
+
+切り戻し確認後、後続学習で環境を使用しない場合は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
 
 ## 1. 今日の目的
 

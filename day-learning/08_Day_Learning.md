@@ -2,16 +2,37 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 8は既存GuardDuty DetectorとFindingを読み取り専用で確認するため、開始前スクリプトは不要である。
+Day 8は既存GuardDuty DetectorとFindingを読み取り専用で確認するハンズオンである。AWSリソースは新規作成しないが、Detector、Finding、関連CloudTrailを実際にCLIとGUIで確認する。
 
 ```text
-All_Setup.sh: 不要
-Ansible: 不要
-CloudTrail一時Trail: 不要
-S3 Data Event: 不要
+All_Setup.sh: 実行しない
+Ansible: 実行しない
+CloudTrail一時Trail: 作成しない
+S3 Data Event: 有効化しない
 ```
 
 GuardDuty Detectorが存在しない場合は、勝手に有効化せず、Detector未設定として記録する。
+
+実行場所と作業対象アカウントを確認する。
+
+```bash
+cd /Users/nobu/aws-reference/day-learning
+
+aws sts get-caller-identity \
+  --profile learning \
+  --output table \
+  --no-cli-pager
+```
+
+Detectorの有無を最初に確認する。
+
+```bash
+aws guardduty list-detectors \
+  --profile learning \
+  --region ap-northeast-1 \
+  --output table \
+  --no-cli-pager
+```
 
 ## 1. 今日の目的
 

@@ -2,16 +2,28 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 22は案件初日の準備と情報整理を行うため、AWSラボ環境は使用しない。
+Day 22は案件初日の準備と情報整理を行うローカルハンズオンである。AWSラボ環境は使用しない。
 
 ```text
-All_Setup.sh: 不要
-Ansible: 不要
-CloudTrail一時Trail: 不要
-S3 Data Event: 不要
+All_Setup.sh: 実行しない
+Ansible: 実行しない
+CloudTrail一時Trail: 作成しない
+S3 Data Event: 有効化しない
 ```
 
 AWSリソースを作成せず、既存資料、初日用メモ、確認事項の整理に集中する。
+
+実行場所を統一し、参照する資料を確認する。
+
+```bash
+cd /Users/nobu/aws-reference
+
+ls day-learning/*_Day_Learning.md
+ls docs/references/
+ls docs/roadmaps/
+```
+
+この日はAWS CLIを実行するより、初日に聞く質問、受け取るべき資料、作業ルールを実際にメモへ落とすことをハンズオンとする。
 
 ## 1. 今日の目的
 

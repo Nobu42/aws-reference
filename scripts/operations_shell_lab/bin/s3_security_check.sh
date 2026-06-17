@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # -----------------------------------------------------------------------------
-# Day 17 hands-on entry script.
+# Day 17ハンズオン用の実行シェル。
 #
-# It sources a config file and a common function file, then performs read-only
-# S3 security checks. Default RUN_MODE is mock, so no AWS API is called unless
-# DAY17_RUN_MODE=real is specified.
+# confファイルと共通関数ファイルをsourceし、S3セキュリティ確認を実行する。
+# 既定はRUN_MODE=mockであるため、明示的にDAY17_RUN_MODE=realを指定しない限り
+# AWS APIは呼び出さない。
 # -----------------------------------------------------------------------------
 
 set -euo pipefail
@@ -20,10 +20,10 @@ ACCOUNTS_CONF="${LAB_DIR}/conf/accounts.conf"
 
 usage() {
   cat <<'USAGE'
-Usage:
+使い方:
   s3_security_check.sh --conf <conf-file>
 
-Examples:
+例:
   ./bin/s3_security_check.sh --conf conf/s3_security_check.conf
 
   DAY17_MOCK_SCENARIO=wrong_account \
@@ -60,14 +60,14 @@ source "$COMMON_FILE"
 op_require_file "$CONF_FILE" || exit "$?"
 op_require_file "$ACCOUNTS_CONF" || exit "$?"
 
-# This lab intentionally uses source for conf files to mirror many operations
-# shells. Conf files in this lab are trusted learning files.
+# 運用シェルでよく見る構成に合わせるため、confファイルもsourceで読み込む。
+# この教材内のconfは信頼済みファイルとして扱う。
 # shellcheck source=/dev/null
 source "$CONF_FILE"
 # shellcheck source=/dev/null
 source "$ACCOUNTS_CONF"
 
-# Environment overrides used by hands-on abnormal tests.
+# ハンズオンの異常系試験では、環境変数でconf値を上書きする。
 RUN_MODE="${DAY17_RUN_MODE:-${RUN_MODE:-mock}}"
 MOCK_SCENARIO="${DAY17_MOCK_SCENARIO:-${MOCK_SCENARIO:-ok}}"
 
@@ -239,8 +239,10 @@ main() {
   return 0
 }
 
+set +e
 main
 rc=$?
+set -e
 
 case "$rc" in
   0)

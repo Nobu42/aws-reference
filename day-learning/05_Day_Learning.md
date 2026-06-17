@@ -2,16 +2,48 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 5は設計理解と読み取り専用確認が中心である。ラボ用VPCやアプリケーションを使用しないため、開始前スクリプトは不要である。
+Day 5はAWSリソースを新規作成しないが、CLIで実際のCloudTrail Event History、CloudWatch Logs、Metric Filterの状態を確認するハンズオンとして進める。
 
 ```text
-All_Setup.sh: 不要
-Ansible: 不要
+All_Setup.sh: 実行しない
+Ansible: 実行しない
 CloudTrail一時Trail: 作成しない
-S3 Data Event: 不要
+S3 Data Event: 有効化しない
 ```
 
 既存TrailやCloudWatch Logs連携がない場合も、その状態を確認結果として扱う。Day 5のためだけに新規作成しない。
+
+実行場所を統一する。
+
+```bash
+cd /Users/nobu/aws-reference/day-learning
+pwd
+```
+
+最初に作業対象アカウントを確認する。
+
+```bash
+aws sts get-caller-identity \
+  --profile learning \
+  --output table \
+  --no-cli-pager
+```
+
+`ConsoleLogin`イベントの有無を実際に確認する。AWSサインイン系イベントは`us-east-1`側に現れることがあるため、東京とバージニア北部の両方を確認する。
+
+```bash
+for REGION in ap-northeast-1 us-east-1; do
+  echo "=== ${REGION} ==="
+  aws cloudtrail lookup-events \
+    --profile learning \
+    --region "$REGION" \
+    --lookup-attributes AttributeKey=EventName,AttributeValue=ConsoleLogin \
+    --max-results 5 \
+    --query 'Events[].{EventTime:EventTime,Username:Username,EventId:EventId}' \
+    --output table \
+    --no-cli-pager
+done
+```
 
 ## 1. 今日の目的
 

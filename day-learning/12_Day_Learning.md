@@ -2,7 +2,7 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 12はSecurity Group、Web EC2、RDS、DNS、既存Ruleを確認するため、`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
+Day 12はSecurity Group、Web EC2、RDS、DNS、既存Ruleを確認し、変更手順書を作るハンズオンである。`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
 
 ```bash
 /Users/nobu/aws-reference/scripts/All_Setup.sh
@@ -21,7 +21,21 @@ export DB_MASTER_PASSWORD
 /Users/nobu/aws-reference/ansible/run_site_local.sh
 ```
 
-CloudTrail一時TrailとS3 Data Eventは不要である。Day 13を続けない場合は、学習終了後に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+CloudTrail一時Trailは作成しない。S3 Data Eventは有効化しない。
+
+起動後、作業対象になり得るWeb EC2とRDSを確認してから影響調査へ進む。
+
+```bash
+aws ec2 describe-instances \
+  --profile learning \
+  --region ap-northeast-1 \
+  --filters Name=tag:Name,Values='awsref-web*' Name=instance-state-name,Values=running \
+  --query 'Reservations[].Instances[].{Name:Tags[?Key==`Name`]|[0].Value,InstanceId:InstanceId,PrivateIp:PrivateIpAddress}' \
+  --output table \
+  --no-cli-pager
+```
+
+Day 13を続けない場合は、学習終了後に`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
 
 ## 1. 今日の目的
 

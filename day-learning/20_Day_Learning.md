@@ -2,7 +2,7 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 20はRailsアプリケーションを含む変更前・変更後・切り戻し後確認を行うため、最初に日次ラボ環境とアプリケーションを構築する。
+Day 20はRailsアプリケーションを含む変更前・変更後・切り戻し後確認を行う、実変更ハンズオンである。最初に日次ラボ環境とアプリケーションを構築する。
 
 `sample-vpc`が存在しない場合:
 
@@ -23,7 +23,27 @@ export DB_MASTER_PASSWORD
 /Users/nobu/aws-reference/ansible/run_site_local.sh
 ```
 
-`PutBucketPolicy`はManagement Eventであるため、CloudTrail一時TrailとS3 Data Eventは不要である。模擬作業と切り戻し完了後、`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+`PutBucketPolicy`はManagement Eventであるため、CloudTrail一時Trailは作成しない。S3 Data Eventは有効化しない。
+
+変更前に、作業対象BucketとRails応答を確認する。
+
+```bash
+aws s3api head-bucket \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --no-cli-pager
+
+cd /Users/nobu/aws-reference/ansible
+
+ansible web \
+  --become \
+  --module-name shell \
+  --args 'systemctl is-active puma-nobu-iac-lab && curl --silent --show-error --fail http://localhost:3000/ >/dev/null && echo "Rails response: OK"'
+```
+
+模擬作業と切り戻し完了後、`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
 
 ## 1. 今日の目的
 

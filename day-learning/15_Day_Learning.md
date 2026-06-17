@@ -2,7 +2,7 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 15はEC2、EBS、IAM Role、RDS、Security Groupを実物確認するため、`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
+Day 15はEC2、EBS、IAM Role、RDS、Security Groupを実物確認するハンズオンである。`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
 
 ```bash
 /Users/nobu/aws-reference/scripts/All_Setup.sh
@@ -21,7 +21,28 @@ export DB_MASTER_PASSWORD
 /Users/nobu/aws-reference/ansible/run_site_local.sh
 ```
 
-CloudTrail一時TrailとS3 Data Eventは不要である。学習終了後、後続の横断確認を続けない場合は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+CloudTrail一時Trailは作成しない。S3 Data Eventは有効化しない。
+
+起動後、EC2とRDSが見えることを確認する。
+
+```bash
+aws ec2 describe-instances \
+  --profile learning \
+  --region ap-northeast-1 \
+  --filters Name=instance-state-name,Values=running \
+  --query 'Reservations[].Instances[].{Name:Tags[?Key==`Name`]|[0].Value,InstanceId:InstanceId,PrivateIp:PrivateIpAddress,Profile:IamInstanceProfile.Arn}' \
+  --output table \
+  --no-cli-pager
+
+aws rds describe-db-instances \
+  --profile learning \
+  --region ap-northeast-1 \
+  --query 'DBInstances[].{DBInstanceIdentifier:DBInstanceIdentifier,Engine:Engine,PubliclyAccessible:PubliclyAccessible,StorageEncrypted:StorageEncrypted,KmsKeyId:KmsKeyId}' \
+  --output table \
+  --no-cli-pager
+```
+
+学習終了後、後続の横断確認を続けない場合は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
 
 ## 1. 今日の目的
 

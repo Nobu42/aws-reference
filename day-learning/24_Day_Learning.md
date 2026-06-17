@@ -2,7 +2,7 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 24はシステム構成図を読み、AWS設定変更の影響範囲を整理する日である。AWSリソースの作成、変更、削除は行わない。
+Day 24はシステム構成図を読み、AWS設定変更の影響範囲を整理するローカルハンズオンである。AWSリソースの作成、変更、削除は行わない。
 
 ```text
 All_Setup.sh: 実行しない
@@ -12,6 +12,26 @@ S3 Data Event: 有効化しない
 ```
 
 既存環境の値を確認する場合は、読み取り専用のAWS CLIだけを使用する。
+
+実行場所を統一し、構成図と設計資料を確認する。
+
+```bash
+cd /Users/nobu/aws-reference
+
+ls docs/design/
+ls docs/case_studies/
+```
+
+読み取り専用で、構成図に出てきやすいS3、VPC、CloudTrailの入口だけ確認してもよい。
+
+```bash
+aws s3api head-bucket \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --no-cli-pager
+```
 
 ---
 

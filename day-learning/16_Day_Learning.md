@@ -2,16 +2,46 @@
 
 ## 学習開始前に実行するスクリプト
 
-現在の個人ラボではLambda Functionが0件であることを確認するDayのため、開始前スクリプトは不要である。
+Day 16はLambda Functionの有無、権限、公開経路、ログを読み取り専用で確認するハンズオンである。現在の個人ラボではLambda Functionが0件であることを確認結果として扱う。
 
 ```text
-All_Setup.sh: 不要
-Ansible: 不要
-CloudTrail一時Trail: 不要
-S3 Data Event: 不要
+All_Setup.sh: 実行しない
+Ansible: 実行しない
+CloudTrail一時Trail: 作成しない
+S3 Data Event: 有効化しない
 ```
 
 Lambda Functionが0件の場合も、想定どおりの確認結果として扱う。
+
+実行場所と作業対象アカウントを確認する。
+
+```bash
+cd /Users/nobu/aws-reference/day-learning
+
+aws sts get-caller-identity \
+  --profile learning \
+  --output table \
+  --no-cli-pager
+```
+
+Lambda FunctionとLambda用Log Groupを実際に確認する。
+
+```bash
+aws lambda list-functions \
+  --profile learning \
+  --region ap-northeast-1 \
+  --query 'Functions[].{FunctionName:FunctionName,Runtime:Runtime,Role:Role,VpcConfig:VpcConfig.VpcId}' \
+  --output table \
+  --no-cli-pager
+
+aws logs describe-log-groups \
+  --profile learning \
+  --region ap-northeast-1 \
+  --log-group-name-prefix /aws/lambda \
+  --query 'logGroups[].{LogGroup:logGroupName,RetentionDays:retentionInDays,KmsKeyId:kmsKeyId,StoredBytes:storedBytes}' \
+  --output table \
+  --no-cli-pager
+```
 
 ## 1. 今日の目的
 

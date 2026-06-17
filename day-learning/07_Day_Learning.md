@@ -2,12 +2,12 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 7は既存設定を調査する読み取り専用ドリルである。開始前スクリプトは必須ではない。
+Day 7は既存設定を調査する読み取り専用ハンズオンである。AWSリソースは新規作成しないが、S3、CloudTrail、CloudWatchの実設定をCLIとGUIで確認する。
 
 ```text
-All_Setup.sh: 不要
-Ansible: 不要
-S3 Data Event: 不要
+All_Setup.sh: 実行しない
+Ansible: 実行しない
+S3 Data Event: 有効化しない
 ```
 
 Day 3からCloudTrail一時Trailを残している場合は、次の状態確認だけを実行する。一時Trailがない場合は、Day 7のためだけに作成しない。
@@ -17,6 +17,24 @@ Day 3からCloudTrail一時Trailを残している場合は、次の状態確認
 ```
 
 Trail、CloudWatch Logs連携、Metric Filter、Alarmが未設定の場合も、調査結果として記録する。
+
+実行場所と作業対象を確認する。
+
+```bash
+cd /Users/nobu/aws-reference/day-learning
+
+aws sts get-caller-identity \
+  --profile learning \
+  --output table \
+  --no-cli-pager
+
+aws s3api head-bucket \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --no-cli-pager
+```
 
 ## 1. 今日の目的
 

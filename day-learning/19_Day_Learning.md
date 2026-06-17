@@ -2,16 +2,28 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 19は既存資料と過去の証跡を使用して作業手順書を作成するため、AWS環境の構築は不要である。
+Day 19は既存資料と過去の証跡を使用して、実際に作業手順書と証跡一覧を組み立てるローカルハンズオンである。AWS環境の構築は不要である。
 
 ```text
-All_Setup.sh: 不要
-Ansible: 不要
-CloudTrail一時Trail: 不要
-S3 Data Event: 不要
+All_Setup.sh: 実行しない
+Ansible: 実行しない
+CloudTrail一時Trail: 作成しない
+S3 Data Event: 有効化しない
 ```
 
 過去のローカル証跡を削除せず、必要なファイルを参照して手順書と証跡計画を整理する。
+
+実行場所を統一し、参照できる証跡とテンプレートを確認する。
+
+```bash
+cd /Users/nobu/aws-reference
+
+find day-learning/02_Day_Learning -maxdepth 2 -type f | sort
+
+ls -l docs/templates/
+```
+
+Day 20で模擬変更する場合は、Day 19で作成した手順書を見ながら作業する。
 
 ## 1. 今日の目的
 

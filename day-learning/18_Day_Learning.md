@@ -2,7 +2,7 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 18はS3、VPC、EC2、RDS、CloudWatchなどを横断確認するため、`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
+Day 18はS3、VPC、EC2、RDS、CloudWatchなどを横断確認するハンズオンである。`sample-vpc`が存在しない場合は最初に日次ラボ環境を構築する。
 
 ```bash
 /Users/nobu/aws-reference/scripts/All_Setup.sh
@@ -21,7 +21,25 @@ export DB_MASTER_PASSWORD
 /Users/nobu/aws-reference/ansible/run_site_local.sh
 ```
 
-CloudTrail一時Trail、CloudWatch Logs連携、GuardDuty Detectorなどは既存状態を評価する。Day 18のためだけに作成・有効化しない。S3 Data Eventも不要である。学習終了後は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
+CloudTrail一時Trail、CloudWatch Logs連携、GuardDuty Detectorなどは既存状態を評価する。Day 18のためだけに作成・有効化しない。S3 Data Eventも有効化しない。
+
+横断確認の入口として、アカウント、S3、VPC、EC2、RDSを先に一覧で見る。
+
+```bash
+aws sts get-caller-identity \
+  --profile learning \
+  --output table \
+  --no-cli-pager
+
+aws s3api head-bucket \
+  --profile learning \
+  --region ap-northeast-1 \
+  --bucket nobu-terraform-iac-lab-upload \
+  --expected-bucket-owner 445405559057 \
+  --no-cli-pager
+```
+
+学習終了後は`/Users/nobu/aws-reference/scripts/cleanup_network.sh`を実行する。
 
 ## 1. 今日の目的
 

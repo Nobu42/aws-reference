@@ -2,16 +2,37 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 9は既存GuardDuty DetectorへサンプルFindingを作成する。開始前スクリプトは不要だが、Detectorが存在し有効であることが前提となる。
+Day 9は既存GuardDuty DetectorへサンプルFindingを作成し、調査、報告、Archiveまで実施するハンズオンである。ラボ用VPCやアプリケーションは使用しないが、GuardDutyの検証用データを作成する。
 
 ```text
-All_Setup.sh: 不要
-Ansible: 不要
-CloudTrail一時Trail: 不要
-S3 Data Event: 不要
+All_Setup.sh: 実行しない
+Ansible: 実行しない
+CloudTrail一時Trail: 作成しない
+S3 Data Event: 有効化しない
 ```
 
 Detectorが存在しない場合は、Day 9のために自動作成せず、Day 8の確認結果とGuardDuty利用方針を見直す。作成したサンプルFindingは本文の手順でArchiveして終了する。
+
+実行場所と作業対象アカウントを確認する。
+
+```bash
+cd /Users/nobu/aws-reference/day-learning
+
+aws sts get-caller-identity \
+  --profile learning \
+  --output table \
+  --no-cli-pager
+```
+
+Detectorが存在することを確認してから、サンプルFinding作成へ進む。
+
+```bash
+aws guardduty list-detectors \
+  --profile learning \
+  --region ap-northeast-1 \
+  --output table \
+  --no-cli-pager
+```
 
 ## 1. 今日の目的
 
