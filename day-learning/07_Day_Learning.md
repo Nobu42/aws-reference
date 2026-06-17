@@ -2,21 +2,25 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 7は既存設定を調査する読み取り専用ハンズオンである。AWSリソースは新規作成しないが、S3、CloudTrail、CloudWatchの実設定をCLIとGUIで確認する。
+Day 7はS3、CloudTrail、CloudWatchを横断確認する実環境ハンズオンである。Day 5で作成した一時TrailとCloudWatch Logs連携を使い、最後に切り戻す。
 
 ```text
 All_Setup.sh: 実行しない
 Ansible: 実行しない
+CloudTrail一時Trail: Day 5の一時Trailを使用する
+CloudTrail -> CloudWatch Logs連携: Day 5の一時連携を使用する
 S3 Data Event: 有効化しない
 ```
 
-Day 3からCloudTrail一時Trailを残している場合は、次の状態確認だけを実行する。一時Trailがない場合は、Day 7のためだけに作成しない。
+Day 5の一時Trailが残っている前提で、状態確認を実行する。一時Trailがない場合は、Day 5の手順に戻って一時TrailとCloudWatch Logs連携を作成してから進める。
 
 ```bash
 /Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
+
+/Users/nobu/aws-reference/scripts/cloudtrail_cloudwatch_logs_lab/02_check_cloudtrail_cloudwatch_logs.sh
 ```
 
-Trail、CloudWatch Logs連携、Metric Filter、Alarmが未設定の場合も、調査結果として記録する。
+Metric Filter、Alarmが未設定の場合も、調査結果として記録する。
 
 実行場所と作業対象を確認する。
 
@@ -36,6 +40,25 @@ aws s3api head-bucket \
   --no-cli-pager
 ```
 
+Day 7終了時に、一時CloudWatch Logs連携を切り戻す。`<timestamp>_enable_cloudwatch_logs`はDay 5で`01_enable_cloudtrail_cloudwatch_logs.sh`が表示したEvidenceディレクトリである。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_cloudwatch_logs_lab/03_restore_cloudtrail_cloudwatch_logs.sh \
+  /Users/nobu/aws-reference/evidence/cloudtrail_cloudwatch_logs_lab/<timestamp>_enable_cloudwatch_logs
+```
+
+Evidenceディレクトリが分からない場合は、候補だけを確認し、実際にDay 5で成功したディレクトリを指定する。
+
+```bash
+ls -dt /Users/nobu/aws-reference/evidence/cloudtrail_cloudwatch_logs_lab/*_enable_cloudwatch_logs
+```
+
+一時Trailを後続で使わない場合は削除する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
+```
+
 ## 1. 今日の目的
 
 S3 Bucket Policy変更を題材に、CloudTrailで変更履歴を特定し、現在のS3設定、CloudTrail Trail、CloudWatch Logs連携、Metric Filter、CloudWatch Alarmを横断的に確認する。
@@ -50,7 +73,7 @@ Day 7では、個別のAWSサービスを確認するだけではなく、次の
 業務影響や追加確認事項はあるか。
 ```
 
-本ドリルでは設定変更を実施しない。既存設定の確認、変更履歴調査、証跡取得、結果整理、Teams報告文作成を行う。
+本ドリルでは調査対象S3バケットの設定変更を実施しない。Day 5で作成した一時CloudTrail連携を使い、既存設定の確認、変更履歴調査、証跡取得、結果整理、Teams報告文作成を行う。
 
 関連資料:
 
@@ -100,7 +123,7 @@ Day 7では、個別のAWSサービスを確認するだけではなく、次の
 | 対象バケット | `nobu-terraform-iac-lab-upload` |
 | 主な変更イベント | `PutBucketPolicy`、`DeleteBucketPolicy` |
 | 主な確認対象 | S3、CloudTrail、CloudWatch Logs、Metric Filter、Alarm |
-| 設定変更 | なし |
+| 設定変更 | 調査対象S3にはなし。Day 5の一時Trail連携はDay 7終了時に切り戻す |
 
 ## 今日実行しない操作
 
@@ -108,14 +131,16 @@ Day 7では、個別のAWSサービスを確認するだけではなく、次の
 
 - Bucket Policyの追加、更新、削除
 - Public Access Blockの変更
-- CloudTrail Trailの作成、更新、削除
+- 既存CloudTrail Trailの作成、更新、削除
 - Event Selectorの変更
-- CloudWatch Logs連携の追加、変更、削除
+- 既存CloudWatch Logs連携の追加、変更、削除
 - Log Group、Metric Filter、Alarmの作成、更新、削除
 - Alarm Actionの有効化、無効化
 - SNS通知テスト
 - GuardDutyやSecurity Hub設定の変更
 - 証跡取得を目的とした意図的な異常操作
+
+例外として、Day 5で作成した一時CloudWatch Logs連携の確認と切り戻しは実施する。
 
 ---
 

@@ -2,16 +2,17 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 5はAWSリソースを新規作成しないが、CLIで実際のCloudTrail Event History、CloudWatch Logs、Metric Filterの状態を確認するハンズオンとして進める。
+Day 5は、CloudTrail Event Historyの確認に加えて、一時TrailをCloudWatch Logsへ連携する実環境ハンズオンとして進める。これにより、CloudTrailイベントがCloudWatch Logsへ届くところを実際に確認する。
 
 ```text
 All_Setup.sh: 実行しない
 Ansible: 実行しない
-CloudTrail一時Trail: 作成しない
+CloudTrail一時Trail: 作成する
+CloudTrail -> CloudWatch Logs連携: 作成する
 S3 Data Event: 有効化しない
 ```
 
-既存TrailやCloudWatch Logs連携がない場合も、その状態を確認結果として扱う。Day 5のためだけに新規作成しない。
+既存Trailや既存CloudWatch Logs連携は変更しない。Day 5〜7専用の一時Trailと一時Log Groupだけを使用する。
 
 実行場所を統一する。
 
@@ -45,6 +46,26 @@ for REGION in ap-northeast-1 us-east-1; do
 done
 ```
 
+一時Trailがない場合は作成する。すでにDay 3で作成済みの場合は、この作成スクリプトは実行しない。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/01_create_cloudtrail_trail.sh
+```
+
+一時TrailをCloudWatch Logsへ連携する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_cloudwatch_logs_lab/01_enable_cloudtrail_cloudwatch_logs.sh
+```
+
+配信確認を行う。CloudTrailからCloudWatch Logsへの配信は数分遅れる場合がある。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_cloudwatch_logs_lab/02_check_cloudtrail_cloudwatch_logs.sh
+```
+
+Day 5終了時点では、Day 6〜7で使うため一時TrailとCloudWatch Logs連携を残してよい。Day 7の最後に切り戻す。
+
 ## 1. 今日の目的
 
 CloudTrailに記録されるAWS Management Consoleへのログインイベントを理解し、MFAなしログインをCloudWatch Logs、Metric Filter、CloudWatch Alarmで検知する設計を説明できるようにする。
@@ -67,14 +88,16 @@ Metric Filter、CloudWatch Alarm、SNS通知の作成・変更・削除は実施
 2. MFAなし管理コンソールログイン検知の目的を理解する
 3. CloudTrailの`ConsoleLogin`イベントを理解する
 4. CloudTrailで`ConsoleLogin`イベントを検索する
-5. CloudTrailからCloudWatch Logsへの連携状況を確認する
-6. CloudWatch Logsで既存の`ConsoleLogin`イベントを検索する
-7. 推奨Filter Patternを理解する
-8. `test-metric-filter`で一致・不一致を確認する
-9. Metric FilterとCustom Metricの設計を整理する
-10. CloudWatch Alarmと通知の設計を整理する
-11. 変更手順、テスト、切り戻し手順を整理する
-12. 検知時の一次調査と報告内容を整理する
+5. 一時Trailを作成する
+6. 一時TrailをCloudWatch Logsへ連携する
+7. CloudWatch Logsへ実際のCloudTrailイベントが届くことを確認する
+8. CloudWatch Logsで既存の`ConsoleLogin`イベントを検索する
+9. 推奨Filter Patternを理解する
+10. `test-metric-filter`で一致・不一致を確認する
+11. Metric FilterとCustom Metricの設計を整理する
+12. CloudWatch Alarmと通知の設計を整理する
+13. 変更手順、テスト、切り戻し手順を整理する
+14. 検知時の一次調査と報告内容を整理する
 
 ## 今日の作業範囲
 
@@ -85,22 +108,33 @@ Metric Filter、CloudWatch Alarm、SNS通知の作成・変更・削除は実施
 | 追加確認リージョン | `us-east-1` |
 | AWS CLIプロファイル | `learning` |
 | 主な確認対象 | CloudTrail、CloudWatch Logs、Metric Filter、CloudWatch Alarm |
+| 作成する一時リソース | 一時Trail、CloudTrailログ用Log Group、CloudTrail連携用IAM Role |
 | 実行可能なテスト | `test-metric-filter`によるFilter Patternテスト |
-| 設定変更 | なし |
+| 設定変更 | 学習用一時リソースのみ |
 
 ## 今日実行しない操作
 
 次の操作は監視設定、通知、課金、運用へ影響するため、Day 5では実行しない。
 
-- CloudTrail Trailの作成・変更・削除
-- CloudTrailからCloudWatch Logsへの連携設定
-- Log Groupの作成・削除
+- 既存CloudTrail Trailの作成・変更・削除
+- 既存CloudTrailからCloudWatch Logsへの連携設定
+- 既存Log Groupの作成・削除
 - Metric Filterの作成・更新・削除
 - CloudWatch Alarmの作成・更新・削除
 - Alarm Actionの有効化・無効化
 - SNS TopicやSubscriptionの作成・変更・削除
 - MFAなしの実ログインテスト
 - `set-alarm-state`による通知テスト
+
+例外として、Day 5〜7専用の次のスクリプトだけは実行する。
+
+```text
+cloudtrail_trail_lab/01_create_cloudtrail_trail.sh
+cloudtrail_cloudwatch_logs_lab/01_enable_cloudtrail_cloudwatch_logs.sh
+cloudtrail_cloudwatch_logs_lab/02_check_cloudtrail_cloudwatch_logs.sh
+```
+
+これらのスクリプトが作成するLog GroupとIAM Roleは、Day 5〜7用の一時リソースである。
 
 ---
 

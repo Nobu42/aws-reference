@@ -4,6 +4,22 @@
 
 Day 4以降は、可能な限り実リソースを起動して確認する。Day 4はCloudWatch Logsを実物で見る日であるため、原則として日次ラボ環境とアプリケーションを起動してから進める。
 
+Day 4〜7の実環境ハンズオンの流れ:
+
+```text
+Day 4:
+  EC2 / nginx / Puma / RailsのアプリログをCloudWatch Logsで確認する
+
+Day 5:
+  一時CloudTrail TrailをCloudWatch Logsへ連携し、実際のAWS APIイベント配信を見る
+
+Day 6:
+  Metric FilterとAlarmを検証用Log Groupで作成・テスト・削除する
+
+Day 7:
+  S3、CloudTrail、CloudWatch Logs、Metric Filter、Alarmを横断確認し、最後に一時連携を切り戻す
+```
+
 `sample-vpc`が存在しない場合:
 
 ```bash

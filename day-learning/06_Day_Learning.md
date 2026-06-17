@@ -4,10 +4,13 @@
 
 Day 6は専用の検証用Log Group、Metric Filter、Alarmを実際に作成・テスト・削除するハンズオンである。ラボ用VPCやアプリケーションは使用しない。
 
+Day 5で一時TrailをCloudWatch Logsへ連携済みの場合は、最初に実CloudTrailイベントが届いていることを確認してから、Metric Filter/Alarmの検証へ進む。
+
 ```text
 All_Setup.sh: 実行しない
 Ansible: 実行しない
 CloudTrail一時Trail: 作成しない
+CloudTrail -> CloudWatch Logs連携: Day 5の一時連携を確認する
 S3 Data Event: 有効化しない
 ```
 
@@ -29,13 +32,27 @@ aws sts get-caller-identity \
   --no-cli-pager
 ```
 
+Day 5で作成したCloudTrail -> CloudWatch Logs連携が残っている場合は確認する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_cloudwatch_logs_lab/02_check_cloudtrail_cloudwatch_logs.sh
+```
+
+この確認で見るもの:
+
+```text
+TrailにCloudWatchLogsLogGroupArnが設定されている
+CloudWatch LogsにCloudTrail用Log Streamが作成されている
+実際のManagement EventがCloudWatch Logsへ届いている
+```
+
 ## 1. 今日の目的
 
 専用の検証用CloudWatch Logs Log Groupを使用し、MFAなし管理コンソールログインを検知するMetric FilterとCloudWatch Alarmを実際に作成・テスト・削除する。
 
 Day 5では検知設計を理解した。Day 6では、実作業として依頼された場合に、手順書を見ながら変更前確認、設定変更、テスト、変更後確認、証跡取得、切り戻しまで進められる状態を目指す。
 
-本ハンズオンでは、実際のCloudTrail Trailや通知先SNSを変更しない。検証用Log GroupへサンプルCloudTrailイベントを投入し、Metric FilterからAlarmまでの動作を確認する。
+本ハンズオンでは、Day 5で作成した一時Trail連携は確認対象として使う。Metric FilterとAlarmの作成・削除は、検証用Log GroupへサンプルCloudTrailイベントを投入する方式で行う。通知先SNSは変更しない。
 
 関連資料:
 
@@ -128,12 +145,18 @@ AWS Console Login
 → Alarm
 → 通知
 
-Day 6:
+Day 6メイン検証:
 サンプルConsoleLoginイベント
 → 検証用CloudWatch Logs
 → Metric Filter
 → Custom Metric
 → 通知なしAlarm
+
+Day 5から残した実環境確認:
+実AWS API操作
+→ 一時CloudTrail Trail
+→ CloudWatch Logs
+→ 実ログとして検索
 ```
 
 Day 6で確認できること:
@@ -146,7 +169,6 @@ Day 6で確認できること:
 
 Day 6だけでは確認できないこと:
 
-- CloudTrailからCloudWatch Logsへの実配信
 - 実際の`ConsoleLogin`イベント形式との差異
 - SNS、メール、Teamsへの通知
 - 本番運用上のエスカレーション
