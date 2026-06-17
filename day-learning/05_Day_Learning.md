@@ -41,7 +41,7 @@ for REGION in ap-northeast-1 us-east-1; do
     --lookup-attributes AttributeKey=EventName,AttributeValue=ConsoleLogin \
     --max-results 5 \
     --query 'Events[].{EventTime:EventTime,Username:Username,EventId:EventId}' \
-    --output table \
+    --output json \
     --no-cli-pager
 done
 ```
@@ -344,7 +344,7 @@ aws cloudtrail lookup-events \
   --region ap-northeast-1 \
   --lookup-attributes AttributeKey=EventName,AttributeValue=ConsoleLogin \
   --query 'Events[].{EventTime:EventTime,Username:Username,EventName:EventName,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -356,7 +356,7 @@ aws cloudtrail lookup-events \
   --region us-east-1 \
   --lookup-attributes AttributeKey=EventName,AttributeValue=ConsoleLogin \
   --query 'Events[].{EventTime:EventTime,Username:Username,EventName:EventName,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -392,7 +392,7 @@ aws cloudtrail lookup-events \
   --region ap-northeast-1 \
   --lookup-attributes AttributeKey=EventId,AttributeValue="$EVENT_ID" \
   --query 'Events[0].{EventTime:EventTime,EventName:EventName,Username:Username,EventSource:EventSource,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -407,7 +407,8 @@ aws cloudtrail lookup-events \
   --lookup-attributes AttributeKey=EventId,AttributeValue="$EVENT_ID" \
   --query 'Events[0].CloudTrailEvent' \
   --output text \
-  --no-cli-pager
+  --no-cli-pager \
+  | ./format_json_awk.sh /dev/stdin
 ```
 
 ### 確認する内容
@@ -474,7 +475,7 @@ aws cloudtrail describe-trails \
   --region ap-northeast-1 \
   --include-shadow-trails \
   --query 'trailList[].{Name:Name,HomeRegion:HomeRegion,MultiRegion:IsMultiRegionTrail,CloudWatchLogsLogGroupArn:CloudWatchLogsLogGroupArn,CloudWatchLogsRoleArn:CloudWatchLogsRoleArn}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -528,7 +529,7 @@ aws logs describe-log-groups \
   --profile learning \
   --region ap-northeast-1 \
   --query 'logGroups[].{LogGroup:logGroupName,RetentionDays:retentionInDays,StoredBytes:storedBytes}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -547,9 +548,24 @@ aws logs filter-log-events \
   --log-group-name "$LOG_GROUP_NAME" \
   --filter-pattern '{ $.eventName = "ConsoleLogin" }' \
   --limit 20 \
-  --query 'events[].{Timestamp:timestamp,LogStream:logStreamName,Message:message}' \
-  --output table \
+  --query 'events[].{Timestamp:timestamp,LogStream:logStreamName}' \
+  --output json \
   --no-cli-pager
+```
+
+イベント本文を1件だけ確認する場合は、`message`だけを取り出してJSON整形する。`message`を`table`表示すると横に長くなり、読むべき項目が埋もれやすい。
+
+```bash
+aws logs filter-log-events \
+  --profile learning \
+  --region ap-northeast-1 \
+  --log-group-name "$LOG_GROUP_NAME" \
+  --filter-pattern '{ $.eventName = "ConsoleLogin" }' \
+  --limit 1 \
+  --query 'events[0].message' \
+  --output text \
+  --no-cli-pager \
+  | ./format_json_awk.sh /dev/stdin
 ```
 
 ### 成功したMFAなしログインを検索する
@@ -561,9 +577,24 @@ aws logs filter-log-events \
   --log-group-name "$LOG_GROUP_NAME" \
   --filter-pattern '{ ($.eventName = "ConsoleLogin") && ($.responseElements.ConsoleLogin = "Success") && ($.additionalEventData.MFAUsed = "No") }' \
   --limit 20 \
-  --query 'events[].{Timestamp:timestamp,LogStream:logStreamName,Message:message}' \
-  --output table \
+  --query 'events[].{Timestamp:timestamp,LogStream:logStreamName}' \
+  --output json \
   --no-cli-pager
+```
+
+一致イベントの本文を確認する場合は、1件だけ取り出して整形する。
+
+```bash
+aws logs filter-log-events \
+  --profile learning \
+  --region ap-northeast-1 \
+  --log-group-name "$LOG_GROUP_NAME" \
+  --filter-pattern '{ ($.eventName = "ConsoleLogin") && ($.responseElements.ConsoleLogin = "Success") && ($.additionalEventData.MFAUsed = "No") }' \
+  --limit 1 \
+  --query 'events[0].message' \
+  --output text \
+  --no-cli-pager \
+  | ./format_json_awk.sh /dev/stdin
 ```
 
 ### 結果の読み方
@@ -705,7 +736,7 @@ aws logs test-metric-filter \
   --region ap-northeast-1 \
   --filter-pattern '{ ($.eventName = "ConsoleLogin") && ($.responseElements.ConsoleLogin = "Success") && ($.additionalEventData.MFAUsed = "No") }' \
   --log-event-messages '["{\"eventName\":\"ConsoleLogin\",\"responseElements\":{\"ConsoleLogin\":\"Success\"},\"additionalEventData\":{\"MFAUsed\":\"No\"},\"sourceIPAddress\":\"203.0.113.10\",\"userIdentity\":{\"type\":\"IAMUser\",\"arn\":\"arn:aws:iam::123456789012:user/test-user\"}}","{\"eventName\":\"ConsoleLogin\",\"responseElements\":{\"ConsoleLogin\":\"Success\"},\"additionalEventData\":{\"MFAUsed\":\"Yes\"},\"sourceIPAddress\":\"203.0.113.20\",\"userIdentity\":{\"type\":\"IAMUser\",\"arn\":\"arn:aws:iam::123456789012:user/mfa-user\"}}","{\"eventName\":\"ConsoleLogin\",\"responseElements\":{\"ConsoleLogin\":\"Failure\"},\"additionalEventData\":{\"MFAUsed\":\"No\"},\"sourceIPAddress\":\"203.0.113.30\",\"userIdentity\":{\"type\":\"IAMUser\",\"arn\":\"arn:aws:iam::123456789012:user/failed-user\"}}"]' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -760,7 +791,7 @@ aws logs describe-metric-filters \
   --region ap-northeast-1 \
   --log-group-name "$LOG_GROUP_NAME" \
   --query 'metricFilters[].{FilterName:filterName,FilterPattern:filterPattern,MetricTransformations:metricTransformations}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -771,7 +802,7 @@ aws cloudwatch describe-alarms \
   --profile learning \
   --region ap-northeast-1 \
   --query 'MetricAlarms[].{AlarmName:AlarmName,State:StateValue,Namespace:Namespace,MetricName:MetricName,Threshold:Threshold,ActionsEnabled:ActionsEnabled}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1051,7 +1082,7 @@ aws cloudtrail lookup-events \
   --region ap-northeast-1 \
   --lookup-attributes AttributeKey=Username,AttributeValue="<対象ユーザー名>" \
   --query 'Events[].{EventTime:EventTime,EventName:EventName,EventSource:EventSource,ReadOnly:ReadOnly,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
