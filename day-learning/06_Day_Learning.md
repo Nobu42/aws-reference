@@ -358,7 +358,7 @@ aws logs describe-log-groups \
   --region "$REGION" \
   --log-group-name-prefix "$LAB_LOG_GROUP_NAME" \
   --query 'logGroups[].{LogGroup:logGroupName,RetentionDays:retentionInDays,StoredBytes:storedBytes}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -382,7 +382,7 @@ aws cloudwatch describe-alarms \
   --region "$REGION" \
   --alarm-name-prefix "$ALARM_NAME" \
   --query 'MetricAlarms[].{AlarmName:AlarmName,State:StateValue,ActionsEnabled:ActionsEnabled}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -487,7 +487,7 @@ aws logs describe-log-groups \
   --region "$REGION" \
   --log-group-name-prefix "$LAB_LOG_GROUP_NAME" \
   --query 'logGroups[].{LogGroup:logGroupName,RetentionDays:retentionInDays,StoredBytes:storedBytes,KmsKeyId:kmsKeyId,Class:logGroupClass}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -538,7 +538,7 @@ aws logs describe-log-streams \
   --log-group-name "$LAB_LOG_GROUP_NAME" \
   --log-stream-name-prefix "$LAB_LOG_STREAM_NAME" \
   --query 'logStreams[].{LogStream:logStreamName,LastEventTimestamp:lastEventTimestamp,LastIngestionTime:lastIngestionTime}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -583,7 +583,7 @@ aws logs describe-metric-filters \
   --log-group-name "$LAB_LOG_GROUP_NAME" \
   --filter-name-prefix "$FILTER_NAME" \
   --query 'metricFilters[].{FilterName:filterName,FilterPattern:filterPattern,MetricTransformations:metricTransformations}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -649,7 +649,7 @@ aws cloudwatch describe-alarms \
   --region "$REGION" \
   --alarm-names "$ALARM_NAME" \
   --query 'MetricAlarms[].{AlarmName:AlarmName,State:StateValue,Namespace:Namespace,MetricName:MetricName,Statistic:Statistic,Period:Period,EvaluationPeriods:EvaluationPeriods,Threshold:Threshold,TreatMissingData:TreatMissingData,ActionsEnabled:ActionsEnabled}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -732,9 +732,24 @@ aws logs filter-log-events \
   --log-group-name "$LAB_LOG_GROUP_NAME" \
   --filter-pattern '{ $.eventName = "ConsoleLogin" }' \
   --limit 20 \
-  --query 'events[].{Timestamp:timestamp,LogStream:logStreamName,Message:message}' \
-  --output table \
+  --query 'events[].{Timestamp:timestamp,LogStream:logStreamName}' \
+  --output json \
   --no-cli-pager
+```
+
+ログ本文を確認する場合は、1件だけ取り出してJSON整形する。
+
+```bash
+aws logs filter-log-events \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --log-group-name "$LAB_LOG_GROUP_NAME" \
+  --filter-pattern '{ $.eventName = "ConsoleLogin" }' \
+  --limit 1 \
+  --query 'events[0].message' \
+  --output text \
+  --no-cli-pager \
+  | ./format_json_awk.sh /dev/stdin
 ```
 
 ### Alarm確認
@@ -745,7 +760,7 @@ aws cloudwatch describe-alarms \
   --region "$REGION" \
   --alarm-names "$ALARM_NAME" \
   --query 'MetricAlarms[].{AlarmName:AlarmName,State:StateValue,StateReason:StateReason,ActionsEnabled:ActionsEnabled}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -814,9 +829,24 @@ aws logs filter-log-events \
   --log-group-name "$LAB_LOG_GROUP_NAME" \
   --filter-pattern "$FILTER_PATTERN" \
   --limit 20 \
-  --query 'events[].{Timestamp:timestamp,LogStream:logStreamName,Message:message}' \
-  --output table \
+  --query 'events[].{Timestamp:timestamp,LogStream:logStreamName}' \
+  --output json \
   --no-cli-pager
+```
+
+一致したログ本文を確認する場合は、1件だけ取り出してJSON整形する。
+
+```bash
+aws logs filter-log-events \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --log-group-name "$LAB_LOG_GROUP_NAME" \
+  --filter-pattern "$FILTER_PATTERN" \
+  --limit 1 \
+  --query 'events[0].message' \
+  --output text \
+  --no-cli-pager \
+  | ./format_json_awk.sh /dev/stdin
 ```
 
 ### 証跡保存
@@ -856,7 +886,7 @@ aws cloudwatch list-metrics \
   --namespace "$METRIC_NAMESPACE" \
   --metric-name "$METRIC_NAME" \
   --query 'Metrics[].{Namespace:Namespace,MetricName:MetricName,Dimensions:Dimensions}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -882,7 +912,7 @@ aws cloudwatch get-metric-statistics \
   --end-time "$END_TIME" \
   --period 60 \
   --statistics Sum \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -925,7 +955,7 @@ aws cloudwatch describe-alarms \
   --region "$REGION" \
   --alarm-names "$ALARM_NAME" \
   --query 'MetricAlarms[].{AlarmName:AlarmName,State:StateValue,StateReason:StateReason,StateUpdatedTimestamp:StateUpdatedTimestamp,ActionsEnabled:ActionsEnabled}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -973,7 +1003,7 @@ aws logs describe-log-groups \
   --region "$REGION" \
   --log-group-name-prefix "$LAB_LOG_GROUP_NAME" \
   --query 'logGroups[].{LogGroup:logGroupName,RetentionDays:retentionInDays,StoredBytes:storedBytes}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -986,7 +1016,7 @@ aws logs describe-metric-filters \
   --log-group-name "$LAB_LOG_GROUP_NAME" \
   --filter-name-prefix "$FILTER_NAME" \
   --query 'metricFilters[].{FilterName:filterName,FilterPattern:filterPattern,MetricTransformations:metricTransformations}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -998,7 +1028,7 @@ aws cloudwatch describe-alarms \
   --region "$REGION" \
   --alarm-names "$ALARM_NAME" \
   --query 'MetricAlarms[].{AlarmName:AlarmName,State:StateValue,Namespace:Namespace,MetricName:MetricName,Threshold:Threshold,TreatMissingData:TreatMissingData,ActionsEnabled:ActionsEnabled}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1057,7 +1087,7 @@ aws cloudtrail lookup-events \
   --region "$REGION" \
   --lookup-attributes AttributeKey=EventSource,AttributeValue=logs.amazonaws.com \
   --query 'Events[].{EventTime:EventTime,EventName:EventName,Username:Username,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1069,7 +1099,7 @@ aws cloudtrail lookup-events \
   --region "$REGION" \
   --lookup-attributes AttributeKey=EventSource,AttributeValue=monitoring.amazonaws.com \
   --query 'Events[].{EventTime:EventTime,EventName:EventName,Username:Username,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1099,7 +1129,7 @@ aws cloudwatch describe-alarms \
   --region "$REGION" \
   --alarm-names "$ALARM_NAME" \
   --query 'MetricAlarms[].{AlarmName:AlarmName,ActionsEnabled:ActionsEnabled,AlarmActions:AlarmActions}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1142,7 +1172,7 @@ aws logs describe-metric-filters \
   --region "$REGION" \
   --log-group-name "$LAB_LOG_GROUP_NAME" \
   --filter-name-prefix "$FILTER_NAME" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1165,7 +1195,7 @@ aws cloudwatch describe-alarms \
   --profile "$PROFILE" \
   --region "$REGION" \
   --alarm-name-prefix "$ALARM_NAME" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1174,7 +1204,7 @@ aws logs describe-log-groups \
   --profile "$PROFILE" \
   --region "$REGION" \
   --log-group-name-prefix "$LAB_LOG_GROUP_NAME" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1230,7 +1260,7 @@ aws cloudtrail lookup-events \
   --region "$REGION" \
   --lookup-attributes AttributeKey=Username,AttributeValue=nobu \
   --query 'Events[?EventName==`DeleteAlarms` || EventName==`DeleteMetricFilter` || EventName==`DeleteLogGroup`].{EventTime:EventTime,EventName:EventName,EventSource:EventSource,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 

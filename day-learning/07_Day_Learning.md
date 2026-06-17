@@ -457,6 +457,20 @@ aws s3api get-bucket-policy \
   --no-cli-pager
 ```
 
+読みやすく確認する場合は、JSON整形スクリプトへ渡す。
+
+```bash
+aws s3api get-bucket-policy \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --bucket "$BUCKET" \
+  --expected-bucket-owner "$EXPECTED_ACCOUNT_ID" \
+  --query Policy \
+  --output text \
+  --no-cli-pager \
+  | ./format_json_awk.sh /dev/stdin
+```
+
 証跡保存:
 
 ```bash
@@ -523,7 +537,7 @@ aws cloudtrail lookup-events \
   --region "$REGION" \
   --lookup-attributes AttributeKey=ResourceName,AttributeValue="$BUCKET" \
   --query 'Events[?EventName==`PutBucketPolicy` || EventName==`DeleteBucketPolicy`].{EventTime:EventTime,EventName:EventName,Username:Username,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -592,7 +606,7 @@ aws cloudtrail lookup-events \
   --region "$REGION" \
   --lookup-attributes AttributeKey=EventId,AttributeValue="$EVENT_ID" \
   --query 'Events[0].{EventTime:EventTime,EventName:EventName,Username:Username,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -631,7 +645,7 @@ aws cloudtrail lookup-events \
   --region "$REGION" \
   --lookup-attributes AttributeKey=EventId,AttributeValue="$EVENT_ID" \
   --query 'Events[0].{EventTime:EventTime,EventName:EventName,EventSource:EventSource,Username:Username,ReadOnly:ReadOnly,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -724,7 +738,7 @@ aws cloudtrail describe-trails \
   --region "$REGION" \
   --include-shadow-trails \
   --query 'trailList[].{Name:Name,HomeRegion:HomeRegion,MultiRegion:IsMultiRegionTrail,LoggingS3Bucket:S3BucketName,LogFileValidation:LogFileValidationEnabled,CloudWatchLogsLogGroupArn:CloudWatchLogsLogGroupArn,CloudWatchLogsRoleArn:CloudWatchLogsRoleArn}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -765,7 +779,7 @@ aws cloudtrail get-trail-status \
   --profile "$PROFILE" \
   --region "$REGION" \
   --name "$TRAIL_NAME" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -804,7 +818,7 @@ aws cloudtrail get-event-selectors \
   --profile "$PROFILE" \
   --region "$REGION" \
   --trail-name "$TRAIL_NAME" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -852,7 +866,7 @@ aws cloudtrail describe-trails \
   --region "$REGION" \
   --include-shadow-trails \
   --query 'trailList[].{Name:Name,HomeRegion:HomeRegion,CloudWatchLogsLogGroupArn:CloudWatchLogsLogGroupArn,CloudWatchLogsRoleArn:CloudWatchLogsRoleArn}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -909,7 +923,7 @@ aws logs describe-log-groups \
   --profile "$PROFILE" \
   --region "$REGION" \
   --query 'logGroups[].{LogGroupName:logGroupName,RetentionDays:retentionInDays,KmsKeyId:kmsKeyId,StoredBytes:storedBytes}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -960,7 +974,7 @@ aws logs describe-metric-filters \
   --profile "$PROFILE" \
   --region "$REGION" \
   --query 'metricFilters[].{FilterName:filterName,LogGroupName:logGroupName,FilterPattern:filterPattern}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1027,7 +1041,7 @@ aws cloudwatch describe-alarms \
   --profile "$PROFILE" \
   --region "$REGION" \
   --query 'MetricAlarms[].{AlarmName:AlarmName,State:StateValue,ActionsEnabled:ActionsEnabled,Namespace:Namespace,MetricName:MetricName}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1105,7 +1119,7 @@ aws logs start-query \
   --start-time <start-epoch-seconds> \
   --end-time <end-epoch-seconds> \
   --query-string 'fields @timestamp, eventName, userIdentity.arn, sourceIPAddress, requestParameters.bucketName, errorCode | filter eventName in ["PutBucketPolicy", "DeleteBucketPolicy"] | sort @timestamp desc | limit 50' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
