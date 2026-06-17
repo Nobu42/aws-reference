@@ -251,6 +251,9 @@ aws cloudtrail get-event-selectors \
   --output table
 
 echo "=== Recent CloudTrail log objects ==="
+# TrailはS3へ数分遅れてログを配信する。
+# ここでは実際にログ保存先バケットへオブジェクトが届いているかを目視確認する。
+# 作成直後に0件でも、LatestDeliveryErrorがなく数分後に増えれば正常である。
 aws s3api list-objects-v2 \
   --profile "$PROFILE" \
   --region "$REGION" \

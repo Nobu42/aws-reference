@@ -233,6 +233,8 @@ ATTEMPT=1
 while [ "$ATTEMPT" -le 6 ]; do
   echo "Emptying Trail log bucket. Attempt: $ATTEMPT/6"
 
+  # Trail削除直後でも遅延配信されたログがS3へ追加されることがある。
+  # そのため、バケットを空にして削除する処理を複数回試す。
   aws s3 rm "s3://$TRAIL_BUCKET" \
     --profile "$PROFILE" \
     --region "$REGION" \

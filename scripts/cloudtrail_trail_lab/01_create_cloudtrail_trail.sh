@@ -338,6 +338,8 @@ if [ "$IS_LOGGING" != "True" ]; then
 fi
 
 # 実行者が確認しやすいよう、主要な稼働状態だけを表形式で表示する。
+# ここでIsLogging=Trueなら、Trail本体はログ記録を開始している。
+# LatestDeliveryTimeは作成直後は空のことがあり、数分後に02_checkで再確認する。
 aws cloudtrail get-trail-status \
   --profile "$PROFILE" \
   --region "$REGION" \
