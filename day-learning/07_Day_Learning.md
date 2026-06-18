@@ -581,12 +581,18 @@ EVENT_ID=$(aws cloudtrail lookup-events \
   --profile "$PROFILE" \
   --region "$REGION" \
   --lookup-attributes AttributeKey=ResourceName,AttributeValue="$BUCKET" \
-  --query 'Events[?EventName==`PutBucketPolicy`] | [0].EventId' \
+  --query 'Events[?EventName==`PutBucketPolicy`].EventId' \
   --output text \
-  --no-cli-pager)
+  --no-cli-pager \
+  | tr '\t' '\n' \
+  | awk 'NF { print; exit }')
 
 echo "EVENT_ID=$EVENT_ID"
 ```
+
+`lookup-events`はページングされるAPIである。`--output text`と`[0]`を組み合わせると、ページごとに先頭要素が評価され、Event IDが複数行返る場合がある。
+
+そのため、ここではEvent ID一覧を取得したあと、`tr`と`awk`で最初の1件だけを`EVENT_ID`へ格納する。
 
 ### Event ID必須チェック
 
