@@ -1,0 +1,29 @@
+{
+    "MetricAlarms": [
+        {
+            "AlarmName": "nobu-iac-lab-security-console-login-without-mfa-lab",
+            "AlarmArn": "arn:aws:cloudwatch:ap-northeast-1:445405559057:alarm:nobu-iac-lab-security-console-login-without-mfa-lab",
+            "AlarmDescription": "Lab detection for successful AWS Management Console login without MFA",
+            "AlarmConfigurationUpdatedTimestamp": "2026-06-19T05:08:50.167000+09:00",
+            "ActionsEnabled": false,
+            "OKActions": [],
+            "AlarmActions": [],
+            "InsufficientDataActions": [],
+            "StateValue": "OK",
+            "StateReason": "Threshold Crossed: no datapoints were received for 1 period and 1 missing datapoint was treated as [NonBreaching].",
+            "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-06-18T21:25:13.426+0000\",\"statistic\":\"Sum\",\"period\":60,\"recentDatapoints\":[],\"threshold\":1.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-06-18T21:24:00.000+0000\"}]}",
+            "StateUpdatedTimestamp": "2026-06-19T06:25:13.429000+09:00",
+            "MetricName": "ConsoleLoginWithoutMFA",
+            "Namespace": "NobuIacLab/SecurityLab",
+            "Statistic": "Sum",
+            "Dimensions": [],
+            "Period": 60,
+            "EvaluationPeriods": 1,
+            "Threshold": 1.0,
+            "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+            "TreatMissingData": "notBreaching",
+            "StateTransitionedTimestamp": "2026-06-19T06:25:13.429000+09:00"
+        }
+    ],
+    "CompositeAlarms": []
+}

@@ -1,0 +1,28 @@
+{
+    "MetricAlarms": [
+        {
+            "AlarmName": "nobu-iac-lab-security-console-login-without-mfa-lab",
+            "AlarmArn": "arn:aws:cloudwatch:ap-northeast-1:445405559057:alarm:nobu-iac-lab-security-console-login-without-mfa-lab",
+            "AlarmDescription": "Lab detection for successful AWS Management Console login without MFA",
+            "AlarmConfigurationUpdatedTimestamp": "2026-06-19T05:08:50.167000+09:00",
+            "ActionsEnabled": false,
+            "OKActions": [],
+            "AlarmActions": [],
+            "InsufficientDataActions": [],
+            "StateValue": "INSUFFICIENT_DATA",
+            "StateReason": "Unchecked: Initial alarm creation",
+            "StateUpdatedTimestamp": "2026-06-19T05:08:50.167000+09:00",
+            "MetricName": "ConsoleLoginWithoutMFA",
+            "Namespace": "NobuIacLab/SecurityLab",
+            "Statistic": "Sum",
+            "Dimensions": [],
+            "Period": 60,
+            "EvaluationPeriods": 1,
+            "Threshold": 1.0,
+            "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+            "TreatMissingData": "notBreaching",
+            "StateTransitionedTimestamp": "2026-06-19T05:08:50.167000+09:00"
+        }
+    ],
+    "CompositeAlarms": []
+}

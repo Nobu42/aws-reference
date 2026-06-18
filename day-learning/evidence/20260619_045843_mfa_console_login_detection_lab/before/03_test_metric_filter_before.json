@@ -1,0 +1,9 @@
+{
+    "matches": [
+        {
+            "eventNumber": 1,
+            "eventMessage": "{\"eventName\":\"ConsoleLogin\",\"responseElements\":{\"ConsoleLogin\":\"Success\"},\"additionalEventData\":{\"MFAUsed\":\"No\"}}",
+            "extractedValues": {}
+        }
+    ]
+}

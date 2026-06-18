@@ -1,0 +1,10 @@
+{
+    "logStreams": [
+        {
+            "logStreamName": "manual-test-events",
+            "creationTime": 1781813188037,
+            "arn": "arn:aws:logs:ap-northeast-1:445405559057:log-group:/nobu-iac-lab/security/mfa-console-login-lab:log-stream:manual-test-events",
+            "storedBytes": 0
+        }
+    ]
+}

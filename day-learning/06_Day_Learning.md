@@ -949,6 +949,8 @@ Sumに1以上が表示される
 
 Metricが反映された後、Alarm状態を確認する。
 
+`describe-alarms`は現在の状態を確認するコマンドである。テストログ投入後に一度`ALARM`になっても、次の評価期間でデータがなくなると、`treat-missing-data=notBreaching`により`OK`へ戻る場合がある。
+
 ```bash
 aws cloudwatch describe-alarms \
   --profile "$PROFILE" \
@@ -971,6 +973,37 @@ aws cloudwatch describe-alarms \
   > "$EVIDENCE_DIR/test/14_alarm_after_test.json"
 ```
 
+### Alarm履歴確認
+
+現在状態が`OK`へ戻っている場合でも、Alarm履歴を見ると、過去に`ALARM`へ遷移したかを確認できる。
+
+```bash
+aws cloudwatch describe-alarm-history \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --alarm-name "$ALARM_NAME" \
+  --history-item-type StateUpdate \
+  --max-records 20 \
+  --query 'AlarmHistoryItems[].{Timestamp:Timestamp,Summary:HistorySummary}' \
+  --output json \
+  --no-cli-pager
+```
+
+### Alarm履歴の証跡保存
+
+```bash
+aws cloudwatch describe-alarm-history \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --alarm-name "$ALARM_NAME" \
+  --history-item-type StateUpdate \
+  --max-records 20 \
+  --query 'AlarmHistoryItems[].{Timestamp:Timestamp,Summary:HistorySummary}' \
+  --output json \
+  --no-cli-pager \
+  > "$EVIDENCE_DIR/test/14_alarm_history_after_test.json"
+```
+
 ### 期待値
 
 ```text
@@ -981,7 +1014,7 @@ ActionsEnabled:
 False
 ```
 
-検知後、次の評価期間でデータがなくなると、`treat-missing-data=notBreaching`により`OK`へ戻る場合がある。
+`describe-alarms`で現在状態が`OK`の場合でも、`describe-alarm-history`で`OK`から`ALARM`、または`ALARM`から`OK`への状態遷移が確認できれば、Alarmが評価された証跡として扱える。
 
 取得するスクリーンショット:
 
@@ -1345,6 +1378,7 @@ Metric FilterとAlarmを設定する
 | 12 | テスト | Filter一致ログ | `12_filter_mfa_without_login_result.json` |
 | 13 | テスト | Custom Metric | `13_metric_statistics.json` |
 | 14 | テスト | Alarm状態 | `14_alarm_after_test.json` |
+| 14-2 | テスト | Alarm状態履歴 | `14_alarm_history_after_test.json` |
 | 15 | 変更後 | Log Group | `15_log_group_after.json` |
 | 16 | 変更後 | Metric Filter | `16_metric_filter_after.json` |
 | 17 | 変更後 | Alarm | `17_alarm_after.json` |
@@ -1647,6 +1681,7 @@ CloudTrailで削除操作の実行者、時刻、対象を確認する。
 - [ ] MFAなしログインイベントがFilter Patternへ一致することを確認した
 - [ ] Custom Metricを確認した
 - [ ] Alarm状態を確認した
+- [ ] Alarm状態履歴を確認した
 - [ ] CloudTrailで設定変更履歴を確認した
 - [ ] 変更後設定と証跡を確認した
 - [ ] Alarm、Metric Filter、Log Groupを削除した

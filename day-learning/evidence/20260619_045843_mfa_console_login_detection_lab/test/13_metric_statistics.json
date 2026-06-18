@@ -1,0 +1,10 @@
+{
+    "Label": "ConsoleLoginWithoutMFA",
+    "Datapoints": [
+        {
+            "Timestamp": "2026-06-19T06:18:00+09:00",
+            "Sum": 1.0,
+            "Unit": "Count"
+        }
+    ]
+}
