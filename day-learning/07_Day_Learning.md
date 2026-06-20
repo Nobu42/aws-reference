@@ -249,8 +249,10 @@ echo "Required variable check OK."
 ## 5. 証跡保存用ディレクトリの作成
 
 ```bash
+DAY_LEARNING_DIR="/Users/nobu/aws-reference/day-learning"
 WORK_NAME="cloudtrail_cloudwatch_investigation"
-EVIDENCE_DIR="evidence/$(date +%Y%m%d_%H%M%S)_${WORK_NAME}"
+EVIDENCE_DIR="${DAY_LEARNING_DIR}/evidence/$(date +%Y%m%d_%H%M%S)_${WORK_NAME}"
+FORMAT_JSON_AWK="${DAY_LEARNING_DIR}/format_json_awk.sh"
 
 mkdir -p \
   "$EVIDENCE_DIR/00_metadata" \
@@ -262,6 +264,8 @@ mkdir -p \
 
 echo "Evidence directory: $EVIDENCE_DIR"
 ```
+
+`EVIDENCE_DIR`は絶対パスで定義する。途中で`cd`しても、証跡の保存先が変わらないようにするためである。
 
 ### 証跡ディレクトリ確認
 
@@ -468,7 +472,7 @@ aws s3api get-bucket-policy \
   --query Policy \
   --output text \
   --no-cli-pager \
-  | ./format_json_awk.sh /dev/stdin
+  | "$FORMAT_JSON_AWK" /dev/stdin
 ```
 
 証跡保存:
@@ -660,7 +664,7 @@ aws cloudtrail lookup-events \
 生イベントを整形し、入れ子構造を維持したまま確認する。
 
 ```bash
-./format_json_awk.sh \
+"$FORMAT_JSON_AWK" \
   "$EVIDENCE_DIR/cloudtrail/02_put_bucket_policy_event_raw.json" \
   "$EVIDENCE_DIR/cloudtrail/03_put_bucket_policy_event_formatted.json"
 
