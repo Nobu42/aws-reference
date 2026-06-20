@@ -30,6 +30,7 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | 検証後にリソースを削除したい | [cleanup_network.sh](./scripts/cleanup_network.sh)、[check_cleanup.sh](./scripts/check_cleanup.sh) |
 | 作業手順書テンプレートを使いたい | [Markdown版](./docs/templates/s3_bucket_policy_change_procedure_template.md)、[Excel版](./docs/templates/s3_bucket_policy_change_procedure_template.xlsx) |
 | 案件初日までの学習計画を確認したい | [2026-06-05 to 2026-06-30 案件対策ロードマップ](./docs/roadmaps/2026-06-05_to_2026-06-30_project_preparation_roadmap.md) |
+| Day 1〜7を一気に復習したい | [Day 1-7 S3・CloudTrail・CloudWatch一気通し復習](./day-learning/01-07_Day_Learning_Review.md) |
 | 日別の案件対策ドリルを進めたい | [Day 1 S3確認](./day-learning/01_Day_Learning.md)、[Day 2 Bucket Policy変更](./day-learning/02_Day_Learning.md)、[Day 3 CloudTrail](./day-learning/03_Day_Learning.md)、[Day 4 CloudWatch](./day-learning/04_Day_Learning.md)、[Day 5 MFAなしログイン検知設計](./day-learning/05_Day_Learning.md)、[Day 6 MFAなしログイン検知ハンズオン](./day-learning/06_Day_Learning.md)、[Day 7 CloudTrail・CloudWatch総合調査](./day-learning/07_Day_Learning.md)、[Day 8 GuardDuty基礎確認](./day-learning/08_Day_Learning.md)、[Day 9 GuardDutyサンプルFinding調査](./day-learning/09_Day_Learning.md)、[Day 10 VPC・Route Table確認](./day-learning/10_Day_Learning.md)、[Day 11 Security Group・Network ACL確認](./day-learning/11_Day_Learning.md)、[Day 12 Security Group変更影響調査](./day-learning/12_Day_Learning.md)、[Day 13 Security Group変更ドリル](./day-learning/13_Day_Learning.md)、[Day 14 DNS・VPC Endpoint・Flow Logs確認](./day-learning/14_Day_Learning.md)、[Day 15 EC2・RDS Security確認](./day-learning/15_Day_Learning.md)、[Day 16 Lambda Security確認](./day-learning/16_Day_Learning.md)、[Day 17 運用シェル基礎・読解演習](./day-learning/17_Day_Learning.md)、[Day 18 AWSセキュリティ横断チェック](./day-learning/18_Day_Learning.md)、[Day 19 作業手順書・証跡整理](./day-learning/19_Day_Learning.md)、[Day 20 模擬作業1 S3 Bucket Policy変更](./day-learning/20_Day_Learning.md)、[Day 21 模擬作業2 GuardDuty・CloudTrail横断調査](./day-learning/21_Day_Learning.md)、[Day 22 案件初日準備・受入情報整理](./day-learning/22_Day_Learning.md)、[Day 23 最終リハーサル・説明練習・公開前確認](./day-learning/23_Day_Learning.md)、[Day 24 構成図読解・影響範囲整理](./day-learning/24_Day_Learning.md)、[Day 25 予備日](./day-learning/25_Day_Learning.md)、[Day 26 現場指示型・総合演習](./day-learning/26_Day_Learning.md) |
 
 ## 日別学習
@@ -38,6 +39,7 @@ AWS Webコンソール、AWS CLI、証跡取得、結果報告を組み合わせ
 
 | Day | テーマ | リンク |
 | :--- | :--- | :--- |
+| Review | Day 1〜7 S3・CloudTrail・CloudWatch一気通し復習 | [01-07_Day_Learning_Review.md](./day-learning/01-07_Day_Learning_Review.md) |
 | Day 1 | S3セキュリティ設定確認 | [01_Day_Learning.md](./day-learning/01_Day_Learning.md) |
 | Day 2 | S3 Bucket Policy変更・テスト・切り戻し | [02_Day_Learning.md](./day-learning/02_Day_Learning.md) |
 | Day 3 | CloudTrail基礎・変更履歴調査 | [03_Day_Learning.md](./day-learning/03_Day_Learning.md) |

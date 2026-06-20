@@ -2,16 +2,22 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 8は既存GuardDuty DetectorとFindingを読み取り専用で確認するハンズオンである。AWSリソースは新規作成しないが、Detector、Finding、関連CloudTrailを実際にCLIとGUIで確認する。
+Day 8はGuardDuty DetectorとFindingを確認するハンズオンである。
+
+実案件ではGuardDutyを勝手に有効化しない。まず既存Detector、Finding、通知連携を読み取り確認する。
+
+一方、自分の学習用AWSアカウントでは、Detectorが存在しないとFinding確認が空振りになるため、Day 8の中でGuardDuty Detectorを一時的に有効化し、Sample Findingを作成して調査する。
 
 ```text
 All_Setup.sh: 実行しない
 Ansible: 実行しない
 CloudTrail一時Trail: 作成しない
 S3 Data Event: 有効化しない
+GuardDuty Detector: 存在しない場合のみDay 8内で一時作成する
+GuardDuty Sample Finding: Day 8内で作成して確認する
 ```
 
-GuardDuty Detectorが存在しない場合は、勝手に有効化せず、Detector未設定として記録する。
+実案件では、GuardDuty Detectorが存在しない場合に勝手に有効化しない。自分の`learning`アカウントであることを確認した場合のみ、このDay 8手順の中で一時的に有効化する。
 
 実行場所と作業対象アカウントを確認する。
 
@@ -38,7 +44,7 @@ aws guardduty list-detectors \
 
 Amazon GuardDutyのDetector、Finding、Severity、対象リソース、Actionを確認し、Findingを受け取った際の一次調査と報告を行える状態を目指す。
 
-Day 8では、GuardDutyの設定変更やサンプルFinding作成は行わない。既存設定と既存Findingを読み取り、次の問いへ回答できるようにする。
+Day 8では、自分の学習用AWSアカウントに限り、GuardDuty Detectorの一時有効化とSample Finding作成を行う。既存Detectorがある場合は、そのDetectorを読み取り確認する。
 
 ```text
 GuardDutyは対象リージョンで有効か。
@@ -46,6 +52,7 @@ GuardDutyは対象リージョンで有効か。
 Findingの重要度と対象リソースは何か。
 自分のリソースは攻撃対象か、不審動作を行う側か。
 最初に何を確認し、誰へ何を報告するか。
+Day 8で作成したDetectorであれば、最後に削除できるか。
 ```
 
 関連資料:
@@ -71,6 +78,10 @@ Resource Role、Action、初回・最終検知時刻を確認し、
 一次調査結果と追加確認事項を報告してください。
 
 GuardDuty設定変更、Finding Archive、リソース隔離は行わないでください。
+
+自分の学習環境でDetectorが存在しない場合は、
+Day 8の手順に従ってDetectorを一時作成し、Sample Findingで調査手順を確認してください。
+既存Detectorが存在した場合は削除しないでください。
 ```
 
 ## 今日の確認順序
@@ -78,18 +89,21 @@ GuardDuty設定変更、Finding Archive、リソース隔離は行わないで�
 1. AWSアカウントとリージョンを確認する
 2. 証跡保存先を準備する
 3. GuardDuty Detectorの存在を確認する
-4. Detector状態とFinding発行頻度を確認する
-5. Protection Plan・Featureの状態を確認する
-6. 未Archive Finding件数を確認する
-7. High以上のFindingを優先確認する
-8. Severity別の件数を確認する
-9. 調査対象Findingを1件選択する
-10. Finding詳細を確認する
-11. Resource RoleとAction Typeを確認する
-12. 対象リソースと関連ログへ横展開する
-13. EventBridge・通知連携の有無を確認する
-14. 証跡、判断、追加確認事項を整理する
-15. Teams報告文を作成する
+4. Detectorがなければ学習用に一時作成する
+5. Detector状態とFinding発行頻度を確認する
+6. Protection Plan・Featureの状態を確認する
+7. Sample Findingを作成する
+8. 未Archive Finding件数を確認する
+9. High以上のFindingを優先確認する
+10. Severity別の件数を確認する
+11. 調査対象Findingを1件選択する
+12. Finding詳細を確認する
+13. Resource RoleとAction Typeを確認する
+14. 対象リソースと関連ログへ横展開する
+15. EventBridge・通知連携の有無を確認する
+16. 証跡、判断、追加確認事項を整理する
+17. Day 8でDetectorを作成した場合のみ削除する
+18. Teams報告文を作成する
 
 ## 今日の作業範囲
 
@@ -99,16 +113,17 @@ GuardDuty設定変更、Finding Archive、リソース隔離は行わないで�
 | リージョン | `ap-northeast-1` |
 | AWS CLIプロファイル | `learning` |
 | 主な確認対象 | Detector、Feature、Finding、Severity、Resource、Action |
-| Finding対象 | 未Archive Findingを優先 |
-| 設定変更 | なし |
+| Finding対象 | Sample Findingと未Archive Finding |
+| 設定変更 | 学習用Detectorの一時作成、Sample Finding作成、Day 8作成分のみ削除 |
 
 ## 今日実行しない操作
 
 次の操作は検知、課金、通知、インシデント対応、業務へ影響するため実行しない。
 
-- GuardDuty Detectorの作成、更新、無効化、削除
+- 既存GuardDuty Detectorの更新、無効化、削除
+- Day 8手順外でのGuardDuty Detector作成
 - Protection Plan・Featureの有効化、無効化
-- サンプルFindingの作成
+- Day 8手順外でのSample Finding作成
 - FindingのArchive、Unarchive
 - Finding Feedbackの変更
 - EventBridge Ruleや通知先の作成、更新、削除
@@ -232,7 +247,8 @@ GuardDuty Severityは、CLIとAPIでは1.0から10.0の数値で表される。
 ## 作業開始条件
 
 - 対象AWSアカウントとリージョンが明確である
-- 読み取り専用の調査である
+- 実案件では読み取り専用の調査である
+- 自分の学習用AWSアカウントでは、Day 8手順内に限りDetector一時作成を行う
 - Findingを確認できる権限がある
 - 証跡保存先が準備されている
 - Findingに機密情報が含まれる可能性を理解している
@@ -244,11 +260,13 @@ GuardDuty Severityは、CLIとAPIでは1.0から10.0の数値で表される。
 - IAM Access Keyや管理者権限に関係するFindingを確認した
 - 本番重要リソースが`ACTOR`として検知されている
 - データ流出や外部への不審通信が疑われる
-- GuardDuty Detectorが無効または存在しない
+- 実案件でGuardDuty Detectorが無効または存在しない
 - 想定外のリージョンでFindingが発生している
 - 調査のために設定変更やリソース隔離が必要になった
 
 中止・報告条件へ該当した場合は、独断でArchive、隔離、停止、権限変更を行わず、Findingの事実と緊急度を早めに共有する。
+
+自分の`learning`アカウントでDetectorが存在しない場合は、中止ではなくDay 8の手順に従って一時作成する。
 
 ---
 
@@ -258,19 +276,20 @@ GuardDuty Severityは、CLIとAPIでは1.0から10.0の数値で表される。
 PROFILE="learning"
 REGION="ap-northeast-1"
 EXPECTED_ACCOUNT_ID="445405559057"
+CREATED_DETECTOR_BY_DAY8="no"
 ```
 
 ### 変数確認
 
 ```bash
-printf 'PROFILE=%s\nREGION=%s\nEXPECTED_ACCOUNT_ID=%s\n' \
-  "$PROFILE" "$REGION" "$EXPECTED_ACCOUNT_ID"
+printf 'PROFILE=%s\nREGION=%s\nEXPECTED_ACCOUNT_ID=%s\nCREATED_DETECTOR_BY_DAY8=%s\n' \
+  "$PROFILE" "$REGION" "$EXPECTED_ACCOUNT_ID" "$CREATED_DETECTOR_BY_DAY8"
 ```
 
 ### 必須変数チェック
 
 ```bash
-for VARIABLE_NAME in PROFILE REGION EXPECTED_ACCOUNT_ID
+for VARIABLE_NAME in PROFILE REGION EXPECTED_ACCOUNT_ID CREATED_DETECTOR_BY_DAY8
 do
   if [ -z "${!VARIABLE_NAME:-}" ]; then
     echo "ERROR: $VARIABLE_NAME is not set."
@@ -292,9 +311,11 @@ EVIDENCE_DIR="evidence/$(date +%Y%m%d_%H%M%S)_${WORK_NAME}"
 mkdir -p \
   "$EVIDENCE_DIR/00_metadata" \
   "$EVIDENCE_DIR/detector" \
+  "$EVIDENCE_DIR/change" \
   "$EVIDENCE_DIR/findings" \
   "$EVIDENCE_DIR/investigation" \
   "$EVIDENCE_DIR/integration" \
+  "$EVIDENCE_DIR/rollback" \
   "$EVIDENCE_DIR/report" \
   "$EVIDENCE_DIR/screenshots"
 
@@ -317,9 +338,11 @@ find "$EVIDENCE_DIR" \
 |---|---|
 | `00_metadata` | Caller Identity、作業対象 |
 | `detector` | Detector、Feature、複数リージョン確認 |
+| `change` | Day 8で実施したDetector一時作成、Sample Finding作成 |
 | `findings` | Finding一覧、統計、高重要度Finding |
 | `investigation` | 調査対象Finding詳細、関連リソース、ログ |
 | `integration` | EventBridge、Security Hubなどの連携確認 |
+| `rollback` | Day 8で作成したDetectorを削除した証跡 |
 | `report` | 調査結果、証跡一覧、Teams報告 |
 | `screenshots` | Webコンソール証跡 |
 
@@ -434,7 +457,61 @@ Detector IDなし:
 対象リージョンでGuardDutyが未有効化、または確認権限がない可能性がある。
 ```
 
-Detectorが存在しない場合は、Day 8のFinding確認を続行できない。勝手に有効化せず、監視対象リージョンとGuardDuty管理方式を確認する。
+実案件でDetectorが存在しない場合は、勝手に有効化せず、監視対象リージョンとGuardDuty管理方式を確認する。
+
+自分の`learning`アカウントでDetectorが存在しない場合は、次の手順でDay 8用に一時作成する。
+
+## 9.3 ラボ用Detectorを一時作成する
+
+この手順は、自分の学習用AWSアカウントでのみ実行する。
+
+既存Detectorがある場合は作成しない。既存DetectorはDay 8の最後にも削除しない。
+
+```bash
+DETECTOR_ID_BEFORE=$(aws guardduty list-detectors \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --query 'DetectorIds[0]' \
+  --output text \
+  --no-cli-pager)
+
+if [ "$DETECTOR_ID_BEFORE" = "None" ] || [ -z "$DETECTOR_ID_BEFORE" ]; then
+  echo "GuardDuty Detector was not found. Create a temporary Detector for Day 8."
+  CREATED_DETECTOR_BY_DAY8="yes"
+
+  aws guardduty create-detector \
+    --profile "$PROFILE" \
+    --region "$REGION" \
+    --enable \
+    --finding-publishing-frequency FIFTEEN_MINUTES \
+    --output json \
+    --no-cli-pager \
+    > "$EVIDENCE_DIR/change/01_create_detector.json"
+else
+  echo "Existing GuardDuty Detector found: $DETECTOR_ID_BEFORE"
+  CREATED_DETECTOR_BY_DAY8="no"
+fi
+
+printf 'CREATED_DETECTOR_BY_DAY8=%s\n' "$CREATED_DETECTOR_BY_DAY8" \
+  > "$EVIDENCE_DIR/00_metadata/02_created_detector_by_day8.txt"
+```
+
+作成後、Detector一覧を再確認する。
+
+```bash
+aws guardduty list-detectors \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --output json \
+  --no-cli-pager \
+  > "$EVIDENCE_DIR/detector/01_list_detectors_after_create_check.json"
+```
+
+確認ポイント:
+
+- `CREATED_DETECTOR_BY_DAY8=yes`の場合だけ、Day 8の最後にDetectorを削除する
+- `CREATED_DETECTOR_BY_DAY8=no`の場合は、既存Detectorなので削除しない
+- GuardDutyはリージョン単位で有効化されるため、対象リージョンを間違えない
 
 ---
 
@@ -620,6 +697,62 @@ done
 - Organizationsで自動有効化されているか
 
 対象リージョン一覧が未確認の場合は、任意のリージョンを勝手に有効化せず、要確認事項へ残す。
+
+---
+
+## 13.5 Sample Findingを作成する
+
+この手順は、自分の学習用AWSアカウントでのみ実行する。
+
+Sample Findingは、GuardDutyの検知結果を読む練習、通知連携の確認、報告文作成の練習に使用するテスト用Findingである。実際の侵害を示すものではない。
+
+実案件では、Sample Finding作成可否を事前に確認する。通知連携やチケット連携がある環境で不用意に作成すると、関係者へアラートが飛ぶ可能性がある。
+
+```bash
+aws guardduty create-sample-findings \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --detector-id "$DETECTOR_ID" \
+  --no-cli-pager
+
+echo "Sample Findings were requested at $(date '+%Y-%m-%d %H:%M:%S %z')." \
+  > "$EVIDENCE_DIR/change/02_create_sample_findings_result.txt"
+```
+
+Sample Findingが反映されるまで少し待つ。
+
+```bash
+sleep 30
+```
+
+作成後のFinding ID一覧を保存する。
+
+```bash
+aws guardduty list-findings \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --detector-id "$DETECTOR_ID" \
+  --max-results 50 \
+  --output json \
+  --no-cli-pager \
+  > "$EVIDENCE_DIR/findings/00_finding_ids_after_sample_create.json"
+```
+
+結果の読み方:
+
+```text
+Finding IDあり:
+Sample Findingまたは既存Findingが存在する。以降のFinding確認へ進む。
+
+Finding IDなし:
+反映待ちの可能性がある。数分待ってからlist-findingsを再実行する。
+```
+
+注意:
+
+- Sample Findingは調査練習用であり、実際の侵害ではない
+- ただし、報告文や証跡ではSampleであることを明記する
+- 既存Findingがある環境では、Sample Findingと実Findingを混同しない
 
 ---
 
@@ -1496,6 +1629,86 @@ Day 8は確認専用であり、次の項目を見つけても即時変更しな
 
 ---
 
+## 31.1 ラボ用GuardDuty設定の後片付け
+
+Day 8でGuardDuty Detectorを一時作成した場合だけ、最後に削除する。
+
+既存Detectorが最初から存在していた場合は削除しない。
+
+まず、Day 8で作成したDetectorかどうかを確認する。
+
+```bash
+cat "$EVIDENCE_DIR/00_metadata/02_created_detector_by_day8.txt"
+```
+
+必要に応じて変数へ読み戻す。
+
+```bash
+CREATED_DETECTOR_BY_DAY8=$(sed -n 's/^CREATED_DETECTOR_BY_DAY8=//p' \
+  "$EVIDENCE_DIR/00_metadata/02_created_detector_by_day8.txt")
+
+DETECTOR_ID=$(aws guardduty list-detectors \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --query 'DetectorIds[0]' \
+  --output text \
+  --no-cli-pager)
+
+echo "CREATED_DETECTOR_BY_DAY8=$CREATED_DETECTOR_BY_DAY8"
+echo "DETECTOR_ID=$DETECTOR_ID"
+```
+
+`CREATED_DETECTOR_BY_DAY8=yes`の場合だけ削除する。
+
+```bash
+if [ "$CREATED_DETECTOR_BY_DAY8" = "yes" ]; then
+  echo "Delete temporary GuardDuty Detector created by Day 8: $DETECTOR_ID"
+
+  aws guardduty delete-detector \
+    --profile "$PROFILE" \
+    --region "$REGION" \
+    --detector-id "$DETECTOR_ID" \
+    --no-cli-pager
+
+  echo "Temporary GuardDuty Detector deleted at $(date '+%Y-%m-%d %H:%M:%S %z')." \
+    > "$EVIDENCE_DIR/rollback/01_delete_detector_result.txt"
+else
+  echo "SKIP: Existing GuardDuty Detector was used. Do not delete it."
+  echo "Existing Detector was not deleted." \
+    > "$EVIDENCE_DIR/rollback/01_delete_detector_result.txt"
+fi
+```
+
+削除後のDetector一覧を確認する。
+
+```bash
+aws guardduty list-detectors \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --output json \
+  --no-cli-pager \
+  > "$EVIDENCE_DIR/rollback/02_list_detectors_after_cleanup.json"
+```
+
+読み方:
+
+```text
+CREATED_DETECTOR_BY_DAY8=yes かつ Detector IDなし:
+Day 8で作成したDetectorは削除済み。
+
+CREATED_DETECTOR_BY_DAY8=no かつ Detector IDあり:
+既存Detectorを使っただけなので、そのままで正しい。
+```
+
+注意:
+
+- GuardDutyは有効化中に料金が発生する可能性がある
+- Sample Findingは検証用Findingであり、実侵害ではない
+- 既存Detectorがある環境では、Sample Findingを残すかArchiveするかは運用ルールに従う
+- 実案件ではDetector削除、Finding Archive、通知設定変更を独断で行わない
+
+---
+
 ## 32. セキュリティ上の注意点
 
 - FindingにはIPアドレス、ARN、Access Key ID、リソース情報が含まれる場合がある
@@ -1603,11 +1816,14 @@ Security Group変更、Access Key削除を行わない。
 - [ ] AWSアカウントとリージョンを確認した
 - [ ] 証跡保存用ディレクトリを作成した
 - [ ] GuardDuty Detectorの存在を確認した
+- [ ] Detectorがなかった場合、学習用として一時作成した
+- [ ] Day 8でDetectorを作成したかどうかを証跡へ残した
 - [ ] Detector IDを取得した
 - [ ] Detector Statusを確認した
 - [ ] Finding Publishing Frequencyを確認した
 - [ ] Protection Plan・Featureを確認した
 - [ ] 複数リージョンのDetectorを確認した
+- [ ] Sample Findingを作成した
 - [ ] 未Archive Finding ID一覧を確認した
 - [ ] High以上のFinding ID一覧を確認した
 - [ ] Severity別件数を確認した
@@ -1623,7 +1839,9 @@ Security Group変更、Access Key削除を行わない。
 - [ ] 証跡ファイルと空ファイルを確認した
 - [ ] 一次調査結果と追加確認事項を整理した
 - [ ] Teams報告文を作成した
-- [ ] 設定変更、Archive、隔離を実施していないことを確認した
+- [ ] Day 8で作成したDetectorのみ削除した
+- [ ] 既存Detectorを削除していないことを確認した
+- [ ] Archive、隔離、権限停止を実施していないことを確認した
 
 ## Day 8の完了条件
 
@@ -1632,6 +1850,9 @@ Security Group変更、Access Key削除を行わない。
 ```text
 GuardDutyはリージョン単位のDetectorで検知を管理するため、
 最初に対象AWSアカウント、リージョン、Detector Statusを確認する。
+
+自分の学習用AWSアカウントでは、Detectorが存在しない場合に限り
+一時的にGuardDutyを有効化し、Sample Findingで調査手順を確認する。
 
 未Archive FindingとHigh以上のFindingを優先して確認し、
 Finding Type、Severity、対象リソース、Resource Role、
@@ -1644,4 +1865,7 @@ CloudTrail、VPC Flow Logs、対象サービスの現在設定へ横展開し、
 CriticalやHighのFindingは早めに共有する。
 ただし、独断でArchive、リソース停止、隔離、権限変更を行わず、
 事実、影響、追加確認事項、証跡を報告して初動方針を相談する。
+
+Day 8でDetectorを作成した場合は、最後に削除する。
+既存Detectorがあった場合は削除しない。
 ```
