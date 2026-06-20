@@ -16,6 +16,83 @@ Day 6: Metric Filter / Alarmハンズオン
 Day 7: CloudTrail・CloudWatch総合調査
 ```
 
+## 開始前スクリプト早見表
+
+この復習ランブックでは、必要なものだけ起動・有効化する。
+
+```text
+S3設定確認だけ:
+  起動スクリプト不要
+
+Railsアプリ・CloudWatch Agentログも確認する:
+  All_Setup.sh
+  Ansible
+
+CloudTrail TrailとS3保存ログを確認する:
+  cloudtrail_trail_lab/01_create_cloudtrail_trail.sh
+  cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
+
+CloudTrailをCloudWatch Logsへ流してMetric Filter / Alarmを確認する:
+  cloudtrail_cloudwatch_logs_lab/01_enable_cloudtrail_cloudwatch_logs.sh
+  cloudtrail_cloudwatch_logs_lab/02_check_cloudtrail_cloudwatch_logs.sh
+
+Rails画像アップロードのPutObjectをCloudTrailで確認する:
+  cloudtrail_s3_data_events/01_enable_s3_data_events.sh
+  cloudtrail_s3_data_events/03_check_s3_putobject_events.sh
+  cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh
+```
+
+日次ラボ環境を起動する場合だけ実行する。
+
+```bash
+/Users/nobu/aws-reference/scripts/All_Setup.sh
+
+read -r -s -p "DB master password: " DB_MASTER_PASSWORD
+echo
+export DB_MASTER_PASSWORD
+
+/Users/nobu/aws-reference/ansible/run_site_local.sh
+```
+
+CloudTrail一時Trailを作成・確認する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/01_create_cloudtrail_trail.sh
+
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/02_check_cloudtrail_trail.sh
+```
+
+CloudTrailからCloudWatch Logsへの一時連携を作成・確認する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_cloudwatch_logs_lab/01_enable_cloudtrail_cloudwatch_logs.sh
+
+/Users/nobu/aws-reference/scripts/cloudtrail_cloudwatch_logs_lab/02_check_cloudtrail_cloudwatch_logs.sh
+```
+
+S3 Data Eventは`PutObject`確認を行う場合だけ有効化する。確認後は必ず切り戻す。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/01_enable_s3_data_events.sh \
+  nobu-iac-lab-trail \
+  nobu-terraform-iac-lab-upload
+
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/03_check_s3_putobject_events.sh \
+  nobu-iac-lab-trail \
+  nobu-terraform-iac-lab-upload
+
+S3_DATA_EVENTS_EVIDENCE_DIR=$(find /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events \
+  -type d \
+  -name '*_enable_s3_data_events' \
+  -exec test -s '{}/trail_name.txt' \; \
+  -print \
+  | sort -r \
+  | head -n 1)
+
+/Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
+  "$S3_DATA_EVENTS_EVIDENCE_DIR"
+```
+
 ## 0. 共通変数・作業ディレクトリ
 
 ```bash
@@ -1044,6 +1121,8 @@ find "$REVIEW_DIR" \
 
 ## 8. 終了処理
 
+## 8.1 現在のCloudTrail Event Selectorを確認する
+
 S3 Data Eventを任意手順で有効化した場合は、切り戻し済みであることを確認する。
 
 ```bash
@@ -1056,11 +1135,78 @@ aws cloudtrail get-event-selectors \
   --no-cli-pager
 ```
 
-Day 5のCloudTrail -> CloudWatch Logs連携、一時Trail、日次ラボ環境をまとめて戻す場合は実行する。
+`DataResourceCount`が`0`なら、S3 Data Eventは切り戻し済み。
+
+## 8.2 推奨: 一括後片付けスクリプト
+
+Day 5のCloudTrail -> CloudWatch Logs連携、一時Trail、日次ラボ環境をまとめて戻す場合は、次を実行する。
 
 ```bash
 /Users/nobu/aws-reference/day-learning/restore_and_cleanup_all.sh
 ```
+
+このスクリプトで行うこと:
+
+```text
+1. 最新のS3 Data Event有効化証跡を探してEvent Selectorを戻す
+2. 最新のCloudTrail -> CloudWatch Logs連携証跡を探して連携を戻す
+3. 一時Trailを削除する
+4. cleanup_network.shで日次ラボ環境を削除する
+```
+
+## 8.3 個別に後片付けする場合
+
+S3 Data Eventを戻す。
+
+```bash
+S3_DATA_EVENTS_EVIDENCE_DIR=$(find /Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events \
+  -type d \
+  -name '*_enable_s3_data_events' \
+  -exec test -s '{}/trail_name.txt' \; \
+  -print \
+  | sort -r \
+  | head -n 1)
+
+if [ -n "$S3_DATA_EVENTS_EVIDENCE_DIR" ]; then
+  /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
+    "$S3_DATA_EVENTS_EVIDENCE_DIR"
+else
+  echo "SKIP: S3 Data Event enable evidence was not found."
+fi
+```
+
+CloudTrail -> CloudWatch Logs連携を戻す。
+
+```bash
+CLOUDWATCH_LOGS_EVIDENCE_DIR=$(find /Users/nobu/aws-reference/evidence/cloudtrail_cloudwatch_logs_lab \
+  -type d \
+  -name '*_enable_cloudwatch_logs' \
+  -exec test -s '{}/trail_name.txt' \; \
+  -print \
+  | sort -r \
+  | head -n 1)
+
+if [ -n "$CLOUDWATCH_LOGS_EVIDENCE_DIR" ]; then
+  /Users/nobu/aws-reference/scripts/cloudtrail_cloudwatch_logs_lab/03_restore_cloudtrail_cloudwatch_logs.sh \
+    "$CLOUDWATCH_LOGS_EVIDENCE_DIR"
+else
+  echo "SKIP: CloudTrail CloudWatch Logs enable evidence was not found."
+fi
+```
+
+一時Trailを削除する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cloudtrail_trail_lab/03_delete_cloudtrail_trail.sh
+```
+
+日次ラボ環境を削除する。
+
+```bash
+/Users/nobu/aws-reference/scripts/cleanup_network.sh
+```
+
+## 8.4 後片付け後の確認
 
 残存リソースと料金を確認する。
 

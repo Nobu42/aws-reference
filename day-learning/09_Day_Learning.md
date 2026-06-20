@@ -2,16 +2,17 @@
 
 ## 学習開始前に実行するスクリプト
 
-Day 9は既存GuardDuty DetectorへサンプルFindingを作成し、調査、報告、Archiveまで実施するハンズオンである。ラボ用VPCやアプリケーションは使用しないが、GuardDutyの検証用データを作成する。
+Day 9はGuardDuty Detectorへ指定した1種類のサンプルFindingを作成し、調査、報告、Archiveまで実施するハンズオンである。ラボ用VPCやアプリケーションは使用しないが、GuardDutyの検証用データを作成する。
 
 ```text
 All_Setup.sh: 実行しない
 Ansible: 実行しない
 CloudTrail一時Trail: 作成しない
 S3 Data Event: 有効化しない
+GuardDuty Detector: 既存Detectorを使用する。存在しない場合のみDay 9内で一時作成する
 ```
 
-Detectorが存在しない場合は、Day 9のために自動作成せず、Day 8の確認結果とGuardDuty利用方針を見直す。作成したサンプルFindingは本文の手順でArchiveして終了する。
+実案件では、Detectorが存在しない場合に勝手に有効化しない。自分の`learning`アカウントでDetectorが存在しない場合のみ、Day 9の手順内で一時作成する。作成したサンプルFindingは本文の手順でArchiveして終了する。
 
 実行場所と作業対象アカウントを確認する。
 
@@ -24,7 +25,7 @@ aws sts get-caller-identity \
   --no-cli-pager
 ```
 
-Detectorが存在することを確認してから、サンプルFinding作成へ進む。
+Detectorが存在することを確認してから、サンプルFinding作成へ進む。存在しない場合は、本文の一時作成手順へ進む。
 
 ```bash
 aws guardduty list-detectors \
@@ -38,7 +39,7 @@ aws guardduty list-detectors \
 
 GuardDutyのサンプルFindingを限定的に作成し、Finding確認、一次調査、関連サービスへの横展開、報告、Archive、CloudTrailによる操作履歴確認までを一連の作業として実施する。
 
-Day 8では既存DetectorとFindingを読み取る基礎を確認した。Day 9では、検証用Findingを使い、次の実務フローを練習する。
+Day 8ではDetector、Feature、Findingの基礎確認と、学習用の一時有効化・Sample Finding確認を行った。Day 9では、指定した1種類の検証用Findingを使い、差分特定、一次調査、Archiveまでの実務フローを練習する。
 
 ```text
 変更前確認
@@ -115,7 +116,7 @@ GuardDuty Findingの一次調査手順を確認するため、
 | サンプルFinding Type | `UnauthorizedAccess:EC2/TorClient` |
 | 作成対象 | 指定した1種類のサンプルFinding |
 | 後片付け | 今回作成したサンプルFindingのみArchive |
-| Detector・Feature変更 | なし |
+| Detector・Feature変更 | 既存Detectorは変更しない。Detectorが存在しない場合のみ学習用に一時作成し、最後に削除する |
 | 実リソース変更 | なし |
 
 ## 今日実行しない操作
@@ -123,7 +124,8 @@ GuardDuty Findingの一次調査手順を確認するため、
 - Finding Typeを指定しない全サンプルFinding作成
 - 既存の実FindingのArchive
 - Finding Feedbackの変更
-- Detectorの作成、更新、無効化、削除
+- 既存Detectorの更新、無効化、削除
+- Day 9手順外でのDetector作成
 - Protection Planの変更
 - EventBridge Rule、SNS、通知先の変更
 - EC2停止、隔離、Security Group変更
@@ -137,11 +139,11 @@ GuardDuty Findingの一次調査手順を確認するため、
 
 | 項目 | Day 8 | Day 9 |
 |---|---|---|
-| 主目的 | 既存設定とFindingの読み取り | サンプルFindingを使った調査フロー検証 |
-| GuardDuty変更 | なし | サンプルFinding作成とArchive |
-| Finding対象 | 既存未Archive Finding | 今回作成したサンプルFindingのみ |
-| 横展開 | 調査方法の確認 | サンプル情報から調査手順を実践 |
-| 後片付け | なし | 今回作成したFindingのみArchive |
+| 主目的 | Detector、Feature、Findingの基礎確認 | 指定Sample Findingを使った調査・Archiveフロー検証 |
+| GuardDuty変更 | 学習用Detector一時作成、Sample Finding作成、Day 8作成分のみ削除 | 指定Sample Finding作成とArchive。Detectorがなければ学習用に一時作成 |
+| Finding対象 | Sample Findingと既存未Archive Finding | 今回作成した指定Sample Findingのみ |
+| 横展開 | Findingの読み方と調査方法の確認 | サンプル情報から調査手順を実践 |
+| 後片付け | Day 8で作成したDetectorのみ削除。既存Detectorは残す | 今回作成したFindingをArchive。Day 9で作成したDetectorのみ削除 |
 | CloudTrail確認 | 必要に応じて | 作成・Archive操作を確認 |
 
 Day 9で重要なのは、サンプルFindingの調査そのものより、**既存Findingと今回作成したFindingを混同せず、安全に対象を限定すること**である。
@@ -225,6 +227,7 @@ GuardDuty、EventBridge、SNS、メール、Teams、SIEMなどの
 PROFILE="learning"
 REGION="ap-northeast-1"
 EXPECTED_ACCOUNT_ID="445405559057"
+CREATED_DETECTOR_BY_DAY9="no"
 
 SAMPLE_FINDING_TYPE="UnauthorizedAccess:EC2/TorClient"
 ```
@@ -232,14 +235,14 @@ SAMPLE_FINDING_TYPE="UnauthorizedAccess:EC2/TorClient"
 ### 変数確認
 
 ```bash
-printf 'PROFILE=%s\nREGION=%s\nEXPECTED_ACCOUNT_ID=%s\nSAMPLE_FINDING_TYPE=%s\n' \
-  "$PROFILE" "$REGION" "$EXPECTED_ACCOUNT_ID" "$SAMPLE_FINDING_TYPE"
+printf 'PROFILE=%s\nREGION=%s\nEXPECTED_ACCOUNT_ID=%s\nCREATED_DETECTOR_BY_DAY9=%s\nSAMPLE_FINDING_TYPE=%s\n' \
+  "$PROFILE" "$REGION" "$EXPECTED_ACCOUNT_ID" "$CREATED_DETECTOR_BY_DAY9" "$SAMPLE_FINDING_TYPE"
 ```
 
 ### 必須変数チェック
 
 ```bash
-for VARIABLE_NAME in PROFILE REGION EXPECTED_ACCOUNT_ID SAMPLE_FINDING_TYPE
+for VARIABLE_NAME in PROFILE REGION EXPECTED_ACCOUNT_ID CREATED_DETECTOR_BY_DAY9 SAMPLE_FINDING_TYPE
 do
   if [ -z "${!VARIABLE_NAME:-}" ]; then
     echo "ERROR: $VARIABLE_NAME is not set."
@@ -288,11 +291,11 @@ find "$EVIDENCE_DIR" \
 |---|---|
 | `00_metadata` | Caller Identity、作業条件 |
 | `before` | 作成前Detector・Finding一覧 |
-| `change` | サンプルFinding作成操作 |
+| `change` | Day 9用Detector一時作成、サンプルFinding作成操作 |
 | `investigation` | Finding詳細、横展開調査 |
 | `integration` | EventBridge・通知連携 |
 | `after` | 作成後Finding一覧 |
-| `rollback` | Archiveと後片付け確認 |
+| `rollback` | Archive、Day 9作成Detector削除、後片付け確認 |
 | `report` | 調査結果、Teams報告 |
 | `screenshots` | Webコンソール証跡 |
 
@@ -361,6 +364,40 @@ DETECTOR_ID=$(aws guardduty list-detectors \
   --no-cli-pager)
 
 echo "DETECTOR_ID=$DETECTOR_ID"
+```
+
+Detectorが存在しない場合は、自分の`learning`アカウントに限りDay 9用に一時作成する。
+
+```bash
+if [ "$DETECTOR_ID" = "None" ] || [ -z "$DETECTOR_ID" ]; then
+  echo "GuardDuty Detector was not found. Create a temporary Detector for Day 9."
+  CREATED_DETECTOR_BY_DAY9="yes"
+
+  aws guardduty create-detector \
+    --profile "$PROFILE" \
+    --region "$REGION" \
+    --enable \
+    --finding-publishing-frequency FIFTEEN_MINUTES \
+    --output json \
+    --no-cli-pager \
+    > "$EVIDENCE_DIR/change/00_create_detector.json"
+
+  DETECTOR_ID=$(aws guardduty list-detectors \
+    --profile "$PROFILE" \
+    --region "$REGION" \
+    --query 'DetectorIds[0]' \
+    --output text \
+    --no-cli-pager)
+else
+  echo "Existing GuardDuty Detector found: $DETECTOR_ID"
+  CREATED_DETECTOR_BY_DAY9="no"
+fi
+
+printf 'CREATED_DETECTOR_BY_DAY9=%s\n' "$CREATED_DETECTOR_BY_DAY9" \
+  > "$EVIDENCE_DIR/00_metadata/02_created_detector_by_day9.txt"
+
+echo "DETECTOR_ID=$DETECTOR_ID"
+echo "CREATED_DETECTOR_BY_DAY9=$CREATED_DETECTOR_BY_DAY9"
 ```
 
 ### Detector状態確認
@@ -490,6 +527,28 @@ cat "$EVIDENCE_DIR/before/03_sample_type_finding_ids_before.txt"
 ```
 
 何も表示されない場合は、変更前に対象Finding Typeの未Archive Findingが存在しない状態である。
+
+Day 8でSample Findingを作成済みの場合、同じFinding Typeが既に存在することがある。その状態でDay 9を続けると、作成前後のID差分で「今回作成したFinding」を特定できない場合がある。
+
+対象Finding Typeが既に存在する場合は、ここでいったん停止し、次のどちらかを選ぶ。
+
+```text
+推奨:
+Day 9で使用するSAMPLE_FINDING_TYPEを、作成前に存在しない別の承認済みTypeへ変更する。
+
+代替:
+既存FindingがDay 8で作成したSample Findingであることを明確に確認し、
+承認された範囲でArchiveしてからDay 9を再開する。
+```
+
+```bash
+if [ -s "$EVIDENCE_DIR/before/03_sample_type_finding_ids_before.txt" ]; then
+  echo "WARNING: Target Finding Type already exists before Day 9 sample creation."
+  echo "Review the existing Finding IDs before continuing:"
+  cat "$EVIDENCE_DIR/before/03_sample_type_finding_ids_before.txt"
+  echo "Stop here unless you intentionally continue with this existing state."
+fi
+```
 
 ---
 
@@ -1199,11 +1258,56 @@ aws guardduty list-findings \
 
 確認内容:
 
-- Detectorは`ENABLED`のまま
+- 既存Detectorを使用した場合は`ENABLED`のまま
+- Day 9でDetectorを一時作成した場合は、後続手順で削除する
 - 今回作成したFindingはArchive済み
 - 既存FindingをArchiveしていない
-- Detector、Feature、通知設定を変更していない
+- 既存Detector、Feature、通知設定を変更していない
 - 想定外の自動処理が発生していない
+
+### Day 9で作成したDetectorだけ削除する
+
+Day 9開始時にDetectorが存在せず、この手順内でDetectorを一時作成した場合だけ削除する。
+
+既存Detectorを使用した場合は削除しない。
+
+```bash
+CREATED_DETECTOR_BY_DAY9=$(sed -n 's/^CREATED_DETECTOR_BY_DAY9=//p' \
+  "$EVIDENCE_DIR/00_metadata/02_created_detector_by_day9.txt")
+
+echo "CREATED_DETECTOR_BY_DAY9=$CREATED_DETECTOR_BY_DAY9"
+echo "DETECTOR_ID=$DETECTOR_ID"
+```
+
+```bash
+if [ "$CREATED_DETECTOR_BY_DAY9" = "yes" ]; then
+  echo "Delete temporary GuardDuty Detector created by Day 9: $DETECTOR_ID"
+
+  aws guardduty delete-detector \
+    --profile "$PROFILE" \
+    --region "$REGION" \
+    --detector-id "$DETECTOR_ID" \
+    --no-cli-pager
+
+  echo "Temporary GuardDuty Detector deleted at $(date '+%Y-%m-%d %H:%M:%S %z')." \
+    > "$EVIDENCE_DIR/rollback/04_delete_detector_result.txt"
+else
+  echo "SKIP: Existing GuardDuty Detector was used. Do not delete it."
+  echo "Existing Detector was not deleted." \
+    > "$EVIDENCE_DIR/rollback/04_delete_detector_result.txt"
+fi
+```
+
+削除後のDetector一覧を確認する。
+
+```bash
+aws guardduty list-detectors \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --output json \
+  --no-cli-pager \
+  > "$EVIDENCE_DIR/rollback/05_list_detectors_after_cleanup.json"
+```
 
 ---
 
@@ -1373,11 +1477,13 @@ CloudTrail、Network、Security Groupへの横展開方法と
 GuardDutyサンプルFinding検証の後片付けを完了した。
 
 今回作成したFinding ID <finding-id> のみArchiveした。
-DetectorはENABLEDのままであり、既存Finding、Protection Plan、
-EventBridge Rule、通知先、実リソースへの変更はない。
+既存Detectorを使用した場合はENABLEDのまま変更していない。
+Day 9で一時作成したDetectorの場合は削除済みである。
+既存Finding、Protection Plan、EventBridge Rule、通知先、
+実リソースへの変更はない。
 
-CloudTrailでCreateSampleFindingsおよびArchiveFindingsの
-操作履歴を確認した。
+CloudTrailでCreateSampleFindings、ArchiveFindings、
+必要に応じてCreateDetector、DeleteDetectorの操作履歴を確認した。
 証跡は <evidence-path> に保存した。
 ```
 
@@ -1530,6 +1636,8 @@ CloudTrailで作成・Archive操作履歴を確認した。
 
 - [ ] AWSアカウントとリージョンを確認した
 - [ ] Detector IDとStatusを確認した
+- [ ] Detectorがなかった場合、学習用として一時作成した
+- [ ] Day 9でDetectorを作成したかどうかを証跡へ残した
 - [ ] 通知・自動対応の影響を確認した
 - [ ] 証跡保存用ディレクトリを作成した
 - [ ] 作成前の未Archive Finding一覧を保存した
@@ -1549,9 +1657,10 @@ CloudTrailで作成・Archive操作履歴を確認した。
 - [ ] Archive対象IDを最終確認した
 - [ ] 今回作成したFindingのみArchiveした
 - [ ] Archive後の状態を確認した
-- [ ] DetectorがENABLEDのままであることを確認した
+- [ ] 既存Detectorを使用した場合、ENABLEDのままであることを確認した
+- [ ] Day 9でDetectorを一時作成した場合、削除した
 - [ ] 既存Findingへの影響がないことを確認した
-- [ ] CloudTrailで作成・Archive操作履歴を確認した
+- [ ] CloudTrailで作成・Archive・必要に応じてDetector作成削除の操作履歴を確認した
 - [ ] 証跡ファイルと空ファイルを確認した
 - [ ] Teams報告文を作成した
 
@@ -1562,6 +1671,8 @@ CloudTrailで作成・Archive操作履歴を確認した。
 ```text
 サンプルFinding作成前に、対象AWSアカウント、リージョン、
 Detector、通知・自動対応、既存Finding一覧を確認する。
+Detectorが存在しない場合は、学習用AWSアカウントに限り一時作成し、
+その事実を証跡へ残す。
 
 Finding Typeを1種類に限定してサンプルFindingを作成し、
 作成前後のFinding ID一覧の差分から今回作成したFindingだけを特定する。
@@ -1574,5 +1685,6 @@ Archive前にサンプル判定根拠と対象IDを再確認し、
 今回作成したFindingだけをArchiveする。
 
 後片付け後はDetector、Finding状態、既存Findingへの影響を確認し、
-CloudTrailでCreateSampleFindingsとArchiveFindingsの操作履歴を確認する。
+CloudTrailでCreateSampleFindings、ArchiveFindings、
+必要に応じてCreateDetector、DeleteDetectorの操作履歴を確認する。
 ```
