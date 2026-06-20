@@ -559,7 +559,119 @@ KMS Key PolicyとIAM Policyの両方を見る必要性を説明できる
 
 ---
 
-# Exercise 8: 構成図を見た後の作業初動依頼
+# Exercise 8: SSE-KMS S3オブジェクト暗号化ハンズオン
+
+## 現場からの依頼文
+
+```text
+対象S3バケットで、SSE-KMSを使用したオブジェクトアップロードと読み取り確認を実施してください。
+
+今回はバケット全体のデフォルト暗号化は変更しません。
+テストオブジェクト単位でSSE-KMSを指定し、PutObject、HeadObject、GetObject、CloudTrailの証跡を確認してください。
+
+KMS Key PolicyやIAM Policyが不足すると、PutObjectやGetObjectが失敗する可能性があることを説明できるようにしてください。
+```
+
+## 推奨する進め方
+
+```text
+基本演習:
+  AWS管理KMSキーを使ってSSE-KMSオブジェクトを作成する
+  カスタマー管理KMSキーは作成しない
+
+追加演習:
+  時間と費用を許容できる場合のみ、カスタマー管理KMSキーの作成、Alias、Key Policy、削除予定を確認する
+```
+
+KMSのカスタマー管理キーは、作成すると少額でも料金が発生し得る。案件前の学習では、まず基本演習だけでよい。
+
+## 自分で判断すること
+
+```text
+対象バケットの現在のDefault Encryptionは何か
+テストオブジェクトだけSSE-KMSにするか
+どのKMS Key IDまたはAliasを使うか
+PutObject時に必要な権限は何か
+GetObject時に必要な権限は何か
+HeadObjectでどの項目を見ればSSE-KMSと分かるか
+CloudTrailでKMS関連イベントを見る必要があるか
+テストオブジェクトを削除するか、証跡として残すか
+```
+
+## 最低限の成果物
+
+| 種類 | ファイル例 |
+|---|---|
+| 作業メモ | `summary/sse-kms-hands-on-note.md` |
+| 変更前暗号化設定 | `before/bucket-encryption.json` |
+| KMS Alias確認 | `before/kms-aliases.json` |
+| PutObject結果 | `change/put-sse-kms-object-result.json` |
+| HeadObject結果 | `after/head-sse-kms-object.json` |
+| GetObject結果 | `after/get-sse-kms-object-result.txt` |
+| CloudTrail PutObject確認 | `audit/putobject-sse-kms-event.json` |
+| 削除確認 | `rollback/delete-test-object-result.json` |
+| KMS影響整理 | `summary/kms-permission-summary.md` |
+
+## 確認観点
+
+```text
+S3側:
+  ServerSideEncryption が aws:kms になっているか
+  SSEKMSKeyId が記録されているか
+  BucketKeyEnabled の有無
+
+IAM側:
+  PutObjectにはs3:PutObjectが必要
+  SSE-KMS利用時はkms:Encryptやkms:GenerateDataKeyが関係する
+  GetObjectにはs3:GetObjectが必要
+  SSE-KMS復号時はkms:Decryptが関係する
+
+KMS側:
+  KMS KeyがEnabledか
+  AWS管理キーかカスタマー管理キーか
+  カスタマー管理キーの場合はKey Policyも見る
+
+CloudTrail側:
+  PutObjectのuserIdentity
+  userAgent
+  requestParameters.bucketName
+  requestParameters.key
+  requestParameters.x-amz-server-side-encryption
+```
+
+## 完了条件
+
+```text
+SSE-KMSを指定したPutObjectを実施している
+HeadObjectでServerSideEncryption=aws:kmsを確認している
+GetObjectで復号された内容を取得できることを確認している
+KmsKeyIdまたはSSEKMSKeyIdの意味を説明できる
+S3権限だけでなくKMS権限が必要になる理由を説明できる
+テストオブジェクトの扱いを明記している
+バケット全体のDefault Encryptionは変更していない
+```
+
+## 停止条件
+
+```text
+対象バケット名、アカウントID、リージョンが不明
+KMS Key IDの意味が分からないまま既存設定を変更しようとしている
+カスタマー管理KMSキーを作成した後の削除予定を理解していない
+本番相当のBucket Default Encryptionを変更しようとしている
+KMS権限不足エラーをS3 Bucket Policyだけの問題と判断している
+```
+
+## 報告文テンプレート
+
+```text
+対象S3バケットに対して、テストオブジェクト単位でSSE-KMSを指定したPutObject、HeadObject、GetObjectを確認しました。
+HeadObjectによりServerSideEncryption=aws:kmsを確認し、KMS利用時はS3権限に加えてkms:Encrypt、kms:GenerateDataKey、kms:Decrypt等の権限確認が必要であることを整理しています。
+今回はバケット全体のデフォルト暗号化設定は変更していません。
+```
+
+---
+
+# Exercise 9: 構成図を見た後の作業初動依頼
 
 ## 現場からの依頼文
 
@@ -607,6 +719,366 @@ Linux認証サーバがIAM認証とは別物である可能性を切り分けて
 構成図をもとに、対象S3バケットのBucket Policy変更に伴う影響範囲を整理しました。
 アプリ、HULFT、Linuxサーバ、バッチの利用有無、IAM Principal、通信経路、ログ確認先を観点化しています。
 不明点は要確認事項として質問一覧にまとめました。
+```
+
+---
+
+# Exercise 10: EC2バッチからS3 PutObject確認依頼
+
+## 現場からの依頼文
+
+```text
+バッチサーバから対象S3バケットへファイルをアップロードする処理があります。
+
+Bucket Policy変更後も、バッチからS3へのPutObjectが問題なく実行できることを確認してください。
+今回はJP1やHULFTの実機は使わず、EC2上の手動実行シェルでバッチ相当の動きを再現してください。
+
+実行サーバ、実行ユーザー、IAM Role、S3オブジェクトキー、終了コード、CloudTrail S3 Data EventのPutObject証跡を残してください。
+確認後、作成したテストファイルや一時設定は片付けてください。
+```
+
+## 想定する構成
+
+```text
+ローカル端末
+  ↓ Ansible / SSH相当
+EC2 awsref-web01 または awsref-web02
+  ↓ バッチ用シェルを手動実行
+IAM Role sample-role-web
+  ↓ AssumeRoleされた一時認証情報
+S3 nobu-terraform-iac-lab-upload
+  ↓
+CloudTrail S3 Data EventでPutObject確認
+```
+
+## 自分で判断すること
+
+```text
+All_Setup.shとAnsibleを起動する必要があるか
+どのEC2をバッチサーバ相当として使うか
+バッチ用シェルをどこに置くか
+実行ユーザーは誰か
+aws s3 cp と aws s3api put-object のどちらを使うか
+バッチログをどこへ残すか
+S3 Data Eventをいつ有効化し、いつ元へ戻すか
+CloudTrailでPutObjectが出るまで何分待つか
+テストオブジェクトを削除するか、証跡として残すか
+```
+
+## 最低限の成果物
+
+| 種類 | ファイル例 |
+|---|---|
+| 作業メモ | `summary/batch-putobject-work-note.md` |
+| 実行サーバ確認 | `before/ec2-target-check.md` |
+| IAM Role確認 | `before/ec2-iam-role.json` |
+| S3 Data Event有効化証跡 | `change/enable-s3-data-events/` |
+| バッチシェル | `change/s3_putobject_batch.sh` |
+| バッチ実行ログ | `logs/s3_putobject_batch.log` |
+| S3アップロード確認 | `after/s3-object-check.json` |
+| CloudTrail PutObject確認 | `audit/putobject-event.json` |
+| Event Selector復元証跡 | `rollback/restore-s3-data-events/` |
+| テストファイル削除確認 | `rollback/s3-object-delete-check.json` |
+
+## バッチシェルに入れる観点
+
+```text
+開始時刻を出す
+実行ホスト名を出す
+実行ユーザーを出す
+aws sts get-caller-identityを出す
+アップロード対象ファイル名を出す
+aws s3 cp または aws s3api put-objectを実行する
+終了コードを出す
+成功、失敗を明確に出す
+```
+
+## 通信要件として読む観点
+
+```text
+送信元:
+  EC2バッチサーバ
+
+宛先:
+  S3バケット
+
+ポート:
+  HTTPS 443
+
+認証主体:
+  EC2に付与されたIAM Role
+  CloudTrail上ではAssumedRoleとして見える
+
+操作:
+  PutObject
+
+確認ログ:
+  バッチログ
+  S3オブジェクト存在確認
+  CloudTrail S3 Data Event
+```
+
+## 完了条件
+
+```text
+EC2上でバッチ相当のシェルを手動実行できる
+バッチログに開始、終了、終了コードが残っている
+S3へテストオブジェクトが作成されている
+CloudTrail S3 Data EventでPutObjectを確認できる
+userIdentity.arnがAssumedRoleである
+sessionIssuer.arnまたは関連情報からEC2用IAM Roleを確認できる
+userAgentからaws-cli実行であることを確認できる
+S3 Data Eventを元へ戻している
+テストオブジェクトの扱いを明記している
+```
+
+## 停止条件
+
+```text
+対象EC2が起動していない
+対象EC2にIAM Roleが付与されていない
+S3 Data Eventの元設定を保存できていない
+対象バケット名、アカウントID、リージョンが不明
+Bucket PolicyやKMS設定により失敗しているが、影響範囲を判断できない
+Data Eventを有効化したまま終了しそうになった
+```
+
+## 報告文テンプレート
+
+```text
+EC2バッチサーバ相当の手動実行シェルから、対象S3バケットへのPutObjectを確認しました。
+実行サーバ、実行ユーザー、IAM Role、S3オブジェクトキー、終了コード、CloudTrail S3 Data EventのPutObject証跡を保存済みです。
+確認後、S3 Data Eventは元のEvent Selectorへ戻し、テストオブジェクトの扱いも記録しています。
+```
+
+---
+
+# Exercise 11: バックアップ・復旧影響確認依頼
+
+## 現場からの依頼文
+
+```text
+対象AWS環境のセキュリティ設定変更に伴い、バックアップや復旧に影響がないか確認してください。
+
+今回は設定変更は行いません。
+S3、EC2/EBS、RDS、KMS、AWS Backupまたは既存バッチバックアップの観点で、現在の設定、取得先、保持期間、暗号化、復旧時に必要な権限を整理してください。
+
+特に、S3 Bucket PolicyやKMS Key Policy変更により、バックアップ取得、バックアップ保存、復旧時の読み取りが失敗しないかを確認観点としてまとめてください。
+```
+
+## 自分で判断すること
+
+```text
+バックアップ対象はS3、EBS、RDS、アプリケーションファイルのどれか
+AWS Backupを使っているか、独自バッチやJP1/HULFT連携で取得しているか
+バックアップ保存先が同一アカウントか、クロスアカウントか
+バックアップ保存先S3にBucket PolicyやKMS Key Policyがあるか
+復旧時にGetObject、kms:Decrypt、rds:RestoreDBInstanceFromDBSnapshotなどが必要か
+保持期間と削除ルールが設定されているか
+バックアップ成功だけでなく復旧テストの有無を確認すべきか
+```
+
+## 最低限の成果物
+
+| 種類 | ファイル例 |
+|---|---|
+| 作業メモ | `summary/backup-impact-work-note.md` |
+| S3確認 | `before/s3-backup-related-settings.json` |
+| RDSバックアップ確認 | `before/rds-backup-settings.json` |
+| EBS Snapshot確認 | `before/ebs-snapshot-settings.json` |
+| AWS Backup確認 | `before/aws-backup-settings.json` |
+| KMS影響整理 | `summary/kms-backup-impact.md` |
+| 復旧観点整理 | `summary/restore-checkpoints.md` |
+| 要確認事項 | `summary/questions-to-site.md` |
+
+## 確認観点
+
+```text
+S3:
+  Versioning
+  Lifecycle
+  Object Lock利用有無
+  バックアップ保存先Bucket Policy
+  SSE-S3 / SSE-KMS
+  クロスアカウント許可
+
+EC2/EBS:
+  EBS暗号化
+  Snapshot取得有無
+  Snapshotの保持期間
+  AMI作成有無
+
+RDS:
+  BackupRetentionPeriod
+  Automated Backup有効/無効
+  Manual Snapshot
+  DeletionProtection
+  StorageEncrypted
+  KmsKeyId
+
+AWS Backup:
+  Backup Vault
+  Backup Plan
+  Backup Rule
+  Backup Selection
+  Backup Job履歴
+  Vault Lock利用有無
+
+KMS:
+  バックアップ取得主体にkms:Encrypt権限があるか
+  復旧主体にkms:Decrypt権限があるか
+  クロスアカウント復旧時にKey Policyが足りるか
+```
+
+## 完了条件
+
+```text
+どのバックアップ方式を使っているか、または不明かを明記している
+S3、EBS、RDS、AWS Backupのうち、確認できた範囲を証跡化している
+Bucket Policy変更がバックアップ処理へ影響し得る条件を整理している
+KMS利用時に暗号化と復号の両方の権限を見る必要性を説明できる
+バックアップ取得だけでなく復旧時の読み取り権限も確認観点に入れている
+設定変更は実施していない
+現場へ確認する質問が具体的である
+```
+
+## 停止条件
+
+```text
+バックアップ方式が不明なまま設定変更へ進もうとしている
+KMS Key Policyの影響を判断できない
+クロスアカウントバックアップの有無が不明
+復旧時に誰の権限で読み取るか不明
+本番バックアップ設定を変更しようとしている
+```
+
+## 報告文テンプレート
+
+```text
+対象AWS環境のバックアップ・復旧影響観点を確認しました。
+S3、EBS、RDS、AWS Backup、KMSの確認可能な設定を証跡化し、Bucket PolicyやKMS Key Policy変更がバックアップ取得および復旧時の読み取りへ影響し得る点を整理しています。
+今回は設定変更は実施していません。未確認項目は要確認事項としてまとめています。
+```
+
+---
+
+# Exercise 12: 認証基盤・認証サーバ影響確認依頼
+
+## 現場からの依頼文
+
+```text
+構成図上にLinux認証サーバ、AD/LDAP相当の認証基盤、運用端末、AWSアカウントが記載されています。
+
+S3 Bucket PolicyやIAM/KMS関連の設定変更に入る前に、認証基盤とAWS権限の関係を整理してください。
+
+今回は設定変更は行いません。
+Linuxログイン認証、アプリケーション認証、AWS IAM認証、AssumeRole、SSO/Federationのどれが関係しているかを分けて、確認済み事項と要確認事項をまとめてください。
+```
+
+## 自分で判断すること
+
+```text
+Linux認証サーバはOSログイン用か、アプリ認証用か
+AWS IAM RoleやIAM Userとは別の認証なのか
+運用端末からAWSへ入る経路はConsoleかCLIか踏み台経由か
+SSO、SAML、IAM Identity Center、AD連携があるか
+EC2がS3へアクセスするときはOSユーザーではなくIAM Roleで認可されることを説明できるか
+Bucket PolicyのPrincipalとLinuxユーザーの関係を混同していないか
+CloudTrail上でIAMUser、AssumedRole、FederatedUserをどう読むか
+```
+
+## 最低限の成果物
+
+| 種類 | ファイル例 |
+|---|---|
+| 作業メモ | `summary/auth-impact-work-note.md` |
+| 認証方式整理 | `summary/authentication-map.md` |
+| AWS権限整理 | `summary/aws-authorization-map.md` |
+| CloudTrail主体確認 | `audit/cloudtrail-principal-samples.json` |
+| 影響範囲整理 | `summary/auth-impact-scope.md` |
+| 要確認事項 | `summary/questions-to-site.md` |
+
+## 整理する観点
+
+```text
+Linuxログイン認証:
+  EC2やオンプレLinuxへ誰がログインできるか
+  AD/LDAP/ローカルユーザー/sudo権限など
+
+アプリケーション認証:
+  業務アプリのログインユーザー
+  アプリ内部の権限
+  AWS IAMとは別管理の可能性が高い
+
+AWS管理操作の認証:
+  IAM User
+  IAM Role
+  AssumedRole
+  SSO/Federation
+  MFA
+
+AWSリソース操作の認可:
+  IAM Policy
+  Bucket Policy
+  KMS Key Policy
+  VPC Endpoint Policy
+
+CloudTrail上の見え方:
+  userIdentity.type
+  userIdentity.arn
+  userIdentity.sessionContext.sessionIssuer.arn
+  sourceIPAddress
+  userAgent
+```
+
+## 混同しやすいポイント
+
+```text
+Linuxユーザー:
+  OSへログインするためのユーザー。
+  それだけではS3アクセス権限を持つとは限らない。
+
+IAM Role:
+  AWS APIを実行するための権限主体。
+  EC2に付与されている場合、アプリやバッチはAssumedRoleとしてS3へアクセスする。
+
+Bucket PolicyのPrincipal:
+  S3に対して誰を許可または拒否するかを表すAWS上の主体。
+  Linuxユーザー名ではなく、IAM User、IAM Role、AWSアカウント、AWSサービスなどを見る。
+
+認証と認可:
+  認証は「誰かを確認すること」。
+  認可は「何をしてよいかを許可すること」。
+```
+
+## 完了条件
+
+```text
+Linux認証、アプリ認証、AWS IAM認証を分けて整理している
+Bucket PolicyのPrincipalがAWS上の主体であることを説明できる
+EC2上のバッチがS3へアクセスする場合、OSユーザーではなくIAM Roleが重要であることを説明できる
+CloudTrailのuserIdentityから実行主体を読める
+認証サーバ停止や認証変更がAWS作業へ与える影響を仮説化している
+設定変更は実施していない
+現場へ確認する質問が具体的である
+```
+
+## 停止条件
+
+```text
+LinuxユーザーとIAM Roleを混同している
+PrincipalにLinuxユーザー名を入れるものと誤解している
+SSO/Federationの有無が分からないまま本番権限変更へ進もうとしている
+認証サーバの役割が不明なまま影響なしと判断している
+本番認証基盤の設定を変更しようとしている
+```
+
+## 報告文テンプレート
+
+```text
+構成図上の認証基盤について、Linuxログイン認証、アプリケーション認証、AWS IAM認証、AWSリソース認可を分けて整理しました。
+S3 Bucket PolicyやKMS Key Policyで見るPrincipalはAWS上のIAM User/Role/Account等であり、Linuxユーザーとは別に確認が必要です。
+今回は設定変更は実施していません。SSO/Federation、認証サーバの用途、運用端末からAWSへの接続経路は要確認事項としてまとめています。
 ```
 
 ---
@@ -670,7 +1142,11 @@ Exercise 4: RailsアプリからのS3 PutObject確認依頼
 Exercise 5: MFAなしConsoleLogin検知設定の確認依頼
 Exercise 6: 共通関数シェル経由のAWS CLI作業依頼
 Exercise 7: SSE-KMS化前の影響確認依頼
-Exercise 8: 構成図を見た後の作業初動依頼
+Exercise 8: SSE-KMS S3オブジェクト暗号化ハンズオン
+Exercise 9: 構成図を見た後の作業初動依頼
+Exercise 10: EC2バッチからS3 PutObject確認依頼
+Exercise 11: バックアップ・復旧影響確認依頼
+Exercise 12: 認証基盤・認証サーバ影響確認依頼
 ```
 
 必須候補:
@@ -678,10 +1154,10 @@ Exercise 8: 構成図を見た後の作業初動依頼
 ```text
 1. Exercise 1
 2. Exercise 3
-3. Exercise 8
+3. Exercise 9
 ```
 
-余力があれば、Exercise 4またはExercise 5を追加する。
+余力があれば、Exercise 4、Exercise 5、Exercise 8、Exercise 10、Exercise 11、Exercise 12のいずれかを追加する。
 
 ---
 
@@ -694,5 +1170,8 @@ Exercise 8: 構成図を見た後の作業初動依頼
 実案件での作業時間帯
 実案件でのCloudTrail保存先とCloudWatch Logs連携有無
 実案件でのS3 Data Event利用可否
+実案件でのSSE-KMS利用有無、KMS Key Policy確認範囲
+実案件でのバックアップ方式、保持期間、復旧テスト有無
+実案件での認証基盤、SSO/Federation、運用端末からAWSへの接続経路
 実案件でのAthena、CloudTrail Lake、JP1、Hinemos等の利用有無
 ```

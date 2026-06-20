@@ -179,6 +179,12 @@ unset LOCALSTACK_HOST
 # 削除処理の途中でlessなどが起動し、キー入力待ちになることを防ぐ。
 export AWS_PAGER=""
 
+# cleanupは確認出力やwait処理が多いため、このスクリプト内のawsコマンドを
+# すべて --no-cli-pager 付きで実行する。
+aws() {
+  command aws --no-cli-pager "$@"
+}
+
 # AWS CLIの --output text は、値をスペースではなくタブ区切りで返すことがある。
 # 削除対象IDをまとめる時は空白文字全般で分割し、重複を取り除く。
 normalize_id_list() {

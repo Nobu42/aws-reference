@@ -7,6 +7,9 @@ TRAIL_NAME="nobu-iac-lab-trail"
 
 REPO_ROOT="/Users/nobu/aws-reference"
 
+# 呼び出し先スクリプトも含め、AWS CLIがpagerで停止しないようにする。
+export AWS_PAGER=""
+
 S3_DATA_EVENTS_EVIDENCE_DIR="${REPO_ROOT}/evidence/cloudtrail_s3_data_events"
 CLOUDWATCH_LOGS_EVIDENCE_DIR="${REPO_ROOT}/evidence/cloudtrail_cloudwatch_logs_lab"
 

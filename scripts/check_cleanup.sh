@@ -32,6 +32,13 @@ S3_BUCKET_NAMES=(
 unalias aws 2>/dev/null || true
 unset AWS_ENDPOINT_URL
 unset LOCALSTACK_HOST
+export AWS_PAGER=""
+
+# check_cleanupはdescribe/list系の確認コマンドが多いため、このスクリプト内の
+# awsコマンドをすべて --no-cli-pager 付きで実行する。
+aws() {
+  command aws --no-cli-pager "$@"
+}
 
 echo "=== Caller Identity ==="
 aws sts get-caller-identity \

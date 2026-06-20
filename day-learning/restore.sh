@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+# AWS CLIがpagerで停止しないようにする。
+export AWS_PAGER=""
+
 # 1. S3 Data Eventを元に戻す
 /Users/nobu/aws-reference/scripts/cloudtrail_s3_data_events/02_restore_s3_event_selectors.sh \
   "/Users/nobu/aws-reference/evidence/cloudtrail_s3_data_events/20260617_174721_enable_s3_data_events"
