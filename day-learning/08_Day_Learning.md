@@ -636,15 +636,37 @@ aws guardduty get-detector \
 - Featureの有効化は料金、権限、対象リソース、運用へ影響する
 - 対応要否はセキュリティ要件と対象サービスを確認して判断する
 
+CLIでは、コンソールの表示名ではなくGuardDuty API上のFeature名が表示される。
+そのため、次のように読み替える。
+
+| CLI Feature名 | コンソール・保護対象の読み方 | 確認観点 |
+|---|---|---|
+| `CLOUD_TRAIL` | CloudTrail管理イベントを使った基本検知 | AWS API操作の不審検知に使われる |
+| `DNS_LOGS` | DNSログを使った基本検知 | 不審ドメイン問い合わせの検知に使われる |
+| `FLOW_LOGS` | VPC Flow Logs相当の通信メタデータを使った基本検知 | EC2などのネットワーク通信の不審検知に使われる |
+| `S3_DATA_EVENTS` | S3 Protection | S3 Objectアクセスに関する不審活動の検知 |
+| `EKS_AUDIT_LOGS` | EKS Audit Log Monitoring | EKS API操作や監査ログに関する不審検知 |
+| `EBS_MALWARE_PROTECTION` | Malware Protection for EC2 | EC2に関連するEBSボリュームのマルウェアスキャン |
+| `RDS_LOGIN_EVENTS` | RDS Protection | RDSログイン活動に関する不審検知 |
+| `EKS_RUNTIME_MONITORING` | EKS Runtime Monitoring | EKSワークロード実行時の不審活動検知 |
+| `LAMBDA_NETWORK_LOGS` | Lambda Protection | Lambdaからの不審ネットワーク活動の検知 |
+| `RUNTIME_MONITORING` | Runtime Monitoring | 対応ワークロードの実行時不審活動検知 |
+
+今回の出力例では、`EKS_RUNTIME_MONITORING`と`RUNTIME_MONITORING`が`DISABLED`である。
+これは、EKSやRuntime Monitoring対象ワークロードを利用していない環境であれば、直ちに異常とは判断しない。
+対象システムでEKS、ECS、EC2 Runtime Monitoringなどを使う要件がある場合に、要件と照合して確認する。
+
 ### 案件で特に確認する候補
 
-| Protection Plan・Feature | 確認理由 |
-|---|---|
-| S3 Protection | S3 Objectアクセスに関する不審活動の検知 |
-| RDS Protection | RDSログイン活動に関する不審検知 |
-| Lambda Protection | Lambdaからの不審ネットワーク活動の検知 |
-| Malware Protection | 対象ワークロードやS3オブジェクトのマルウェア対策 |
-| EKS Runtime Monitoring | EKSを利用する場合のRuntime監視 |
+| コンソール上の観点 | 主なCLI Feature名 | 確認理由 |
+|---|---|---|
+| 基本検知 | `CLOUD_TRAIL`、`DNS_LOGS`、`FLOW_LOGS` | API操作、DNS、ネットワーク通信の基本的な不審検知 |
+| S3 Protection | `S3_DATA_EVENTS` | S3 Objectアクセスに関する不審活動の検知 |
+| RDS Protection | `RDS_LOGIN_EVENTS` | RDSログイン活動に関する不審検知 |
+| Lambda Protection | `LAMBDA_NETWORK_LOGS` | Lambdaからの不審ネットワーク活動の検知 |
+| Malware Protection | `EBS_MALWARE_PROTECTION` | EC2に関連するEBSボリュームのマルウェアスキャン |
+| EKS Protection | `EKS_AUDIT_LOGS`、`EKS_RUNTIME_MONITORING` | EKSを利用する場合の監査ログ・Runtime監視 |
+| Runtime Monitoring | `RUNTIME_MONITORING` | 対応ワークロードの実行時監視 |
 
 ---
 
