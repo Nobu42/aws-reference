@@ -26,7 +26,7 @@ cd /Users/nobu/aws-reference/day-learning
 
 aws sts get-caller-identity \
   --profile learning \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -36,7 +36,7 @@ Detectorの有無を最初に確認する。
 aws guardduty list-detectors \
   --profile learning \
   --region ap-northeast-1 \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -369,7 +369,7 @@ find "$EVIDENCE_DIR" \
 ```bash
 aws sts get-caller-identity \
   --profile "$PROFILE" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -432,7 +432,7 @@ GuardDuty Detectorは、リージョン単位でGuardDutyの検知を管理す�
 aws guardduty list-detectors \
   --profile "$PROFILE" \
   --region "$REGION" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -553,7 +553,7 @@ aws guardduty get-detector \
   --profile "$PROFILE" \
   --region "$REGION" \
   --detector-id "$DETECTOR_ID" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -577,7 +577,7 @@ aws guardduty get-detector \
   --region "$REGION" \
   --detector-id "$DETECTOR_ID" \
   --query '{Status:Status,FindingPublishingFrequency:FindingPublishingFrequency,ServiceRole:ServiceRole,CreatedAt:CreatedAt,UpdatedAt:UpdatedAt}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -627,7 +627,7 @@ aws guardduty get-detector \
   --region "$REGION" \
   --detector-id "$DETECTOR_ID" \
   --query 'Features[].{Name:Name,Status:Status,UpdatedAt:UpdatedAt}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -841,9 +841,11 @@ ArchiveされていないFindingを、現在対応対象となり得るFinding�
 ## 14.1 Webコンソール
 
 1. GuardDutyの「検出結果」を開く
-2. Archive済みを除外する
-3. Severityの高い順に並べる
-4. Finding Type、対象リソース、更新日時を確認する
+2. 「フィルター検出結果」を開く
+3. フィルター項目に状態やArchive関連の項目があれば、未Archiveの検出結果だけに絞る
+4. Archive関連の項目が見当たらない場合は、Webコンソールでは無理に絞らずCLIの`service.archived=false`で確認する
+5. Severityの高い順に並べる
+6. Finding Type、対象リソース、更新日時を確認する
 
 取得するスクリーンショット:
 
@@ -860,7 +862,7 @@ aws guardduty list-findings \
   --detector-id "$DETECTOR_ID" \
   --finding-criteria '{"Criterion":{"service.archived":{"Eq":["false"]}}}' \
   --max-results 50 \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -904,7 +906,7 @@ aws guardduty list-findings \
   --detector-id "$DETECTOR_ID" \
   --finding-criteria '{"Criterion":{"severity":{"Gte":7},"service.archived":{"Eq":["false"]}}}' \
   --max-results 50 \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -937,7 +939,7 @@ aws guardduty get-findings-statistics \
   --detector-id "$DETECTOR_ID" \
   --finding-statistic-types COUNT_BY_SEVERITY \
   --finding-criteria '{"Criterion":{"service.archived":{"Eq":["false"]}}}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -966,7 +968,7 @@ aws guardduty get-findings-statistics \
   --order-by DESC \
   --max-results 50 \
   --finding-criteria '{"Criterion":{"service.archived":{"Eq":["false"]}}}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1054,7 +1056,7 @@ aws guardduty get-findings \
   --detector-id "$DETECTOR_ID" \
   --finding-ids "$FINDING_ID" \
   --query 'Findings[0].{Id:Id,Type:Type,Severity:Severity,Title:Title,AccountId:AccountId,Region:Region,CreatedAt:CreatedAt,UpdatedAt:UpdatedAt,ResourceType:Resource.ResourceType,ResourceRole:Service.ResourceRole,ActionType:Service.Action.ActionType,Archived:Service.Archived,Count:Service.Count}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1129,7 +1131,7 @@ aws ec2 describe-instances \
   --region "$REGION" \
   --instance-ids "$INSTANCE_ID" \
   --query 'Reservations[].Instances[].{InstanceId:InstanceId,Name:Tags[?Key==`Name`].Value|[0],State:State.Name,PrivateIp:PrivateIpAddress,PublicIp:PublicIpAddress,VpcId:VpcId,SubnetId:SubnetId,SecurityGroups:SecurityGroups[*].GroupId,IamProfile:IamInstanceProfile.Arn}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1165,7 +1167,7 @@ aws s3api get-bucket-policy-status \
   --region "$REGION" \
   --bucket "$BUCKET" \
   --expected-bucket-owner "$EXPECTED_ACCOUNT_ID" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1175,7 +1177,7 @@ aws s3api get-public-access-block \
   --region "$REGION" \
   --bucket "$BUCKET" \
   --expected-bucket-owner "$EXPECTED_ACCOUNT_ID" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1289,7 +1291,7 @@ aws cloudtrail lookup-events \
   --region "$REGION" \
   --lookup-attributes AttributeKey=Username,AttributeValue="<username>" \
   --query 'Events[].{EventTime:EventTime,EventName:EventName,Username:Username,EventSource:EventSource,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1301,7 +1303,7 @@ aws cloudtrail lookup-events \
   --region "$REGION" \
   --lookup-attributes AttributeKey=ResourceName,AttributeValue="<resource-name>" \
   --query 'Events[].{EventTime:EventTime,EventName:EventName,Username:Username,EventSource:EventSource,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1344,7 +1346,7 @@ aws events list-rules \
   --profile "$PROFILE" \
   --region "$REGION" \
   --query 'Rules[].{Name:Name,State:State,EventBusName:EventBusName,Description:Description}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1366,7 +1368,7 @@ aws events list-rules \
   --profile "$PROFILE" \
   --region "$REGION" \
   --name-prefix "guardduty" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
