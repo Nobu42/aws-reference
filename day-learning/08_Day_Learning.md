@@ -605,10 +605,11 @@ GuardDutyでは、基本的な脅威検知に加えて、S3、EKS、RDS、Lambda
 
 ### Webコンソール
 
-1. GuardDutyの「設定」を開く
-2. Protection PlanやFeatureの状態を確認する
-3. 対象システムで必要な保護が有効か確認する
-4. Organizations管理の場合は管理方式を確認する
+1. GuardDutyコンソールを開く
+2. 左側ペインの「保護プラン」を開く
+3. S3、EKS、RDS、Lambda、Malware Protectionなどの状態を確認する
+4. 対象システムで必要な保護が有効か確認する
+5. Organizations管理の場合は、左側ペインの「設定」または管理アカウント側で管理方式を確認する
 
 取得するスクリーンショット:
 
