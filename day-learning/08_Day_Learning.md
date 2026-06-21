@@ -546,6 +546,8 @@ GuardDutyは通常、1アカウント・1リージョンにつき1つのDetector
 
 ### AWS CLI
 
+Featureの有効・無効を確認する。
+
 ```bash
 aws guardduty get-detector \
   --profile "$PROFILE" \
@@ -629,12 +631,46 @@ aws guardduty get-detector \
   --no-cli-pager
 ```
 
+使用状況を確認する場合は、`get-usage-statistics`を使用する。
+
+```bash
+aws guardduty get-usage-statistics \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --detector-id "$DETECTOR_ID" \
+  --usage-statistic-type SUM_BY_FEATURES \
+  --usage-criteria 'Features=CLOUD_TRAIL,DNS_LOGS,FLOW_LOGS,S3_DATA_EVENTS,EKS_AUDIT_LOGS,EBS_MALWARE_PROTECTION,RDS_LOGIN_EVENTS,LAMBDA_NETWORK_LOGS,EKS_RUNTIME_MONITORING,EC2_RUNTIME_MONITORING,FARGATE_RUNTIME_MONITORING,RDS_DBI_PROTECTION_PROVISIONED,RDS_DBI_PROTECTION_SERVERLESS' \
+  --unit USD \
+  --output json \
+  --no-cli-pager
+```
+
 ### 結果の読み方
 
 - `ENABLED`は対象Featureが有効であることを示す
 - `DISABLED`でも、対象システムで利用していないサービスなら直ちに問題とは限らない
 - Featureの有効化は料金、権限、対象リソース、運用へ影響する
 - 対応要否はセキュリティ要件と対象サービスを確認して判断する
+
+Webコンソールでは、確認したい内容によって見る場所が分かれる。
+
+| 画面 | 主な用途 | CLIで近いもの |
+|---|---|---|
+| 保護プラン | FeatureやProtection Planが有効か確認する | `get-detector`の`Features[].Status` |
+| 使用状況 | どの検知機能がどれだけ分析・監視・スキャンしたか確認する | `get-usage-statistics` |
+
+`get-detector`は設定状態を確認するコマンドである。
+`get-usage-statistics`とコンソールの「使用状況」は、分析量や課金見込みに近い情報を確認するために使う。
+
+そのため、次のように分けて読む。
+
+```text
+保護プラン / get-detector:
+  有効か、無効かを見る
+
+使用状況 / get-usage-statistics:
+  実際に分析対象データや監視対象リソースがあったかを見る
+```
 
 CLIでは、コンソールの表示名ではなくGuardDuty API上のFeature名が表示される。
 そのため、次のように読み替える。
@@ -651,6 +687,25 @@ CLIでは、コンソールの表示名ではなくGuardDuty API上のFeature名
 | `EKS_RUNTIME_MONITORING` | EKS Runtime Monitoring | EKSワークロード実行時の不審活動検知 |
 | `LAMBDA_NETWORK_LOGS` | Lambda Protection | Lambdaからの不審ネットワーク活動の検知 |
 | `RUNTIME_MONITORING` | Runtime Monitoring | 対応ワークロードの実行時不審活動検知 |
+
+コンソールの「使用状況」では、次のような名前で表示される。
+
+| 使用状況画面の表示例 | 近いFeature・保護対象 | メトリクスの意味 |
+|---|---|---|
+| Foundational Threat Detection - CloudTrailEvents | `CLOUD_TRAIL` | 分析したCloudTrailイベント数 |
+| Foundational Threat Detection - VPCFlowLogDNSLogEvents | `FLOW_LOGS`、`DNS_LOGS` | 分析したVPC Flow LogsやDNSログ量 |
+| S3 Protection - S3DataEvents | `S3_DATA_EVENTS` | 分析したS3 Data Event数 |
+| EKS Protection - KubernetesAuditLogs | `EKS_AUDIT_LOGS` | 分析したKubernetes Audit Logs数 |
+| Runtime Monitoring - RuntimeMonitoringEC2 | `EC2_RUNTIME_MONITORING` | 監視対象EC2のvCPU時間 |
+| Runtime Monitoring - RuntimeMonitoringEKS | `EKS_RUNTIME_MONITORING` | 監視対象EKSワークロードのvCPU時間 |
+| Runtime Monitoring - RuntimeMonitoringFargate | `FARGATE_RUNTIME_MONITORING` | 監視対象FargateのvCPU時間 |
+| Malware Protection for EC2 - MalwareProtectionEBS | `EBS_MALWARE_PROTECTION` | スキャンしたEBSデータ量 |
+| RDS Protection - RDS | `RDS_LOGIN_EVENTS`、`RDS_DBI_PROTECTION_PROVISIONED`、`RDS_DBI_PROTECTION_SERVERLESS` | 監視対象RDSのvCPU時間やACU時間 |
+| Lambda Protection - LambdaNetworkLogs | `LAMBDA_NETWORK_LOGS` | 分析したLambdaネットワークログ量 |
+
+使用状況画面で`データがありません`と表示されても、必ずしもFeatureが無効という意味ではない。
+Detectorを有効化した直後、対象リソースが存在しない、対象期間に分析対象ログがない、またはコンソール反映待ちの場合がある。
+有効・無効は`get-detector`または保護プランで確認し、分析実績は使用状況で確認する。
 
 今回の出力例では、`EKS_RUNTIME_MONITORING`と`RUNTIME_MONITORING`が`DISABLED`である。
 これは、EKSやRuntime Monitoring対象ワークロードを利用していない環境であれば、直ちに異常とは判断しない。
