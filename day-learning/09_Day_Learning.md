@@ -21,7 +21,7 @@ cd /Users/nobu/aws-reference/day-learning
 
 aws sts get-caller-identity \
   --profile learning \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -31,7 +31,7 @@ Detectorが存在することを確認してから、サンプルFinding作成�
 aws guardduty list-detectors \
   --profile learning \
   --region ap-northeast-1 \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -322,7 +322,7 @@ find "$EVIDENCE_DIR" \
 ```bash
 aws sts get-caller-identity \
   --profile "$PROFILE" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -408,7 +408,7 @@ aws guardduty get-detector \
   --region "$REGION" \
   --detector-id "$DETECTOR_ID" \
   --query '{Status:Status,FindingPublishingFrequency:FindingPublishingFrequency,ServiceRole:ServiceRole}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -443,7 +443,7 @@ aws events list-rules \
   --profile "$PROFILE" \
   --region "$REGION" \
   --query 'Rules[].{Name:Name,State:State,EventBusName:EventBusName,Description:Description}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -481,6 +481,9 @@ aws events list-rules \
 - インシデント管理システムへの自動起票
 
 自動対応の影響を判断できない場合は、サンプルFindingを作成しない。
+
+ラボ環境でRule一覧が`[]`の場合は、EventBridge Ruleが未設定であることを確認できた状態である。
+その場合、この章は「通知・自動対応が未設定であることを確認した」として次へ進む。
 
 ---
 
@@ -526,27 +529,31 @@ aws guardduty list-findings \
 cat "$EVIDENCE_DIR/before/03_sample_type_finding_ids_before.txt"
 ```
 
-何も表示されない場合は、変更前に対象Finding Typeの未Archive Findingが存在しない状態である。
-
-Day 8でSample Findingを作成済みの場合、同じFinding Typeが既に存在することがある。その状態でDay 9を続けると、作成前後のID差分で「今回作成したFinding」を特定できない場合がある。
-
-対象Finding Typeが既に存在する場合は、ここでいったん停止し、次のどちらかを選ぶ。
+この確認の目的は、後で「今回作ったFindingだけ」を間違えずにArchiveするためである。
 
 ```text
-推奨:
-Day 9で使用するSAMPLE_FINDING_TYPEを、作成前に存在しない別の承認済みTypeへ変更する。
+何も表示されない:
+  作成前に同じ種類の未Archive Findingはない。
+  この後に出てきた同じ種類のFindingは、今回作成したものとして特定しやすい。
 
-代替:
-既存FindingがDay 8で作成したSample Findingであることを明確に確認し、
-承認された範囲でArchiveしてからDay 9を再開する。
+IDが表示される:
+  作成前から同じ種類の未Archive Findingが存在する。
+  表示されたIDは既存Findingであり、今回作成したFindingとして扱わない。
 ```
+
+今回のラボでは、IDが表示されても作業を続けてよい。
+その場合は、作成後にもう一度同じ条件でFinding ID一覧を取り、作成前一覧になかったIDだけを「今回作成したFinding」として扱う。
+
+ただし、作成前後の差分で新しいIDを1件に絞れない場合は、Archiveを実行しない。
+どれをArchiveすべきか判断できない状態でArchiveすると、既存Findingを誤って処理済みにしてしまうためである。
 
 ```bash
 if [ -s "$EVIDENCE_DIR/before/03_sample_type_finding_ids_before.txt" ]; then
-  echo "WARNING: Target Finding Type already exists before Day 9 sample creation."
-  echo "Review the existing Finding IDs before continuing:"
+  echo "INFO: Same Finding Type already exists before Day 9 sample creation."
+  echo "These IDs are existing Findings, not Findings created by this run:"
   cat "$EVIDENCE_DIR/before/03_sample_type_finding_ids_before.txt"
-  echo "Stop here unless you intentionally continue with this existing state."
+  echo "Continue only if you will identify the newly created Finding by before/after diff."
+  echo "Do not archive anything unless the newly created Finding ID is clear."
 fi
 ```
 
@@ -747,7 +754,7 @@ aws guardduty get-findings \
   --detector-id "$DETECTOR_ID" \
   --finding-ids "$SAMPLE_FINDING_ID" \
   --query 'Findings[0].{Id:Id,Type:Type,Severity:Severity,Title:Title,AccountId:AccountId,Region:Region,CreatedAt:CreatedAt,UpdatedAt:UpdatedAt,ResourceType:Resource.ResourceType,ResourceRole:Service.ResourceRole,ActionType:Service.Action.ActionType,Archived:Service.Archived,Count:Service.Count}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -891,7 +898,7 @@ aws cloudtrail lookup-events \
   --region "$REGION" \
   --lookup-attributes AttributeKey=EventSource,AttributeValue=guardduty.amazonaws.com \
   --query 'Events[].{EventTime:EventTime,EventName:EventName,Username:Username,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -935,7 +942,7 @@ aws ec2 describe-instances \
   --region "$REGION" \
   --instance-ids "$INSTANCE_ID" \
   --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,PrivateIp:PrivateIpAddress,PublicIp:PublicIpAddress,VpcId:VpcId,SubnetId:SubnetId,SecurityGroups:SecurityGroups[*].GroupId,IamProfile:IamInstanceProfile.Arn}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -948,7 +955,7 @@ aws ec2 describe-security-groups \
   --profile "$PROFILE" \
   --region "$REGION" \
   --group-ids "$SG_ID" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -959,7 +966,7 @@ aws ec2 describe-flow-logs \
   --profile "$PROFILE" \
   --region "$REGION" \
   --query 'FlowLogs[].{FlowLogId:FlowLogId,ResourceId:ResourceId,TrafficType:TrafficType,DestinationType:LogDestinationType,Destination:LogDestination,Status:FlowLogStatus}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1075,7 +1082,7 @@ aws guardduty get-findings \
   --detector-id "$DETECTOR_ID" \
   --finding-ids "$SAMPLE_FINDING_ID" \
   --query 'Findings[0].{Id:Id,Type:Type,Title:Title,CreatedAt:CreatedAt,Archived:Service.Archived}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1135,7 +1142,7 @@ aws guardduty get-findings \
   --detector-id "$DETECTOR_ID" \
   --finding-ids "$SAMPLE_FINDING_ID" \
   --query 'Findings[0].{Id:Id,Type:Type,Archived:Service.Archived,UpdatedAt:UpdatedAt}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1166,7 +1173,7 @@ aws guardduty list-findings \
   --region "$REGION" \
   --detector-id "$DETECTOR_ID" \
   --finding-criteria "{\"Criterion\":{\"id\":{\"Eq\":[\"$SAMPLE_FINDING_ID\"]},\"service.archived\":{\"Eq\":[\"false\"]}}}" \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1188,7 +1195,7 @@ aws cloudtrail lookup-events \
   --region "$REGION" \
   --lookup-attributes AttributeKey=EventSource,AttributeValue=guardduty.amazonaws.com \
   --query 'Events[?EventName==`CreateSampleFindings` || EventName==`ArchiveFindings`].{EventTime:EventTime,EventName:EventName,Username:Username,EventId:EventId}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1225,7 +1232,7 @@ aws guardduty get-detector \
   --region "$REGION" \
   --detector-id "$DETECTOR_ID" \
   --query '{Status:Status,FindingPublishingFrequency:FindingPublishingFrequency}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
@@ -1238,7 +1245,7 @@ aws guardduty get-findings \
   --detector-id "$DETECTOR_ID" \
   --finding-ids "$SAMPLE_FINDING_ID" \
   --query 'Findings[0].{Id:Id,Type:Type,Archived:Service.Archived}' \
-  --output table \
+  --output json \
   --no-cli-pager
 ```
 
