@@ -46,6 +46,35 @@ Amazon GuardDutyのDetector、Finding、Severity、対象リソース、Action�
 
 Day 8では、自分の学習用AWSアカウントに限り、GuardDuty Detectorの一時有効化とSample Finding作成を行う。既存Detectorがある場合は、そのDetectorを読み取り確認する。
 
+## Day 8の全体像
+
+初めてGuardDutyを見る場合は、まず次の3つだけを押さえる。
+
+```text
+Detector:
+  GuardDutyが有効になっているかを表すリージョン単位の検知設定
+
+Feature / Protection Plan:
+  GuardDutyの中で、どの検知機能を使うか
+
+Finding:
+  GuardDutyが検知した結果
+```
+
+Day 8の主役はEventBridgeではない。
+EventBridgeは、Findingをメール、Teams、SNS、Lambdaなどへ連携しているかを見るための補足確認である。
+ラボ環境でEventBridge Ruleがない場合は「通知・自動対応は未設定」と確認して終わりでよい。
+
+この日の作業は、次の流れで理解する。
+
+```text
+1. GuardDutyが有効か見る
+2. どのFeatureが有効か見る
+3. 検出結果であるFindingを見る
+4. Findingの重要度、対象リソース、Actionを読む
+5. Sample Findingの場合は、実リソースではないことを理解する
+```
+
 ```text
 GuardDutyは対象リージョンで有効か。
 未対応のFindingはあるか。
@@ -100,7 +129,7 @@ Day 8の手順に従ってDetectorを一時作成し、Sample Findingで調査�
 12. Finding詳細を確認する
 13. Resource RoleとAction Typeを確認する
 14. 対象リソースと関連ログへ横展開する
-15. EventBridge・通知連携の有無を確認する
+15. 任意でEventBridge・通知連携の有無を確認する
 16. 証跡、判断、追加確認事項を整理する
 17. Day 8でDetectorを作成した場合のみ削除する
 18. Teams報告文を作成する

@@ -1,8 +1,12 @@
-# Day 9 Learning: GuardDutyサンプルFinding調査・後片付けドリル
+# Day 9 Learning: GuardDuty Sample Finding読解ドリル
 
 ## 学習開始前に実行するスクリプト
 
-Day 9はGuardDuty Detectorへ指定した1種類のサンプルFindingを作成し、調査、報告、Archiveまで実施するハンズオンである。ラボ用VPCやアプリケーションは使用しないが、GuardDutyの検証用データを作成する。
+Day 9はGuardDutyのSample Findingを使い、Finding詳細を読む練習を行う。
+ラボ用VPCやアプリケーションは使用しない。
+
+既に対象Sample Findingが存在する場合は、新規作成にこだわらず、その既存Findingを使って読解練習を行う。
+Sample Findingを何度も作成しても、新しいFinding IDが増えず、既存Findingの`Count`や`UpdatedAt`だけが更新される場合がある。
 
 ```text
 All_Setup.sh: 実行しない
@@ -12,7 +16,8 @@ S3 Data Event: 有効化しない
 GuardDuty Detector: 既存Detectorを使用する。存在しない場合のみDay 9内で一時作成する
 ```
 
-実案件では、Detectorが存在しない場合に勝手に有効化しない。自分の`learning`アカウントでDetectorが存在しない場合のみ、Day 9の手順内で一時作成する。作成したサンプルFindingは本文の手順でArchiveして終了する。
+実案件では、Detectorが存在しない場合に勝手に有効化しない。自分の`learning`アカウントでDetectorが存在しない場合のみ、Day 9の手順内で一時作成する。
+Archiveは、今回新規作成したFinding IDを一意に特定できた場合だけ実行する。
 
 実行場所と作業対象アカウントを確認する。
 
@@ -37,31 +42,54 @@ aws guardduty list-detectors \
 
 ## 1. 今日の目的
 
-GuardDutyのサンプルFindingを限定的に作成し、Finding確認、一次調査、関連サービスへの横展開、報告、Archive、CloudTrailによる操作履歴確認までを一連の作業として実施する。
+GuardDutyのSample Findingを読み、Finding ID、Finding Type、Severity、Resource、Action、Count、時刻を確認できるようにする。
 
-Day 8ではDetector、Feature、Findingの基礎確認と、学習用の一時有効化・Sample Finding確認を行った。Day 9では、指定した1種類の検証用Findingを使い、差分特定、一次調査、Archiveまでの実務フローを練習する。
+Day 8ではDetector、Feature、Findingの基礎確認を行った。
+Day 9では、Sample Findingを1件選び、詳細JSONとWebコンソールを見ながら「何が検知されたことになっているのか」を読む。
 
 ```text
-変更前確認
+Detector確認
 ↓
-サンプルFinding作成
+対象Sample Findingの有無確認
 ↓
-今回作成したFindingの特定
+既存Findingがあればそれを使う
 ↓
-Finding一次調査
+存在しなければSample Findingを作成する
 ↓
-CloudTrail・Network・Security Groupへの横展開
+Finding詳細を読む
 ↓
 調査結果報告
-↓
-サンプルFindingのArchive
-↓
-後片付け確認
-↓
-CloudTrailで作業履歴確認
 ```
 
-サンプルFindingは実際の侵害ではない。ただし、既存通知設定によってメール、Teams、監視システムなどへ通知される可能性があるため、実案件では必ず事前承認と関係者連絡を行う。
+Sample Findingは実際の侵害ではない。
+ただし、既存通知設定によってメール、Teams、監視システムなどへ通知される可能性があるため、実案件では必ず事前承認と関係者連絡を行う。
+
+## Day 9の全体像
+
+Day 9の主役は、EventBridgeでもArchiveでもない。
+主役はGuardDutyの検出結果であるFindingを読むことである。
+
+```text
+まず見るもの:
+  GuardDutyの検出結果
+
+読むもの:
+  Finding ID
+  Finding Type
+  Severity
+  Resource
+  Action
+  Count
+  CreatedAt / UpdatedAt
+
+EventBridge:
+  通知や自動対応があるかを見る補足確認
+  ラボ環境でRuleがなければ未設定として終わり
+
+Archive:
+  今回新しく作ったFindingだけを特定できた場合の後片付け
+  既存Findingを読んだだけなら実行しない
+```
 
 関連資料:
 
@@ -77,33 +105,29 @@ CloudTrailで作業履歴確認
 
 ```text
 GuardDuty Findingの一次調査手順を確認するため、
-承認済みの検証環境で指定したFinding TypeのサンプルFindingを作成する。
+承認済みの検証環境でSample Findingを1件読む。
 
-今回作成したサンプルFindingのみを特定し、
+既に対象Sample Findingが存在する場合は、それを使って、
 重要度、対象リソース、Resource Role、Actionを確認する。
 
-関連サービスへの横展開調査、証跡取得、報告を行った後、
-今回作成したサンプルFindingのみをArchiveする。
+対象Sample Findingが存在しない場合のみ、新規作成を検討する。
+Archiveは、今回新しく作成したFinding IDを一意に特定できた場合だけ実行する。
 ```
 
 ## 今日の確認順序
 
 1. AWSアカウント、リージョン、Detectorを確認する
-2. 作業開始条件と通知影響を確認する
+2. 作業開始条件を確認する
 3. 証跡保存先を準備する
-4. 変更前の未Archive Finding ID一覧を保存する
-5. EventBridge・通知連携を確認する
-6. 作成するサンプルFinding Typeを限定する
-7. サンプルFindingを作成する
-8. 変更後のFinding ID一覧を保存する
-9. 作成前後を比較し、今回作成したFinding IDだけを特定する
-10. サンプルFinding詳細を確認する
-11. Resource、Action、Severity、Countを確認する
-12. CloudTrail、Network、Security Groupへの横展開方法を整理する
-13. サンプルFindingであることを明記して報告する
-14. 今回作成したFindingだけをArchiveする
-15. Archive後の状態を確認する
-16. CloudTrailで作成・Archive操作履歴を確認する
+4. 対象Sample Finding Typeの既存Findingを確認する
+5. 既存Findingがあれば、それを調査対象にする
+6. 既存Findingがなければ、Sample Findingを作成する
+7. Finding詳細を確認する
+8. Resource、Action、Severity、Countを確認する
+9. CloudTrail、Network、Security Groupへの横展開方法を整理する
+10. Sample Findingであることを明記して報告する
+11. 任意でEventBridge・通知連携を確認する
+12. 今回新規作成したFinding IDを特定できた場合のみArchiveする
 
 ## 今日の作業範囲
 
@@ -114,8 +138,8 @@ GuardDuty Findingの一次調査手順を確認するため、
 | AWS CLIプロファイル | `learning` |
 | 対象Detector | 東京リージョンの既存Detector |
 | サンプルFinding Type | `UnauthorizedAccess:EC2/TorClient` |
-| 作成対象 | 指定した1種類のサンプルFinding |
-| 後片付け | 今回作成したサンプルFindingのみArchive |
+| 作成対象 | 既存Sample Findingがなければ、指定した1種類のSample Finding |
+| 後片付け | 今回新規作成したFinding IDを特定できた場合のみArchive |
 | Detector・Feature変更 | 既存Detectorは変更しない。Detectorが存在しない場合のみ学習用に一時作成し、最後に削除する |
 | 実リソース変更 | なし |
 
@@ -139,14 +163,15 @@ GuardDuty Findingの一次調査手順を確認するため、
 
 | 項目 | Day 8 | Day 9 |
 |---|---|---|
-| 主目的 | Detector、Feature、Findingの基礎確認 | 指定Sample Findingを使った調査・Archiveフロー検証 |
-| GuardDuty変更 | 学習用Detector一時作成、Sample Finding作成、Day 8作成分のみ削除 | 指定Sample Finding作成とArchive。Detectorがなければ学習用に一時作成 |
-| Finding対象 | Sample Findingと既存未Archive Finding | 今回作成した指定Sample Findingのみ |
-| 横展開 | Findingの読み方と調査方法の確認 | サンプル情報から調査手順を実践 |
-| 後片付け | Day 8で作成したDetectorのみ削除。既存Detectorは残す | 今回作成したFindingをArchive。Day 9で作成したDetectorのみ削除 |
-| CloudTrail確認 | 必要に応じて | 作成・Archive操作を確認 |
+| 主目的 | Detector、Feature、Findingの基礎確認 | Sample Findingを1件選んで詳細を読む |
+| GuardDuty変更 | 学習用Detector一時作成、Sample Finding作成、Day 8作成分のみ削除 | 既存Sample Findingがあれば読むだけ。なければ指定Typeを作成 |
+| Finding対象 | Sample Findingと既存未Archive Finding | 既存または新規のSample Finding 1件 |
+| 横展開 | Findingの読み方と調査方法の確認 | EC2、通信、CloudTrailで何を確認するか整理 |
+| 後片付け | Day 8で作成したDetectorのみ削除。既存Detectorは残す | 新規Finding IDを一意に特定できた場合のみArchive |
+| CloudTrail確認 | 必要に応じて | 作成やArchiveを実行した場合だけ操作履歴を確認 |
 
-Day 9で重要なのは、サンプルFindingの調査そのものより、**既存Findingと今回作成したFindingを混同せず、安全に対象を限定すること**である。
+Day 9で重要なのは、**GuardDutyの検出結果を読めるようになること**である。
+既存Findingと今回作成したFindingを混同しないこと、Archiveを不用意に実行しないことは安全のための補足ルールである。
 
 ---
 
@@ -171,10 +196,10 @@ GuardDuty、EventBridge、SNS、メール、Teams、SIEMなどの
 
 - 検証環境であること
 - GuardDuty Detectorが有効であること
-- 作成するFinding Typeが限定されていること
+- 作成する場合はFinding Typeが限定されていること
 - 既存の実FindingをArchiveしないこと
-- EventBridgeや通知先への影響
-- 監視担当者への事前連絡
+- 実案件で作成する場合はEventBridgeや通知先への影響
+- 実案件で作成する場合は監視担当者への事前連絡
 - 検証開始・終了時刻
 - 後片付け方法
 - 証跡保存先
@@ -199,21 +224,22 @@ GuardDuty、EventBridge、SNS、メール、Teams、SIEMなどの
 
 - 対象AWSアカウントとリージョンが想定どおりである
 - GuardDuty Detectorが`ENABLED`である
-- サンプルFinding作成が許可された検証環境である
-- 作成するFinding Typeを1種類に限定している
+- Sample Findingを読むだけの場合は、対象Finding IDが決まっている
+- Sample Findingを作成する場合は、作成が許可された検証環境である
+- Sample Findingを作成する場合は、Finding Typeを1種類に限定している
 - 既存Finding ID一覧を保存済みである
-- 通知先と自動対応の有無を確認済みである
-- 検証後にArchiveまで実施する時間を確保している
+- Sample Findingを作成する場合は、通知先と自動対応の有無を確認済みである
+- Archiveする場合は、今回新規作成したFinding IDを一意に特定できている
 
 ## 作業中止条件
 
 - AWSアカウントまたはリージョンが想定と異なる
 - Detectorが存在しない、または`DISABLED`
 - 実環境・本番環境で承認がない
-- 通知先や自動対応の影響を判断できない
+- Sample Findingを作成する場合に、通知先や自動対応の影響を判断できない
 - 既存Finding ID一覧を保存できない
-- Finding Typeが未指定または空である
-- サンプル作成後、今回作成したFindingを特定できない
+- Sample Findingを作成する場合に、Finding Typeが未指定または空である
+- Archiveする場合に、今回新規作成したFindingを特定できない
 - Critical・Highの実Findingを確認した
 - 想定外の通知や自動処理が発生した
 
@@ -432,9 +458,14 @@ Status: ENABLED
 
 ---
 
-## 8. 通知・自動対応の影響を確認する
+## 8. 任意: 通知・自動対応の影響を確認する
 
-サンプルFinding作成前に、EventBridge RuleとTargetを確認する。
+この章はGuardDuty Findingの読解そのものではなく、Sample Findingを作成する前の安全確認である。
+
+ラボ環境で既にSample Findingがあり、それを読むだけの場合は、この章は流し読みでよい。
+EventBridge Rule一覧が`[]`であれば、GuardDuty Findingを受ける通知・自動対応は未設定と判断して次へ進む。
+
+実案件でSample Findingを作成する場合は、EventBridge RuleとTargetを確認する。
 
 ### EventBridge Rule一覧
 
