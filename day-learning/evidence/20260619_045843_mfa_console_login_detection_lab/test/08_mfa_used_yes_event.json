@@ -1,1 +1,0 @@
-[{"timestamp":1781813441000,"message":"{\"eventSource\":\"signin.amazonaws.com\",\"eventName\":\"ConsoleLogin\",\"responseElements\":{\"ConsoleLogin\":\"Success\"},\"additionalEventData\":{\"MFAUsed\":\"Yes\"},\"sourceIPAddress\":\"203.0.113.20\",\"userIdentity\":{\"type\":\"IAMUser\",\"arn\":\"arn:aws:iam::123456789012:user/mfa-user\"}}"}]
