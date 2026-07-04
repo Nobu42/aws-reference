@@ -6,6 +6,13 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 
 ![ネットワーク構成図](./docs/design/Network_Architecture.png)
 
+## 現場用クイックリファレンス
+
+| 用途 | リンク |
+| :--- | :--- |
+| AWS CLI利用の相談・設定・`.aws`テンプレートを確認したい | [AWS CLI利用リファレンス](./day-learning/00_AWS_CLI_Work_Reference.md) |
+| 金融現場でのアラート通知設定のヒアリング・AWS設定方法を確認したい | [AWSアラート通知設定リファレンス](./day-learning/00_AWS_Alert_Notification_Reference.md) |
+
 ## 目的別目次
 
 | 目的 | 見るもの |
