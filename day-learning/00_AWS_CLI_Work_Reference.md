@@ -86,6 +86,7 @@ CLIで取得したJSONやスクリーンショットは、どのフォルダに�
 | プロキシ要否 | あり / なし | 社内端末でCLI通信に影響 |
 | 証跡保存先 | 共有フォルダなど | 成果物格納先 |
 | 通知先 | SNS / メール / Teams / 監視製品 | アラート設定で必要 |
+| KMSキー情報 | Key ARN / Alias / Key Policy要件 | カスタマー管理キー化、鍵管理、監査対応で必要 |
 
 ## 5. `.aws`ディレクトリ
 
@@ -367,6 +368,54 @@ aws guardduty get-detector \
   --no-cli-pager
 ```
 
+### 9.9 KMS
+
+現場ではCMKと呼ばれることがあるが、AWS公式では現在「KMSキー」「カスタマー管理キー」という表現が中心である。
+
+```bash
+aws kms list-keys \
+  --profile "$PROFILE_NAME" \
+  --region "$REGION" \
+  --output json \
+  --no-cli-pager
+```
+
+```bash
+aws kms list-aliases \
+  --profile "$PROFILE_NAME" \
+  --region "$REGION" \
+  --output json \
+  --no-cli-pager
+```
+
+```bash
+aws kms describe-key \
+  --profile "$PROFILE_NAME" \
+  --region "$REGION" \
+  --key-id "<key-id-or-key-arn-or-alias-name>" \
+  --output json \
+  --no-cli-pager
+```
+
+```bash
+aws kms get-key-policy \
+  --profile "$PROFILE_NAME" \
+  --region "$REGION" \
+  --key-id "<key-id-or-key-arn-or-alias-name>" \
+  --policy-name default \
+  --output json \
+  --no-cli-pager
+```
+
+見るポイント:
+
+- `KeyManager` が `CUSTOMER` ならカスタマー管理キー
+- `KeyManager` が `AWS` ならAWS managed key
+- `KeyState` が `Enabled` か
+- `DeletionDate` がないか
+- Key Policyで管理者と利用者が適切に分かれているか
+- Rotationが監査要件に合うか
+
 ## 10. 変更検知で見る代表的なCloudTrailイベント名
 
 ### 10.1 S3 Bucket Policy
@@ -406,6 +455,24 @@ aws guardduty get-detector \
 |---|---|
 | Flow Logs作成 | `CreateFlowLogs` |
 | Flow Logs削除 | `DeleteFlowLogs` |
+
+### 10.5 KMS
+
+| 操作 | CloudTrail EventName |
+|---|---|
+| KMSキー作成 | `CreateKey` |
+| Key Policy変更 | `PutKeyPolicy` |
+| KMSキー無効化 | `DisableKey` |
+| KMSキー有効化 | `EnableKey` |
+| KMSキー削除予約 | `ScheduleKeyDeletion` |
+| KMSキー削除予約キャンセル | `CancelKeyDeletion` |
+| 自動Rotation有効化 | `EnableKeyRotation` |
+| 自動Rotation無効化 | `DisableKeyRotation` |
+| Alias作成 | `CreateAlias` |
+| Alias変更 | `UpdateAlias` |
+| Alias削除 | `DeleteAlias` |
+| Grant作成 | `CreateGrant` |
+| Grant終了・取り消し | `RetireGrant` / `RevokeGrant` |
 
 ## 11. EventBridgeで検知する場合の考え方
 
@@ -459,6 +526,29 @@ CloudTrailのManagement EventをEventBridgeで拾い、SNSやメール、監視�
       "ReplaceNetworkAclEntry",
       "DeleteNetworkAclEntry",
       "ReplaceNetworkAclAssociation"
+    ]
+  }
+}
+```
+
+例: KMSキー管理変更検知のEvent Pattern
+
+```json
+{
+  "source": ["aws.kms"],
+  "detail-type": ["AWS API Call via CloudTrail"],
+  "detail": {
+    "eventSource": ["kms.amazonaws.com"],
+    "eventName": [
+      "CreateKey",
+      "PutKeyPolicy",
+      "DisableKey",
+      "ScheduleKeyDeletion",
+      "EnableKeyRotation",
+      "DisableKeyRotation",
+      "CreateAlias",
+      "UpdateAlias",
+      "DeleteAlias"
     ]
   }
 }
@@ -651,4 +741,3 @@ CloudTrailはOrganization Trailですか。アカウント単位のTrailです�
 GUIで画面確認しつつ、CLIで設定値をJSON保存して証跡にします。
 変更系は承認済み手順に合わせ、まずは参照系から確認します。
 ```
-

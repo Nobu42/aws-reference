@@ -9,6 +9,7 @@
 - NACL変更検知
 - Route Table変更検知
 - VPC Flow Logs有効化状況の確認
+- KMSキー管理変更検知
 - GuardDuty Finding通知
 - CloudTrail / EventBridge / SNS / CloudWatch Logs / CloudWatch Alarmの組み合わせ
 
@@ -309,7 +310,40 @@ VPC Flow Logsは、通信そのものを通知するというより、通信メ�
 - ログ量と料金
 - 既存SIEM連携の有無
 
-### 4.5 GuardDuty Finding
+### 4.5 KMSキー管理変更
+
+KMSキーは暗号化データの可用性と監査統制に直結する。
+特にカスタマー管理キーを使う場合、Key Policy、Rotation、Alias、削除予約、無効化の変更はアラート対象候補になる。
+
+| 検知したい操作 | CloudTrail EventName |
+|---|---|
+| KMSキー作成 | `CreateKey` |
+| Key Policy変更 | `PutKeyPolicy` |
+| KMSキー無効化 | `DisableKey` |
+| KMSキー有効化 | `EnableKey` |
+| KMSキー削除予約 | `ScheduleKeyDeletion` |
+| KMSキー削除予約キャンセル | `CancelKeyDeletion` |
+| 自動Rotation有効化 | `EnableKeyRotation` |
+| 自動Rotation無効化 | `DisableKeyRotation` |
+| Alias作成 | `CreateAlias` |
+| Alias変更 | `UpdateAlias` |
+| Alias削除 | `DeleteAlias` |
+| Grant作成 | `CreateGrant` |
+| Grant終了・取り消し | `RetireGrant` / `RevokeGrant` |
+| タグ追加 | `TagResource` |
+| タグ削除 | `UntagResource` |
+
+確認ポイント:
+
+- 全KMSキーを対象にするか
+- カスタマー管理キーだけを対象にするか
+- 特定Aliasだけを対象にするか
+- Key Policy変更は必ず通知するか
+- `ScheduleKeyDeletion` と `DisableKey` は高重要度として扱うか
+- 変更者が運用Roleか、人のIAM Userか
+- Terraformや運用自動化Roleによる変更をどう扱うか
+
+### 4.6 GuardDuty Finding
 
 GuardDutyは、FindingをEventBridgeへ送ることができる。
 Finding TypeやSeverityで通知条件を絞ることがある。
@@ -586,7 +620,42 @@ aws events list-targets-by-rule \
 }
 ```
 
-### 6.6 GuardDuty Finding検知パターン
+### 6.6 KMSキー管理変更検知パターン
+
+`event-pattern-kms-key-management-change.json`
+
+```json
+{
+  "source": ["aws.kms"],
+  "detail-type": ["AWS API Call via CloudTrail"],
+  "detail": {
+    "eventSource": ["kms.amazonaws.com"],
+    "eventName": [
+      "CreateKey",
+      "PutKeyPolicy",
+      "DisableKey",
+      "EnableKey",
+      "ScheduleKeyDeletion",
+      "CancelKeyDeletion",
+      "EnableKeyRotation",
+      "DisableKeyRotation",
+      "CreateAlias",
+      "UpdateAlias",
+      "DeleteAlias",
+      "CreateGrant",
+      "RetireGrant",
+      "RevokeGrant",
+      "TagResource",
+      "UntagResource"
+    ]
+  }
+}
+```
+
+特定キーに絞る場合は、CloudTrailイベントの `resources` や `requestParameters.keyId` の形を実ログで確認してから条件を追加する。
+まずは広めに検知して、通知量と運用要件を確認してから絞る方が安全な場合がある。
+
+### 6.7 GuardDuty Finding検知パターン
 
 `event-pattern-guardduty-finding.json`
 
@@ -1014,6 +1083,11 @@ aws logs delete-metric-filter \
 - `sns:ListTopics`
 - `sns:GetTopicAttributes`
 - `sns:ListSubscriptionsByTopic`
+- `kms:ListKeys`
+- `kms:ListAliases`
+- `kms:DescribeKey`
+- `kms:GetKeyPolicy`
+- `kms:GetKeyRotationStatus`
 - `logs:DescribeLogGroups`
 - `logs:DescribeMetricFilters`
 - `cloudwatch:DescribeAlarms`
@@ -1027,6 +1101,9 @@ aws logs delete-metric-filter \
 
 変更系:
 
+通知設定だけであれば、KMSキー自体の変更権限は通常不要である。
+KMSのCMK化、Key Policy変更、Rotation設定変更などのタスクが含まれる場合だけ、KMS変更系権限の要否を確認する。
+
 - `events:PutRule`
 - `events:PutTargets`
 - `events:EnableRule`
@@ -1037,6 +1114,20 @@ aws logs delete-metric-filter \
 - `sns:Subscribe`
 - `sns:Publish`
 - `sns:SetTopicAttributes`
+
+KMS設定変更が含まれる場合:
+
+- `kms:CreateKey`
+- `kms:PutKeyPolicy`
+- `kms:EnableKeyRotation`
+- `kms:DisableKeyRotation`
+- `kms:CreateAlias`
+- `kms:UpdateAlias`
+- `kms:DisableKey`
+- `kms:ScheduleKeyDeletion`
+
+通知設定、Metric Filter、Alarm、Flow Logs変更が含まれる場合:
+
 - `logs:PutMetricFilter`
 - `logs:DeleteMetricFilter`
 - `cloudwatch:PutMetricAlarm`
@@ -1142,4 +1233,7 @@ VPC Flow Logsは別枠で考える:
 - EventBridge Event Pattern: https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-event-patterns.html
 - SNS Email Subscription: https://docs.aws.amazon.com/sns/latest/dg/sns-email-notifications.html
 - GuardDuty FindingとEventBridge: https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_findings_eventbridge.html
-
+- AWS KMS keys: https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html
+- AWS KMS key rotation: https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html
+- AWS KMS CloudTrail logging: https://docs.aws.amazon.com/kms/latest/developerguide/logging-using-cloudtrail.html
+- AWS KMS key policies: https://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html
