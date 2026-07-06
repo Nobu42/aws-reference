@@ -15,6 +15,7 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | 設定変更前にCloudTrail・CloudWatch連携・通知基盤の現状を棚卸ししたい | [AWS現状調査リファレンス](./day-learning/00_AWS_Current_State_Investigation_Reference.md) |
 | 金融現場でのアラート通知設定のヒアリング・AWS設定方法を確認したい | [AWSアラート通知設定リファレンス](./day-learning/00_AWS_Alert_Notification_Reference.md) |
 | 監査指摘対応の作業計画たたき台を確認したい | [AWSセキュリティ監査指摘対応 作業計画](./aws_security_remediation_work_plan_2026_07.md) |
+| 先行テスト作業の要件番号・作業内容・選定理由を確認したい | [先行テスト作業候補](./pilot_work_selection_2026_07.md) |
 | リーダーへ確認する事項を整理したい | [リーダー確認事項](./leader_confirmation_items_2026_07.md) |
 
 ## 目的別目次
