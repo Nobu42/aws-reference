@@ -14,6 +14,7 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | AWS CLIで必要なIAM権限一覧を確認したい | [AWS CLI必要権限一覧](./aws_cli_required_permissions_2026_07.md) |
 | 匿名化した改善計画を確認したい | [改善計画](./改善計画.md) |
 | 7月中の対応スケジュールをタイムチャートで確認したい | [AWSセキュリティ監査指摘対応 タイムチャート](./aws_security_remediation_timeline_2026_07.md) |
+| Mermaidガントチャートの使い方とテンプレートを確認したい | [Mermaidガントチャート リファレンス](./mermaid_gantt_reference.md) |
 | 設定変更前にCloudTrail・CloudWatch連携・通知基盤の現状を棚卸ししたい | [AWS現状調査リファレンス](./day-learning/00_AWS_Current_State_Investigation_Reference.md) |
 | 評価シートの確認項目に沿って現状調査を実施したい | [AWSセキュリティ監査指摘 現状調査手順書](./aws_current_state_investigation_procedure_2026_07.md) |
 | 金融現場でのアラート通知設定のヒアリング・AWS設定方法を確認したい | [AWSアラート通知設定リファレンス](./day-learning/00_AWS_Alert_Notification_Reference.md) |
