@@ -6,6 +6,17 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 
 ![ネットワーク構成図](./docs/design/Network_Architecture.png)
 
+## 直近作成資料
+
+WBS以降に作成・更新した、現場で直近使う資料。
+
+| 用途 | リンク |
+| :--- | :--- |
+| WBS案をExcel貼り付け用の表で確認したい | [AWSセキュリティ監査指摘対応 WBS案](./aws_security_remediation_wbs_2026_07.md) |
+| 要件3番台のログ保全・KMS・VPC Flow LogsをWebコンソールで現状調査したい | [要件3番台 Webコンソール現状調査手順書](./requirements_3_x_logging_kms_vpcflow_current_state_investigation_web_console_2026_07.md) |
+| 要件4.8以外の4番台監視項目をWebコンソールで一括現状調査したい | [要件4番台 Webコンソール一括現状調査手順書](./requirements_4_x_remaining_monitoring_current_state_investigation_web_console_2026_07.md) |
+| 要件A3/A4のセキュリティアラート監視運用手順を作成したい | [要件A3/A4 セキュリティアラート監視運用手順書](./requirements_A3_A4_security_alert_monitoring_operation_procedure_2026_07.md) |
+
 ## 現場用クイックリファレンス
 
 | 用途 | リンク |
@@ -26,8 +37,9 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | 要件4.8のS3バケットポリシー変更監視をパイロット実施したい | [要件4.8 S3バケットポリシー変更監視 パイロット作業手順書](./requirement_4_8_s3_bucket_policy_monitoring_pilot_procedure_2026_07.md) |
 | 要件4.8をWebコンソールで現状調査したい | [要件4.8 Webコンソール現状調査手順書](./requirement_4_8_web_console_investigation_procedure_2026_07.md) |
 | 要件4.8をWebコンソールで設定・テストしたい | [要件4.8 Webコンソール作業実施手順書](./requirement_4_8_web_console_work_procedure_2026_07.md) |
-| 要件4.8以外の4番台監視項目を一括で現状調査したい | [要件4番台 残り監視項目 一括現状調査手順書](./requirements_4_x_remaining_monitoring_current_state_investigation_2026_07.md) |
+| 要件4.8以外の4番台監視項目をWebコンソールで一括現状調査したい | [要件4番台 Webコンソール一括現状調査手順書](./requirements_4_x_remaining_monitoring_current_state_investigation_web_console_2026_07.md) |
 | 要件4.8について関係者への確認事項と必要権限を整理したい | [要件4.8 確認事項・最低限必要権限整理](./requirement_4_8_questions_and_minimum_permissions_2026_07.md) |
+| 要件A3/A4のセキュリティアラート監視運用手順を作成したい | [要件A3/A4 セキュリティアラート監視運用手順書](./requirements_A3_A4_security_alert_monitoring_operation_procedure_2026_07.md) |
 | リーダーへ確認する事項を整理したい | [リーダー確認事項](./leader_confirmation_items_2026_07.md) |
 
 ## 目的別目次

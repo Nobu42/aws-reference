@@ -16,6 +16,7 @@ EventBridgeは元要件の必須方式ではなく、既存監視、別アカウ
 | `PutBucketPolicy` をEventBridgeで別アカウントへ送信している設定がある | 残り4番台でも、同様のEventBridge連携が既に存在しないか確認する |
 | 既存通知設定としてメール通知がある | 新規SNS TopicやAlarm Actionを作る前に既存通知先を確認する |
 | 既存通知設定としてTeams通知がある | 通知経路、運用担当、重複通知、テスト可否を確認する |
+| GuardDutyの月次確認が既に運用されている可能性がある | 4番台の各監視項目について、GuardDutyでの確認実態と通知不足を切り分ける |
 
 このため、残り4番台は単純に「Metric Filterがないから作る」と判断せず、以下をまとめて確認する。
 
@@ -31,6 +32,8 @@ CloudTrailがCloudWatch Logsへ連携されているか
 既存通知先があるか
   ↓
 EventBridgeや別アカウント連携で同等監視がないか
+  ↓
+GuardDutyや既存月次確認で同等確認が行われていないか
   ↓
 要件ごとに「対応済み / 不足 / 要確認 / 対象外」を整理する
 ```
@@ -51,7 +54,7 @@ EventBridgeや別アカウント連携で同等監視がないか
 | 4.9 | AWS Config設定変更監視 | Configuration Recorder、Delivery Channel、Config Rule変更 |
 | 4.10 | Security Group変更監視 | Ingress/Egress許可、取消、Security Group作成・削除 |
 | 4.11 | Network ACL変更監視 | NACL作成・削除、Entry変更、Association変更 |
-| 4.12 | Network Gateway変更監視 | Internet Gateway、NAT Gateway、VPN Gateway、Customer Gateway、Transit Gateway等 |
+| 4.12 | Network Gateway変更監視 | 元要件上はInternet Gateway、Customer Gatewayが中心。NAT Gateway、Transit Gateway、VPN Gatewayは現場確認のうえ対象に含める候補 |
 | 4.13 | Route Table変更監視 | Route作成・削除・置換、Route Table関連付け変更 |
 | 4.14 | VPC変更監視 | VPC作成・削除・属性変更、VPC Peering変更 |
 | 4.15 | AWS Organizations変更監視 | Organization、OU、Account、Policy変更 |
@@ -61,6 +64,11 @@ EventBridgeや別アカウント連携で同等監視がないか
 - 4.15は管理アカウント側で確認が必要な場合がある。
 - OrganizationsやIAM、ConsoleLoginなどはグローバルサービスのため、CloudTrailのMulti-Region設定やHome Regionを確認する。
 - この手順は現状調査であり、設定変更は行わない。
+
+補足:
+
+- 4.2は、元資料上「MFAを強制している場合はこのメトリクス/アラーム設定は不要」とされているため、MFA強制の有無を現場側に確認する。
+- 4.12は、元資料上はInternet GatewayまたはCustomer Gatewayの変更監視が中心である。NAT Gateway、Transit Gateway、VPN Gatewayまで含めるかは、対象システムの構成と監査側の意図を確認してから判断する。
 
 ## 3. 作業前提
 
@@ -93,7 +101,7 @@ EXPECTED_ACCOUNT_ID="<target-account-id>"
 
 EVIDENCE_DIR="./evidence_4x_remaining_monitoring_$(date '+%Y%m%d_%H%M%S')"
 
-mkdir -p "$EVIDENCE_DIR"/{00_account,01_cloudtrail,02_cloudwatch_logs,03_metric_filters,04_alarms,05_sns,06_eventbridge,07_event_history,08_summary}
+mkdir -p "$EVIDENCE_DIR"/{00_account,01_cloudtrail,02_cloudwatch_logs,03_metric_filters,04_alarms,05_sns,06_eventbridge,07_guardduty,08_event_history,09_summary}
 ```
 
 作業例:
@@ -319,7 +327,7 @@ aws logs describe-metric-filters \
 
 ```bash
 grep -Ei \
-  'UnauthorizedOperation|AccessDenied|ConsoleLogin|MFAUsed|Root|PutUserPolicy|PutRolePolicy|PutGroupPolicy|AttachUserPolicy|AttachRolePolicy|AttachGroupPolicy|DetachUserPolicy|DetachRolePolicy|DetachGroupPolicy|CreatePolicy|DeletePolicy|CreatePolicyVersion|DeletePolicyVersion|CreateTrail|UpdateTrail|DeleteTrail|StartLogging|StopLogging|PutEventSelectors|DisableKey|ScheduleKeyDeletion|DisableKeyRotation|StopConfigurationRecorder|DeleteConfigurationRecorder|PutConfigurationRecorder|PutDeliveryChannel|DeleteDeliveryChannel|PutConfigRule|DeleteConfigRule|AuthorizeSecurityGroup|RevokeSecurityGroup|CreateSecurityGroup|DeleteSecurityGroup|ModifySecurityGroupRules|CreateNetworkAcl|CreateNetworkAclEntry|DeleteNetworkAcl|DeleteNetworkAclEntry|ReplaceNetworkAcl|CreateInternetGateway|DeleteInternetGateway|AttachInternetGateway|DetachInternetGateway|CreateNatGateway|DeleteNatGateway|CreateTransitGateway|DeleteTransitGateway|CreateRoute|DeleteRoute|ReplaceRoute|CreateRouteTable|DeleteRouteTable|AssociateRouteTable|DisassociateRouteTable|CreateVpc|DeleteVpc|ModifyVpcAttribute|CreateVpcPeeringConnection|AcceptVpcPeeringConnection|DeleteVpcPeeringConnection|Organizations|CreateOrganization|DeleteOrganization|CreateOrganizationalUnit|DeleteOrganizationalUnit|MoveAccount|AttachPolicy|DetachPolicy' \
+  'UnauthorizedOperation|AccessDenied|ConsoleLogin|MFAUsed|Root|PutUserPolicy|PutRolePolicy|PutGroupPolicy|AttachUserPolicy|AttachRolePolicy|AttachGroupPolicy|DetachUserPolicy|DetachRolePolicy|DetachGroupPolicy|CreatePolicy|DeletePolicy|CreatePolicyVersion|DeletePolicyVersion|CreateTrail|UpdateTrail|DeleteTrail|StartLogging|StopLogging|PutEventSelectors|DisableKey|ScheduleKeyDeletion|DisableKeyRotation|StopConfigurationRecorder|DeleteConfigurationRecorder|PutConfigurationRecorder|PutDeliveryChannel|DeleteDeliveryChannel|PutConfigRule|DeleteConfigRule|AuthorizeSecurityGroup|RevokeSecurityGroup|CreateSecurityGroup|DeleteSecurityGroup|ModifySecurityGroupRules|CreateNetworkAcl|CreateNetworkAclEntry|DeleteNetworkAcl|DeleteNetworkAclEntry|ReplaceNetworkAcl|CreateInternetGateway|DeleteInternetGateway|AttachInternetGateway|DetachInternetGateway|CreateCustomerGateway|DeleteCustomerGateway|CreateRoute|DeleteRoute|ReplaceRoute|CreateRouteTable|DeleteRouteTable|AssociateRouteTable|DisassociateRouteTable|CreateVpc|DeleteVpc|ModifyVpcAttribute|CreateVpcPeeringConnection|AcceptVpcPeeringConnection|DeleteVpcPeeringConnection|Organizations|CreateOrganization|DeleteOrganization|CreateOrganizationalUnit|DeleteOrganizationalUnit|MoveAccount|AttachPolicy|DetachPolicy' \
   "$EVIDENCE_DIR/03_metric_filters/01_metric_filters.json" \
   > "$EVIDENCE_DIR/03_metric_filters/02_metric_filter_keyword_hits.txt" || true
 ```
@@ -532,7 +540,7 @@ done < "$EVIDENCE_DIR/06_eventbridge/02_event_bus_names.txt"
 
 ```bash
 grep -REi \
-  'PutBucketPolicy|DeleteBucketPolicy|UnauthorizedOperation|AccessDenied|ConsoleLogin|MFAUsed|Root|PutUserPolicy|PutRolePolicy|AttachRolePolicy|CreateTrail|UpdateTrail|DeleteTrail|StopLogging|DisableKey|ScheduleKeyDeletion|StopConfigurationRecorder|SecurityGroup|NetworkAcl|InternetGateway|NatGateway|TransitGateway|RouteTable|CreateRoute|DeleteRoute|CreateVpc|DeleteVpc|VpcPeering|Organizations|CreateOrganization|MoveAccount|AttachPolicy|DetachPolicy' \
+  'PutBucketPolicy|DeleteBucketPolicy|UnauthorizedOperation|AccessDenied|ConsoleLogin|MFAUsed|Root|PutUserPolicy|PutRolePolicy|AttachRolePolicy|CreateTrail|UpdateTrail|DeleteTrail|StopLogging|DisableKey|ScheduleKeyDeletion|StopConfigurationRecorder|SecurityGroup|NetworkAcl|InternetGateway|CustomerGateway|RouteTable|CreateRoute|DeleteRoute|CreateVpc|DeleteVpc|VpcPeering|Organizations|CreateOrganization|MoveAccount|AttachPolicy|DetachPolicy' \
   "$EVIDENCE_DIR/06_eventbridge" \
   > "$EVIDENCE_DIR/06_eventbridge/99_eventbridge_keyword_hits.txt" || true
 ```
@@ -556,7 +564,125 @@ grep -REi \
 | CloudWatch AlarmもEventBridgeもあり | 重複通知の可能性を確認する |
 | どちらもなし | 監視不足の可能性が高い |
 
-## 11. CloudTrail Event Historyで過去イベントを確認する
+## 11. GuardDutyの既存確認状況を確認する
+
+目的:
+評価シート上で言及されているGuardDutyの月次確認や既存運用が、4番台の監視要件にどの程度対応しているか確認する。
+
+注意:
+
+- GuardDutyは脅威検知サービスであり、すべての設定変更監視を代替するものではない。
+- GuardDutyで月次確認しているだけでは、即時通知の要件を満たさない可能性がある。
+- 4番台の是正では、GuardDutyの有無だけでなく、通知、確認頻度、対応記録、エスカレーションまで確認する。
+
+Detector一覧:
+
+```bash
+aws guardduty list-detectors \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --output json \
+  --no-cli-pager \
+  > "$EVIDENCE_DIR/07_guardduty/01_detectors.json"
+```
+
+Detector IDを設定する。
+
+```bash
+DETECTOR_ID="<guardduty-detector-id>"
+```
+
+Detector詳細:
+
+```bash
+aws guardduty get-detector \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --detector-id "$DETECTOR_ID" \
+  --output json \
+  --no-cli-pager \
+  > "$EVIDENCE_DIR/07_guardduty/02_detector_detail.json"
+```
+
+見やすい表示:
+
+```bash
+aws guardduty get-detector \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --detector-id "$DETECTOR_ID" \
+  --query '{
+    Status:Status,
+    FindingPublishingFrequency:FindingPublishingFrequency,
+    ServiceRole:ServiceRole,
+    CreatedAt:CreatedAt,
+    UpdatedAt:UpdatedAt
+  }' \
+  --output table \
+  --no-cli-pager
+```
+
+Feature確認:
+
+```bash
+aws guardduty get-detector \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --detector-id "$DETECTOR_ID" \
+  --query 'Features[].{Name:Name,Status:Status,UpdatedAt:UpdatedAt}' \
+  --output json \
+  --no-cli-pager \
+  > "$EVIDENCE_DIR/07_guardduty/03_detector_features.json"
+```
+
+Finding統計:
+
+```bash
+aws guardduty get-findings-statistics \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --detector-id "$DETECTOR_ID" \
+  --finding-statistic-types COUNT_BY_SEVERITY \
+  --output json \
+  --no-cli-pager \
+  > "$EVIDENCE_DIR/07_guardduty/04_finding_statistics.json"
+```
+
+未アーカイブFinding一覧:
+
+```bash
+aws guardduty list-findings \
+  --profile "$PROFILE" \
+  --region "$REGION" \
+  --detector-id "$DETECTOR_ID" \
+  --finding-criteria '{"Criterion":{"service.archived":{"Eq":["false"]}}}' \
+  --max-results 50 \
+  --output json \
+  --no-cli-pager \
+  > "$EVIDENCE_DIR/07_guardduty/05_unarchived_findings.json"
+```
+
+確認:
+
+| 見る項目 | 確認内容 |
+|---|---|
+| `Status` | GuardDutyが有効か |
+| `FindingPublishingFrequency` | Finding反映頻度 |
+| `Features` | CloudTrail、DNS Logs、Flow Logs、S3 Data Events等の有効状態 |
+| Finding件数 | 未対応Findingや高Severityがないか |
+| 運用記録 | 月次確認資料、対応記録、Archive判断が残っているか |
+| 通知連携 | EventBridge、SNS、Teams、監視基盤へ通知されているか |
+
+判断:
+
+| 状態 | 判断 |
+|---|---|
+| GuardDuty有効、月次確認のみ | A3/A4の運用証跡には使えるが、4番台の即時通知不足は残る可能性 |
+| GuardDuty有効、EventBridge/SNS通知あり | 通知経路と対象Findingを確認し、4番台要件との対応関係を整理する |
+| GuardDuty無効 | A3/A4および脅威検知運用として不足の可能性 |
+| Finding確認記録なし | A4の運用証跡が不足している可能性 |
+
+## 12. CloudTrail Event Historyで過去イベントを確認する
 
 目的:
 対象イベントが実際に過去に発生しているか、CloudTrailで検索できるか確認する。
@@ -577,7 +703,7 @@ for EVENT_NAME in \
   StopConfigurationRecorder PutConfigurationRecorder DeleteConfigurationRecorder \
   AuthorizeSecurityGroupIngress RevokeSecurityGroupIngress CreateSecurityGroup DeleteSecurityGroup \
   CreateNetworkAcl CreateNetworkAclEntry DeleteNetworkAcl DeleteNetworkAclEntry ReplaceNetworkAclEntry \
-  AttachInternetGateway DetachInternetGateway CreateNatGateway DeleteNatGateway CreateTransitGateway DeleteTransitGateway \
+  AttachInternetGateway DetachInternetGateway CreateCustomerGateway DeleteCustomerGateway \
   CreateRoute DeleteRoute ReplaceRoute CreateRouteTable DeleteRouteTable AssociateRouteTable DisassociateRouteTable \
   CreateVpc DeleteVpc ModifyVpcAttribute CreateVpcPeeringConnection AcceptVpcPeeringConnection DeleteVpcPeeringConnection \
   CreateOrganization DeleteOrganization CreateOrganizationalUnit DeleteOrganizationalUnit MoveAccount AttachPolicy DetachPolicy
@@ -592,7 +718,7 @@ do
     --query 'Events[].{EventTime:EventTime,EventName:EventName,Username:Username,ResourceName:Resources[0].ResourceName,EventId:EventId}' \
     --output json \
     --no-cli-pager \
-    > "$EVIDENCE_DIR/07_event_history/event_${EVENT_NAME}.json" || true
+    > "$EVIDENCE_DIR/08_event_history/event_${EVENT_NAME}.json" || true
 
   sleep 2
 done
@@ -606,7 +732,7 @@ done
 | 過去イベントなし | 変更がないだけか、検索リージョン/Trail/期間が違う可能性 |
 | Event ID | 詳細追跡に使う |
 
-## 12. 要件別の確認観点
+## 13. 要件別の確認観点
 
 調査結果は、以下の観点で要件別に整理する。
 
@@ -627,26 +753,26 @@ done
 | 4.14 | VPC変更イベント | VPC/Peering系 `eventName` | VPC Peeringを含めるか確認 |
 | 4.15 | Organizations変更イベント | Organizations系 `eventName` | 管理アカウントでの確認が必要な場合あり |
 
-## 13. 調査結果のまとめ表
+## 14. 調査結果のまとめ表
 
 以下の形式で整理する。
 
 ```tsv
-要件番号	監視対象	CloudTrail記録前提	CloudWatch Logs連携	Metric Filter	CloudWatch Alarm	通知Action	EventBridge/別アカウント連携	既存通知先	判定	不足/確認事項
-4.1	不正API呼び出し	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.2	MFAなしConsoleLogin	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.3	root使用	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.4	IAMポリシー変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.5	CloudTrail設定変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.6	Console認証失敗	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.7	CMK無効化/削除予約	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.9	AWS Config設定変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.10	Security Group変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.11	Network ACL変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.12	Network Gateway変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.13	Route Table変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.14	VPC変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
-4.15	AWS Organizations変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	
+要件番号	監視対象	CloudTrail記録前提	CloudWatch Logs連携	Metric Filter	CloudWatch Alarm	通知Action	EventBridge/別アカウント連携	GuardDuty/既存運用	既存通知先	判定	不足/確認事項
+4.1	不正API呼び出し	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.2	MFAなしConsoleLogin	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.3	root使用	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.4	IAMポリシー変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.5	CloudTrail設定変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.6	Console認証失敗	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.7	CMK無効化/削除予約	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.9	AWS Config設定変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.10	Security Group変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.11	Network ACL変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.12	Network Gateway変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.13	Route Table変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.14	VPC変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
+4.15	AWS Organizations変更	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未確認	未記入
 ```
 
 判定の目安:
@@ -659,7 +785,7 @@ done
 | 要確認 | EventBridge等の代替監視があるが、要件充足として認めるか未確認 |
 | 対象外 | サービス未利用など、関係者確認のうえ対象外と判断 |
 
-## 14. 関係者へ確認すること
+## 15. 関係者へ確認すること
 
 4番台残りを一括で進める前に、以下を確認する。
 
@@ -670,11 +796,13 @@ done
 | 既存メール通知とTeams通知はどの要件で使うか | 新規通知先作成や重複通知を避けるため |
 | 4.1〜4.15はCloudWatch Alarm方式で統一するのか | 元要件の方式と既存EventBridge方式の整合を取るため |
 | EventBridgeで同等監視済みの場合、是正済みとして扱えるか | 対応方針の認識合わせ |
+| GuardDutyの月次確認は4番台の監視要件の一部として扱うのか | GuardDuty運用とCloudWatch Alarm通知の役割分担を整理するため |
+| GuardDuty Findingの通知はメール/Teams/監視基盤へ連携されているか | A3/A4だけでなく4番台の通知不足判断にも影響するため |
 | 通知テストを実施してよいか | メール/Teamsへ実通知が飛ぶ可能性があるため |
 | 4.15のOrganizationsは管理アカウントで確認する必要があるか | 作業アカウント権限に影響するため |
 | 監視対象イベントの範囲をどこまで含めるか | IAM、Gateway、VPC系はイベント種類が多いため |
 
-## 15. 最低限必要な参照権限
+## 16. 最低限必要な参照権限
 
 現状調査だけなら、まずは参照系権限が必要。
 
@@ -686,15 +814,16 @@ done
 | CloudWatch | `cloudwatch:DescribeAlarms`, `cloudwatch:ListMetrics`, `cloudwatch:GetMetricData`, `cloudwatch:DescribeAlarmHistory` |
 | SNS | `sns:ListTopics`, `sns:ListSubscriptionsByTopic`, `sns:GetTopicAttributes` |
 | EventBridge | `events:ListEventBuses`, `events:ListRules`, `events:DescribeRule`, `events:ListTargetsByRule` |
+| GuardDuty | `guardduty:ListDetectors`, `guardduty:GetDetector`, `guardduty:ListFindings`, `guardduty:GetFindings`, `guardduty:GetFindingsStatistics` |
 | IAM | `iam:ListPolicies`, `iam:GetPolicy`, `iam:GetPolicyVersion` など、必要に応じて |
 | KMS | `kms:ListKeys`, `kms:DescribeKey`, `kms:GetKeyRotationStatus` |
 | Config | `config:DescribeConfigurationRecorders`, `config:DescribeDeliveryChannels`, `config:DescribeConfigRules` |
-| EC2/VPC | `ec2:DescribeVpcs`, `ec2:DescribeSecurityGroups`, `ec2:DescribeNetworkAcls`, `ec2:DescribeRouteTables`, `ec2:DescribeInternetGateways`, `ec2:DescribeNatGateways`, `ec2:DescribeTransitGateways` |
+| EC2/VPC | `ec2:DescribeVpcs`, `ec2:DescribeSecurityGroups`, `ec2:DescribeNetworkAcls`, `ec2:DescribeRouteTables`, `ec2:DescribeInternetGateways`。NAT GatewayやTransit Gatewayを調査対象に含める場合のみ追加参照権限を確認する |
 | Organizations | `organizations:DescribeOrganization`, `organizations:ListRoots`, `organizations:ListAccounts`, `organizations:ListPolicies` など |
 
 設定変更は別権限であり、この調査手順では使用しない。
 
-## 16. 完了条件
+## 17. 完了条件
 
 以下を満たしたら、4.8以外の4番台現状調査は完了とする。
 
@@ -705,10 +834,11 @@ done
 - Alarm ActionとSNS通知先を確認済み
 - メール/Teamsなど既存通知経路を確認済み
 - EventBridge RuleとTargetを確認済み
+- GuardDuty Detector、Feature、Finding統計、未アーカイブFinding、既存運用記録を確認済み
 - 別アカウント送信がある場合、送信先と運用主体の確認事項を整理済み
 - 要件4.1〜4.7、4.9〜4.15ごとに、対応済み/不足/要確認/対象外を整理済み
 
-## 17. 参考
+## 18. 参考
 
 - AWS CloudTrail: Sending events to CloudWatch Logs
   - English: https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html
@@ -722,4 +852,6 @@ done
 - Amazon SNS: What is Amazon SNS?
   - English: https://docs.aws.amazon.com/sns/latest/dg/welcome.html
   - 日本語: https://docs.aws.amazon.com/ja_jp/sns/latest/dg/welcome.html
-
+- Amazon GuardDuty User Guide
+  - English: https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html
+  - 日本語: https://docs.aws.amazon.com/ja_jp/guardduty/latest/ug/what-is-guardduty.html
