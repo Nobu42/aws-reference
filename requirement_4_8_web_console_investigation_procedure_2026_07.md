@@ -317,8 +317,9 @@ eventName = DeleteBucketPolicy
 
 ## 7. 参考
 
-- AWS CloudTrail: Sending events to CloudWatch Logs  
-  https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html
-- Amazon CloudWatch Logs: Creating metrics from log events using filters  
-  https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/MonitoringLogData.html
-
+- AWS CloudTrail: Sending events to CloudWatch Logs
+  - English: https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html
+  - 日本語: https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html
+- Amazon CloudWatch Logs: Creating metrics from log events using filters
+  - English: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/MonitoringLogData.html
+  - 日本語: https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/MonitoringLogData.html

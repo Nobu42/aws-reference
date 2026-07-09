@@ -15,6 +15,7 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | 匿名化した改善計画を確認したい | [改善計画](./改善計画.md) |
 | 全要件番号ごとの必要情報・確認事項を確認したい | [要件別 必要情報・確認事項一覧](./requirements_questions_for_stakeholders_2026_07.md) |
 | Excelへ貼り付ける要件別の対応内容を確認したい | [要件別 対応内容 Excel貼り付け用](./requirements_action_contents_for_excel_2026_07.md) |
+| WBS案をExcel貼り付け用の表で確認したい | [AWSセキュリティ監査指摘対応 WBS案](./aws_security_remediation_wbs_2026_07.md) |
 | 7月中の対応スケジュールをタイムチャートで確認したい | [AWSセキュリティ監査指摘対応 タイムチャート](./aws_security_remediation_timeline_2026_07.md) |
 | Mermaidガントチャートの使い方とテンプレートを確認したい | [Mermaidガントチャート リファレンス](./mermaid_gantt_reference.md) |
 | 設定変更前にCloudTrail・CloudWatch連携・通知基盤の現状を棚卸ししたい | [AWS現状調査リファレンス](./day-learning/00_AWS_Current_State_Investigation_Reference.md) |
