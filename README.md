@@ -26,6 +26,7 @@ VPC、Subnet、EC2、ALB、RDS、S3、Route 53、ACM、SES、ElastiCache、Cloud
 | 要件4.8のS3バケットポリシー変更監視をパイロット実施したい | [要件4.8 S3バケットポリシー変更監視 パイロット作業手順書](./requirement_4_8_s3_bucket_policy_monitoring_pilot_procedure_2026_07.md) |
 | 要件4.8をWebコンソールで現状調査したい | [要件4.8 Webコンソール現状調査手順書](./requirement_4_8_web_console_investigation_procedure_2026_07.md) |
 | 要件4.8をWebコンソールで設定・テストしたい | [要件4.8 Webコンソール作業実施手順書](./requirement_4_8_web_console_work_procedure_2026_07.md) |
+| 要件4.8以外の4番台監視項目を一括で現状調査したい | [要件4番台 残り監視項目 一括現状調査手順書](./requirements_4_x_remaining_monitoring_current_state_investigation_2026_07.md) |
 | 要件4.8について関係者への確認事項と必要権限を整理したい | [要件4.8 確認事項・最低限必要権限整理](./requirement_4_8_questions_and_minimum_permissions_2026_07.md) |
 | リーダーへ確認する事項を整理したい | [リーダー確認事項](./leader_confirmation_items_2026_07.md) |
 
