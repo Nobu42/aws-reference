@@ -47,6 +47,7 @@ WBS以降に作成・更新した、現場で直近使う資料。
 | 用途 | リンク |
 | :--- | :--- |
 | WBS案をExcel貼り付け用の表で確認したい | [AWSセキュリティ監査指摘対応 WBS案](./aws_security_remediation_wbs_2026_07.md) |
+| 想定される業務影響と確認観点を整理したい | [AWSセキュリティ監査指摘対応 業務影響整理](./aws_security_remediation_business_impact_2026_07.md) |
 | 要件3番台のログ保全・KMS・VPC Flow LogsをWebコンソールで現状調査したい | [要件3番台 Webコンソール現状調査手順書](./requirements_3_x_logging_kms_vpcflow_current_state_investigation_web_console_2026_07.md) |
 | 要件4.8以外の4番台監視項目をWebコンソールで一括現状調査したい | [要件4番台 Webコンソール一括現状調査手順書](./requirements_4_x_remaining_monitoring_current_state_investigation_web_console_2026_07.md) |
 | 要件A3/A4のセキュリティアラート監視運用手順を作成したい | [要件A3/A4 セキュリティアラート監視運用手順書](./requirements_A3_A4_security_alert_monitoring_operation_procedure_2026_07.md) |
