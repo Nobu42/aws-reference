@@ -2,15 +2,15 @@
 
 作成日: 2026-07-11
 
-この資料は、AWS公式ドキュメントをもとに、CloudTrailを現場作業で確認するための要点を整理したものです。
+この資料は、AWS公式ドキュメントをもとに、CloudTrailを現場作業で確認するための要点を整理したものである。
 
-日本語版ドキュメントは機械翻訳の場合があります。表現に迷う場合や手順の正確性を確認する場合は、英語版も併せて確認します。
+日本語版ドキュメントは機械翻訳の場合がある。表現に迷う場合や手順の正確性を確認する場合は、英語版も併せて確認する。
 
 ## 1. CloudTrailとは
 
-CloudTrailは、AWSアカウント内で実行された操作をイベントとして記録するサービスです。
+CloudTrailは、AWSアカウント内で実行された操作をイベントとして記録するサービスである。
 
-記録対象には、以下のような操作が含まれます。
+記録対象には、以下のような操作が含まれる。
 
 - AWSマネジメントコンソールでの操作
 - AWS CLIでの操作
@@ -18,21 +18,21 @@ CloudTrailは、AWSアカウント内で実行された操作をイベントと�
 - AWS APIによる操作
 - IAMユーザー、IAM Role、AWSサービスによる操作
 
-現場では、CloudTrailは「誰が、いつ、どのAWS APIを、どのリソースに対して実行したか」を確認するための基本的な証跡サービスとして扱います。
+現場では、CloudTrailを「誰が、いつ、どのAWS APIを、どのリソースに対して実行したか」を確認するための基本的な証跡サービスとして扱う。
 
 ## 2. Event History、Trail、CloudTrail Lakeの違い
 
-| 種類 | 主な用途 | 保存・検索範囲 | 現場での見方 |
+| 種類 | 主な用途 | 保存・検索範囲 | 現場での扱い |
 | :--- | :--- | :--- | :--- |
 | Event History | 直近の管理イベント確認 | 過去90日間のManagement Event | まず手早く確認する場所 |
 | Trail | 継続的な証跡保存 | S3へ保存。必要に応じてCloudWatch LogsやEventBridgeへ連携 | 監査、長期保管、通知設定の前提 |
 | CloudTrail Lake | SQLによる高度な検索・分析 | Event Data Storeに保存 | 大量検索、横断分析、長期分析向け |
 
-Event Historyはアカウント作成時から自動的に利用できますが、長期保存やCloudWatch Logs連携、監視発報にはTrailの設定が重要になります。
+Event Historyはアカウント作成時から自動的に利用できるが、長期保存やCloudWatch Logs連携、監視発報にはTrailの設定が重要となる。
 
 ## 3. Event Historyのポイント
 
-Event Historyは、CloudTrailで最初に確認することが多い画面です。
+Event Historyは、CloudTrailで最初に確認することが多い画面である。
 
 確認ポイント:
 
@@ -50,7 +50,7 @@ Event Historyは、CloudTrailで最初に確認することが多い画面です
 
 ## 4. Trailのポイント
 
-Trailは、AWSアクティビティを継続的に記録し、S3バケットへ配信する設定です。
+Trailは、AWSアクティビティを継続的に記録し、S3バケットへ配信する設定である。
 
 Trailで確認する主な項目:
 
@@ -68,11 +68,11 @@ Trailで確認する主な項目:
 | KMS Key | ログ暗号化にCMKを使っているか確認する |
 | Log File Validation | ログ改ざん検証が有効か確認する |
 
-AWS公式ドキュメントでは、コンソールで作成するTrailはマルチリージョンTrailになります。単一リージョンTrailはCLIまたはAPIで作成する形になります。
+AWS公式ドキュメントでは、コンソールで作成するTrailはマルチリージョンTrailとなる。単一リージョンTrailはCLIまたはAPIで作成する形となる。
 
 ## 5. Management Event
 
-Management Eventは、AWSリソースに対する管理操作を記録するイベントです。
+Management Eventは、AWSリソースに対する管理操作を記録するイベントである。
 
 例:
 
@@ -83,7 +83,7 @@ Management Eventは、AWSリソースに対する管理操作を記録するイ�
 - VPCやSubnetの作成、削除
 - ConsoleLogin
 
-CloudTrailの監視要件で扱う4番台の多くは、Management EventをCloudWatch Logsへ連携し、Metric FilterとCloudWatch Alarmで検知する考え方になります。
+CloudTrailの監視要件で扱う4番台の多くは、Management EventをCloudWatch Logsへ連携し、Metric FilterとCloudWatch Alarmで検知する考え方である。
 
 確認観点:
 
@@ -94,7 +94,7 @@ CloudTrailの監視要件で扱う4番台の多くは、Management EventをCloud
 
 ## 6. Data Event
 
-Data Eventは、リソース内のデータに対する操作を記録するイベントです。
+Data Eventは、リソース内のデータに対する操作を記録するイベントである。
 
 代表例:
 
@@ -103,7 +103,7 @@ Data Eventは、リソース内のデータに対する操作を記録するイ�
 - S3 Objectの`DeleteObject`
 - Lambda関数の`Invoke`
 
-Data Eventは高頻度になりやすいため、通常は必要な対象に絞って有効化します。
+Data Eventは高頻度になりやすいため、通常は必要な対象に絞って有効化する。
 
 現場での注意点:
 
@@ -114,7 +114,7 @@ Data Eventは高頻度になりやすいため、通常は必要な対象に絞�
 
 ## 7. CloudWatch Logs連携
 
-CloudTrailは、Trail設定に一致するイベントをCloudWatch Logsへ送信できます。
+CloudTrailは、Trail設定に一致するイベントをCloudWatch Logsへ送信できる。
 
 CloudWatch Logs連携で必要なもの:
 
@@ -133,15 +133,15 @@ CloudWatch Logs連携で必要なもの:
 | Retention | ログ保持期間が要件に合っているか確認するため |
 | KMS Key | CloudWatch Logs側の暗号化設定を確認するため |
 
-CloudTrailイベントがCloudWatch Logsに届くまでには遅延があります。公式ドキュメントでは、通常は平均5分以内に配信されると説明されていますが、保証ではありません。
+CloudTrailイベントがCloudWatch Logsに届くまでには遅延がある。公式ドキュメントでは、通常は平均5分以内に配信されると説明されているが、保証ではない。
 
-また、CloudWatch Logs画面の時刻はLog Groupに配信された時刻です。実際のAWS操作時刻を確認する場合は、イベント内の`eventTime`を確認します。
+また、CloudWatch Logs画面の時刻はLog Groupに配信された時刻である。実際のAWS操作時刻を確認する場合は、イベント内の`eventTime`を確認する。
 
 ## 8. Metric Filter / CloudWatch Alarmとの関係
 
-CloudTrail自体は「記録するサービス」です。
+CloudTrail自体は「記録するサービス」である。
 
-アラートを出すには、CloudTrailイベントをCloudWatch Logsへ連携し、そのLog GroupにMetric Filterを設定し、CloudWatch Alarmでしきい値を監視します。
+アラートを出すには、CloudTrailイベントをCloudWatch Logsへ連携し、そのLog GroupにMetric Filterを設定し、CloudWatch Alarmでしきい値を監視する。
 
 基本の流れ:
 
@@ -155,7 +155,7 @@ AWS操作
   -> SNS / メール / Teamsなど
 ```
 
-現場で見るべきこと:
+現場で確認する事項:
 
 - TrailがCloudWatch Logsへ連携されているか
 - 対象Log GroupにMetric Filterがあるか
@@ -166,7 +166,7 @@ AWS操作
 
 ## 9. S3保存先
 
-TrailのログはS3バケットに保存されます。
+TrailのログはS3バケットに保存される。
 
 確認ポイント:
 
@@ -187,7 +187,7 @@ TrailのログはS3バケットに保存されます。
 
 ## 10. Log File Validation
 
-Log File Validationは、CloudTrailログが配信後に変更、削除、改ざんされていないかを検証するための機能です。
+Log File Validationは、CloudTrailログが配信後に変更、削除、改ざんされていないかを検証するための機能である。
 
 仕組みの概要:
 
@@ -205,7 +205,7 @@ Log File Validationは、CloudTrailログが配信後に変更、削除、改ざ
 
 ## 11. KMS / CMK暗号化
 
-CloudTrailログはS3へ保存されるため、S3側の暗号化設定とCloudTrail側のKMS設定が関係します。
+CloudTrailログはS3へ保存されるため、S3側の暗号化設定とCloudTrail側のKMS設定が関係する。
 
 SSE-KMSを使用する場合の確認ポイント:
 
@@ -223,7 +223,7 @@ SSE-KMSを使用する場合の確認ポイント:
 
 ## 12. Organization Trail
 
-Organization Trailは、AWS Organizations配下の複数アカウントを対象にしたTrailです。
+Organization Trailは、AWS Organizations配下の複数アカウントを対象にしたTrailである。
 
 確認ポイント:
 
@@ -241,7 +241,7 @@ Organization Trailは、AWS Organizations配下の複数アカウントを対象
 
 ## 13. 料金で注意する点
 
-CloudTrailの料金は設定内容によって変わります。
+CloudTrailの料金は設定内容によって変わる。
 
 特に注意するもの:
 
@@ -254,13 +254,13 @@ CloudTrailの料金は設定内容によって変わります。
 | CloudTrail Lake | 取り込み、保存、クエリに料金が発生する |
 | Insights | 分析対象イベント数に応じて課金される |
 
-現場では、Data Event、CloudWatch Logs連携、CloudTrail Lake、長期保持を設定するときに料金影響を確認します。
+現場では、Data Event、CloudWatch Logs連携、CloudTrail Lake、長期保持を設定するときに料金影響を確認する。
 
 ## 14. 現場での確認チェックリスト
 
-CloudTrailを確認するときは、以下を順番に見ると整理しやすいです。
+CloudTrailを確認するときは、以下を順番に確認すると整理しやすい。
 
-| No. | 確認項目 | 見る理由 |
+| No. | 確認項目 | 確認理由 |
 | :--- | :--- | :--- |
 | 1 | Trailが存在するか | 継続的な証跡保存があるか確認する |
 | 2 | Multi-Region Trailか | 全リージョンを対象にしているか確認する |
@@ -284,7 +284,7 @@ CloudTrailを確認するときは、以下を順番に見ると整理しやす�
 | Event Historyに出ないなら記録できない | Event HistoryはManagement Event中心。Data EventはTrail設定が必要 |
 | Trailがあれば自動でアラートが出る | Trailは記録。アラートにはCloudWatch Logs、Metric Filter、Alarm、通知先が必要 |
 | S3バケットポリシー変更とS3ファイルアップロードは同じ | バケットポリシー変更はManagement Event、Object操作はData Event |
-| KMSを設定すれば全員が安全に読める | 読む側にはS3 Read権限とKMS Decrypt権限が必要 |
+| KMSを設定すれば全員が安全に参照できる | 参照側にはS3 Read権限とKMS Decrypt権限が必要 |
 
 ## 16. 公式ドキュメントURL
 
@@ -313,4 +313,3 @@ CloudTrailを確認するときは、以下を順番に見ると整理しやす�
 | Event history | https://docs.aws.amazon.com/awscloudtrail/latest/userguide/view-cloudtrail-events.html |
 | Sending events to CloudWatch Logs | https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html |
 | Encrypting CloudTrail log files with SSE-KMS | https://docs.aws.amazon.com/awscloudtrail/latest/userguide/encrypting-cloudtrail-log-files-with-aws-kms.html |
-
