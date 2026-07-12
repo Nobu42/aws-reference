@@ -55,6 +55,15 @@ WBS以降に作成・更新した、現場で直近使う資料。
 | 要件4.8以外の4番台監視項目をWebコンソールで一括現状調査したい | [要件4番台 Webコンソール一括現状調査手順書](./requirements_4_x_remaining_monitoring_current_state_investigation_web_console_2026_07.md) |
 | 要件A3/A4のセキュリティアラート監視運用手順を作成したい | [要件A3/A4 セキュリティアラート監視運用手順書](./requirements_A3_A4_security_alert_monitoring_operation_procedure_2026_07.md) |
 
+## AWS公式ドキュメント要約
+
+AWS公式ドキュメントをもとに、現場で確認する観点に絞って要約した資料。
+
+| サービス | 要約 | 公式ドキュメント |
+| :--- | :--- | :--- |
+| CloudTrail | [AWS公式ドキュメント CloudTrail要約](./aws_official_docs_cloudtrail_summary.md) | [日本語](https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/cloudtrail-user-guide.html) / [English](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html) |
+| CloudWatch | 作成予定 | [日本語](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/WhatIsCloudWatch.html) / [English](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/WhatIsCloudWatch.html) |
+
 ## 現場用クイックリファレンス
 
 | 用途 | リンク |
