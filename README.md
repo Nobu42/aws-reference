@@ -86,6 +86,7 @@ gantt
 | CloudTrailの公式ドキュメント要約を確認する | [AWS公式ドキュメント CloudTrail要約](./project-docs/04_references/aws_official_docs_cloudtrail_summary.md) |
 | CloudWatch / CloudWatch Logsの公式ドキュメント要約を確認する | [AWS公式ドキュメント CloudWatch / CloudWatch Logs要約](./project-docs/04_references/aws_official_docs_cloudwatch_summary.md) |
 | KMS / CMKの公式ドキュメント要約を確認する | [AWS公式ドキュメント KMS / CMK要約](./project-docs/04_references/aws_official_docs_kms_cmk_summary.md) |
+| VPC Flow Logsの公式ドキュメント要約を確認する | [AWS公式ドキュメント VPC Flow Logs要約](./project-docs/04_references/aws_official_docs_vpc_flow_logs_summary.md) |
 | CLI利用可否や必要権限を確認する | [AWS CLI必要権限一覧](./project-docs/04_references/aws_cli_required_permissions_2026_07.md) |
 
 ## 使い分け
