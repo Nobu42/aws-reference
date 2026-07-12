@@ -85,6 +85,7 @@ gantt
 | AWS機能ごとの対象範囲を確認する | [AWS機能別 対象範囲確認リファレンス](./project-docs/04_references/aws_service_scope_reference_2026_07.md) |
 | CloudTrailの公式ドキュメント要約を確認する | [AWS公式ドキュメント CloudTrail要約](./project-docs/04_references/aws_official_docs_cloudtrail_summary.md) |
 | CloudWatch / CloudWatch Logsの公式ドキュメント要約を確認する | [AWS公式ドキュメント CloudWatch / CloudWatch Logs要約](./project-docs/04_references/aws_official_docs_cloudwatch_summary.md) |
+| EventBridgeの公式ドキュメント要約を確認する | [AWS公式ドキュメント EventBridge要約](./project-docs/04_references/aws_official_docs_eventbridge_summary.md) |
 | KMS / CMKの公式ドキュメント要約を確認する | [AWS公式ドキュメント KMS / CMK要約](./project-docs/04_references/aws_official_docs_kms_cmk_summary.md) |
 | VPC Flow Logsの公式ドキュメント要約を確認する | [AWS公式ドキュメント VPC Flow Logs要約](./project-docs/04_references/aws_official_docs_vpc_flow_logs_summary.md) |
 | CLI利用可否や必要権限を確認する | [AWS CLI必要権限一覧](./project-docs/04_references/aws_cli_required_permissions_2026_07.md) |
