@@ -49,6 +49,8 @@ gantt
 | 作業計画の大枠を確認する | [クラウドセキュリティ対応 作業計画](./project-docs/01_plan/aws_security_remediation_work_plan_2026_07.md) |
 | 想定される業務影響を確認する | [業務影響整理](./project-docs/01_plan/aws_security_remediation_business_impact_2026_07.md) |
 | デグレードテスト観点を確認する | [デグレードテスト手順書](./project-docs/01_plan/aws_security_remediation_degrade_test_procedure_2026_07.md) |
+| 本番作業と切り戻しの流れを確認する | [本番作業手順書・切り戻し手順書](./project-docs/03_procedures/production_release_and_rollback_runbook_2026_09.md) |
+| レビュー・説明用の要約を作る | [レビュー・説明用サマリ テンプレート](./project-docs/01_plan/stakeholder_review_explanation_summary_template_2026_07.md) |
 | リーダーへ確認する事項を整理する | [リーダー確認事項](./project-docs/01_plan/leader_confirmation_items_2026_07.md) |
 | 削除予定VPCの影響を確認する | [削除予定VPCの影響確認・インフラチーム質問整理](./project-docs/01_plan/infra_team_questions_and_impact_2026_07.md) |
 
@@ -75,8 +77,13 @@ gantt
 | 用途 | 資料 |
 | :--- | :--- |
 | 4.8以外の4番台監視項目をWebコンソールで一括調査する | [要件4番台 Webコンソール一括現状調査手順書](./project-docs/03_procedures/requirements_4_x_remaining_monitoring_current_state_investigation_web_console_2026_07.md) |
+| 4番台の監視設定値案を確認する | [要件4番台 監視設定値一覧 設計パラメータ案](./project-docs/03_procedures/requirements_4_x_monitoring_parameter_design_2026_07.md) |
+| 4番台のWebコンソール設定・テストを行う | [要件4番台 Webコンソール作業実施手順書](./project-docs/03_procedures/requirements_4_x_web_console_work_procedure_2026_07.md) |
 | 3番台のログ保全・KMS・VPC Flow LogsをWebコンソールで調査する | [要件3番台 Webコンソール現状調査手順書](./project-docs/03_procedures/requirements_3_x_logging_kms_vpcflow_current_state_investigation_web_console_2026_07.md) |
+| 3番台のWebコンソール設定・テストを行う | [要件3番台 Webコンソール作業実施手順書](./project-docs/03_procedures/requirements_3_x_web_console_work_procedure_2026_07.md) |
 | A3/A4のセキュリティアラート監視運用手順を確認する | [要件A3/A4 セキュリティアラート監視運用手順書](./project-docs/03_procedures/requirements_A3_A4_security_alert_monitoring_operation_procedure_2026_07.md) |
+| A3/A4の運用証跡テンプレートを確認する | [要件A3/A4 セキュリティアラート運用証跡テンプレート](./project-docs/03_procedures/requirements_A3_A4_security_alert_operation_evidence_template_2026_07.md) |
+| 通知先と通知テストを整理する | [通知設計・通知先一覧・通知テスト手順](./project-docs/03_procedures/notification_design_and_test_plan_2026_07.md) |
 
 ### 参照資料
 
@@ -88,6 +95,7 @@ gantt
 | EventBridgeの公式ドキュメント要約を確認する | [AWS公式ドキュメント EventBridge要約](./project-docs/04_references/aws_official_docs_eventbridge_summary.md) |
 | KMS / CMKの公式ドキュメント要約を確認する | [AWS公式ドキュメント KMS / CMK要約](./project-docs/04_references/aws_official_docs_kms_cmk_summary.md) |
 | VPC Flow Logsの公式ドキュメント要約を確認する | [AWS公式ドキュメント VPC Flow Logs要約](./project-docs/04_references/aws_official_docs_vpc_flow_logs_summary.md) |
+| S3の公式ドキュメント要約を確認する | [AWS公式ドキュメント S3要約](./project-docs/04_references/aws_official_docs_s3_summary.md) |
 | CLI利用可否や必要権限を確認する | [AWS CLI必要権限一覧](./project-docs/04_references/aws_cli_required_permissions_2026_07.md) |
 
 ## 使い分け
