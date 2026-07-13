@@ -84,6 +84,7 @@ gantt
 | A3/A4のセキュリティアラート監視運用手順を確認する | [要件A3/A4 セキュリティアラート監視運用手順書](./project-docs/03_procedures/requirements_A3_A4_security_alert_monitoring_operation_procedure_2026_07.md) |
 | A3/A4の運用証跡テンプレートを確認する | [要件A3/A4 セキュリティアラート運用証跡テンプレート](./project-docs/03_procedures/requirements_A3_A4_security_alert_operation_evidence_template_2026_07.md) |
 | 通知先と通知テストを整理する | [通知設計・通知先一覧・通知テスト手順](./project-docs/03_procedures/notification_design_and_test_plan_2026_07.md) |
+| Security Hubと既存通知連携を確認する | [Security Hub現状確認手順書](./project-docs/03_procedures/securityhub_current_state_investigation_procedure_2026_07.md) |
 
 ### 参照資料
 
