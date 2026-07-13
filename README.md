@@ -93,6 +93,7 @@ gantt
 | CloudTrailの公式ドキュメント要約を確認する | [AWS公式ドキュメント CloudTrail要約](./project-docs/04_references/aws_official_docs_cloudtrail_summary.md) |
 | CloudWatch / CloudWatch Logsの公式ドキュメント要約を確認する | [AWS公式ドキュメント CloudWatch / CloudWatch Logs要約](./project-docs/04_references/aws_official_docs_cloudwatch_summary.md) |
 | EventBridgeの公式ドキュメント要約を確認する | [AWS公式ドキュメント EventBridge要約](./project-docs/04_references/aws_official_docs_eventbridge_summary.md) |
+| Security Hubの公式ドキュメント要約を確認する | [AWS公式ドキュメント Security Hub要約](./project-docs/04_references/aws_official_docs_securityhub_summary.md) |
 | KMS / CMKの公式ドキュメント要約を確認する | [AWS公式ドキュメント KMS / CMK要約](./project-docs/04_references/aws_official_docs_kms_cmk_summary.md) |
 | VPC Flow Logsの公式ドキュメント要約を確認する | [AWS公式ドキュメント VPC Flow Logs要約](./project-docs/04_references/aws_official_docs_vpc_flow_logs_summary.md) |
 | S3の公式ドキュメント要約を確認する | [AWS公式ドキュメント S3要約](./project-docs/04_references/aws_official_docs_s3_summary.md) |
