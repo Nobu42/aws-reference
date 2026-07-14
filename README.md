@@ -83,6 +83,7 @@ gantt
 | 4番台の当日作業手順をExcel形式で整理する | [要件4番台 当日Webコンソール作業手順書テンプレート](./project-docs/03_procedures/requirements_4_x_day_of_web_console_runbook_template_2026_07.md) |
 | 3番台のログ保全・KMS・VPC Flow LogsをWebコンソールで調査する | [要件3番台 Webコンソール現状調査手順書](./project-docs/03_procedures/requirements_3_x_logging_kms_vpcflow_current_state_investigation_web_console_2026_07.md) |
 | 3番台のWebコンソール設定・テストを行う | [要件3番台 Webコンソール作業実施手順書](./project-docs/03_procedures/requirements_3_x_web_console_work_procedure_2026_07.md) |
+| A3/A4で必要な作業と他部署連携を整理する | [要件A3/A4 必要作業・他部署連携整理](./project-docs/03_procedures/requirements_A3_A4_work_items_and_coordination_2026_07.md) |
 | A3/A4のセキュリティアラート監視運用手順を確認する | [要件A3/A4 セキュリティアラート監視運用手順書](./project-docs/03_procedures/requirements_A3_A4_security_alert_monitoring_operation_procedure_2026_07.md) |
 | A3/A4の運用証跡テンプレートを確認する | [要件A3/A4 セキュリティアラート運用証跡テンプレート](./project-docs/03_procedures/requirements_A3_A4_security_alert_operation_evidence_template_2026_07.md) |
 | 通知先と通知テストを整理する | [通知設計・通知先一覧・通知テスト手順](./project-docs/03_procedures/notification_design_and_test_plan_2026_07.md) |
