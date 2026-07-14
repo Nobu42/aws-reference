@@ -70,6 +70,7 @@ gantt
 | 4.8を先行作業として選ぶ理由と作業内容を確認する | [要件4.8 S3バケットポリシー変更監視 パイロット作業手順書](./project-docs/03_procedures/requirement_4_8_s3_bucket_policy_monitoring_pilot_procedure_2026_07.md) |
 | 4.8のWebコンソール現状調査を行う | [要件4.8 Webコンソール現状調査手順書](./project-docs/03_procedures/requirement_4_8_web_console_investigation_procedure_2026_07.md) |
 | 4.8のWebコンソール設定・テストを行う | [要件4.8 Webコンソール作業実施手順書](./project-docs/03_procedures/requirement_4_8_web_console_work_procedure_2026_07.md) |
+| 4.8の当日作業手順をExcel形式で整理する | [要件4.8 当日Webコンソール作業手順書テンプレート](./project-docs/03_procedures/requirement_4_8_day_of_web_console_runbook_template_2026_07.md) |
 | 4.8について確認事項と必要権限を整理する | [要件4.8 確認事項・最低限必要権限整理](./project-docs/03_procedures/requirement_4_8_questions_and_minimum_permissions_2026_07.md) |
 
 ### 4番台・3番台・A3/A4
