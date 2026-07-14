@@ -80,6 +80,7 @@ gantt
 | 4.8以外の4番台監視項目をWebコンソールで一括調査する | [要件4番台 Webコンソール一括現状調査手順書](./project-docs/03_procedures/requirements_4_x_remaining_monitoring_current_state_investigation_web_console_2026_07.md) |
 | 4番台の監視設定値案を確認する | [要件4番台 監視設定値一覧 設計パラメータ案](./project-docs/03_procedures/requirements_4_x_monitoring_parameter_design_2026_07.md) |
 | 4番台のWebコンソール設定・テストを行う | [要件4番台 Webコンソール作業実施手順書](./project-docs/03_procedures/requirements_4_x_web_console_work_procedure_2026_07.md) |
+| 4番台の当日作業手順をExcel形式で整理する | [要件4番台 当日Webコンソール作業手順書テンプレート](./project-docs/03_procedures/requirements_4_x_day_of_web_console_runbook_template_2026_07.md) |
 | 3番台のログ保全・KMS・VPC Flow LogsをWebコンソールで調査する | [要件3番台 Webコンソール現状調査手順書](./project-docs/03_procedures/requirements_3_x_logging_kms_vpcflow_current_state_investigation_web_console_2026_07.md) |
 | 3番台のWebコンソール設定・テストを行う | [要件3番台 Webコンソール作業実施手順書](./project-docs/03_procedures/requirements_3_x_web_console_work_procedure_2026_07.md) |
 | A3/A4のセキュリティアラート監視運用手順を確認する | [要件A3/A4 セキュリティアラート監視運用手順書](./project-docs/03_procedures/requirements_A3_A4_security_alert_monitoring_operation_procedure_2026_07.md) |
