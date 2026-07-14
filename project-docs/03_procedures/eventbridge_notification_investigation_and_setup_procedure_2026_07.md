@@ -375,7 +375,58 @@ Targetが別アカウントEvent Busの場合、送信元だけでは最終通�
 受信側Event Bus、Rule、Target、通知先の確認を依頼する。
 ```
 
-### 7.6 CloudTrailで設定変更履歴を確認する
+### 7.6 権限不足で確認できない場合
+
+EventBridge通知調査では、付与されたAWSアカウント権限や担当範囲によって、確認できる範囲が途中で止まることがある。
+
+これは調査漏れではなく、アカウント境界、権限境界、運用責任分界点による制約として扱う。
+
+権限不足で詰まりやすい箇所:
+
+| 確認対象 | 必要になりやすい権限 | 権限不足時に起きること |
+| :--- | :--- | :--- |
+| EventBridge Rule一覧 | EventBridge閲覧権限 | Rule一覧が確認できない |
+| Rule詳細 | EventBridge閲覧権限 | Event Patternや状態が確認できない |
+| Target一覧 | EventBridge Target閲覧権限 | SNS、Lambda、別アカウントEvent Busなどの宛先が確認できない |
+| Event Bus Policy | EventBridge Event Bus閲覧権限 | 別アカウント連携の許可状態が確認できない |
+| CloudWatch Metrics | CloudWatch Metrics閲覧権限 | Rule発火、Target呼び出し、失敗有無が確認できない |
+| SNS Topic | SNS閲覧権限 | Topic属性やSubscriptionが確認できない |
+| Lambda | Lambda閲覧権限 | 通知処理内容やトリガーが確認できない |
+| Lambda Logs | CloudWatch Logs閲覧権限 | 実行成功、失敗、通知送信結果が確認できない |
+| SQS / DLQ | SQS閲覧権限 | 失敗イベントの退避状況が確認できない |
+| IAM Role | IAM閲覧権限 | EventBridgeがTargetを呼ぶためのRoleが確認できない |
+| CloudTrail | CloudTrail閲覧権限 | RuleやTargetを誰がいつ変更したか確認できない |
+| 別アカウントEvent Bus受信側 | 受信側アカウント権限 | 受信側Rule、Target、最終通知先が確認できない |
+
+権限不足時の整理方法:
+
+| 区分 | 記載例 |
+| :--- | :--- |
+| 確認済み | 送信元EventBridge Rule、Event Pattern、Target ARNまでは確認済み |
+| 一部確認 | CloudWatch MetricsでTarget呼び出し有無までは確認済み |
+| 未確認 | 受信側Event Bus、受信側Rule、最終通知先は権限不足により未確認 |
+| 追加確認先 | インフラチーム、監視基盤担当、受信側アカウント管理者 |
+| 判断 | 通知到達確認は未完了。受信側確認後に流用可否を判断 |
+
+報告文例:
+
+```text
+現アカウントの権限では、EventBridge Rule、Event Pattern、Targetまでは確認済み。
+
+ただし、Targetが別アカウントEvent Busになっているため、受信側アカウントでどのRuleが拾い、最終的にメール、Teams、監視基盤、チケットへ通知しているかは確認できない。
+
+通知到達確認のため、受信側アカウントのEventBridge Rule、Target、SNS/Lambda/Teams等の通知経路確認が必要である。
+```
+
+この場合の結論は、以下のように表現する。
+
+```text
+送信元からTargetまでの設定は確認済み。
+最終通知先は権限境界により未確認。
+既存設定の流用可否は、受信側確認後に判断する。
+```
+
+### 7.7 CloudTrailで設定変更履歴を確認する
 
 EventBridge設定変更はCloudTrailで追跡できる。
 
@@ -687,9 +738,135 @@ EventBridge_07_Teams通知到達.png
 | 既存Ruleなし | 新規Rule作成を検討 |
 | 既存Ruleの対象イベントが不足 | 既存Rule編集または補完Rule作成を検討 |
 
-## 15. 現場向け報告文例
+## 15. EventBridgeを使わず当初案で進める場合
 
-### 15.1 既存Ruleが通知まで確認できた場合
+既存EventBridge Ruleの調査が行き詰まる場合、EventBridgeを流用せず、当初案で進める選択肢がある。
+
+当初案:
+
+```text
+CloudTrail
+  -> CloudWatch Logs
+  -> Metric Filter
+  -> CloudWatch Alarm
+  -> SNS / Teams / メール
+```
+
+この構成は、今回対応範囲内で検知条件、アラーム、通知先、テスト、エビデンスを整理しやすい。
+
+### 15.1 当初案を選ぶ判断条件
+
+| 状態 | 判断 |
+| :--- | :--- |
+| EventBridge Targetが別アカウントEvent Bus | 受信側確認ができない場合、当初案を検討 |
+| 受信側Ruleが確認できない | 最終通知先を説明できないため、当初案を検討 |
+| 通知到達が確認できない | 監査・レビュー用証跡が弱いため、当初案を検討 |
+| 既存Ruleの管理者が不明 | 変更影響を判断できないため、当初案を検討 |
+| 既存Ruleが設計書未記載 | 既存設定の目的確認が必要。流用不可なら当初案 |
+| 既存Ruleの編集が許可されない | 新規でCloudWatch Alarm系を作る方が安全 |
+| 4番台全体で統一した通知設計にしたい | 当初案の方が横展開しやすい |
+
+### 15.2 当初案の利点
+
+| 利点 | 内容 |
+| :--- | :--- |
+| 説明しやすい | CloudTrailログからMetric Filter、Alarm、通知まで1本の流れで説明できる |
+| 証跡を残しやすい | Filter、Alarm、通知テスト、スクリーンショットを取得しやすい |
+| 作業範囲を管理しやすい | 受信側別アカウントの設定に依存しない |
+| 横展開しやすい | 4.1から4.15のイベント監視に同じ構成を使える |
+| 通知到達を確認しやすい | SNSやTeamsの到達確認を今回のテスト範囲に含めやすい |
+| 切り戻ししやすい | 作成したMetric Filter、Alarm、SNS連携を戻す範囲が明確 |
+
+### 15.3 当初案の注意点
+
+| 注意点 | 内容 |
+| :--- | :--- |
+| 二重通知 | 既存EventBridge通知が生きている場合、重複通知になる可能性がある |
+| CloudTrail to CloudWatch Logs連携 | CloudTrailがCloudWatch Logsへ配信されている必要がある |
+| Metric Filter設計 | 対象イベント名、エラー条件、除外条件を正しく設計する必要がある |
+| 通知先承認 | SNS、Teams、メールの通知先承認が必要 |
+| Alarm設計 | 閾値、評価期間、欠損データ扱いを決める必要がある |
+| テストイベント | 実イベントを発生させるか、ログ投入で確認するかを決める必要がある |
+
+### 15.4 当初案で進める場合の確認項目
+
+| 確認項目 | 内容 |
+| :--- | :--- |
+| CloudTrail | 対象アカウント・リージョンの管理イベントが記録されているか |
+| CloudWatch Logs連携 | CloudTrailログがCloudWatch Logsへ配信されているか |
+| Log Group | 対象ロググループ名、保持期間、KMS設定 |
+| Metric Filter | 4番台のイベント条件を拾えるか |
+| Metric Namespace / Name | 命名規則に合っているか |
+| CloudWatch Alarm | 閾値、評価期間、欠損データ扱い |
+| SNS Topic | 既存Topic流用か、新規作成か |
+| Teams / メール | 通知先、受信者、運用担当 |
+| テスト方法 | 実イベント、テストログ、承認要否 |
+| 切り戻し | Filter、Alarm、通知設定の戻し方 |
+
+### 15.5 EventBridge既存経路との扱い
+
+当初案で進める場合でも、既存EventBridge設定を無視しない。
+
+整理方針:
+
+```text
+既存EventBridge:
+  既存設定として記録する
+  Targetが別アカウントの場合は受信側未確認として残す
+  今回の通知要件を満たす証跡としては扱わない
+
+当初案:
+  今回対応の正式な監視・通知経路として設計する
+  通知到達テストを実施する
+  エビデンスを取得する
+```
+
+二重通知の確認:
+
+| 確認 | 内容 |
+| :--- | :--- |
+| 既存EventBridgeが通知しているか | 通知している場合、二重通知の可能性 |
+| 既存EventBridgeが別アカウント送信のみか | 最終通知未確認なら、当初案の必要性が高い |
+| 新規Alarm通知先 | 既存通知先と同じか、別か |
+| 運用担当 | どちらの通知を正式に見るか |
+
+### 15.6 PMへの説明文案
+
+```text
+既存EventBridge Ruleは確認済み。ただし、Targetが別アカウントEvent Busになっているため、送信元アカウントでは最終通知先まで確認できない。
+
+受信側アカウントのRule、Target、通知先まで確認できれば既存EventBridgeの流用を検討できる。
+一方で、受信側確認ができない場合、既存経路を今回の監視通知として採用すると、通知到達の証跡が弱くなる。
+
+その場合は、当初案のCloudTrail -> CloudWatch Logs -> Metric Filter -> CloudWatch Alarm -> SNS/Teams通知の構成で進める方が、検知条件、通知先、テスト結果、エビデンスを今回対応範囲内で明確にできる。
+
+既存EventBridge設定は参考情報として記録しつつ、正式な通知経路は当初案で設計する方針を検討する。
+```
+
+短縮版:
+
+```text
+既存EventBridgeはTargetが別アカウントのため、送信元では通知到達まで確認できない。
+受信側確認が難しい場合は、当初案のCloudWatch Logs + Metric Filter + Alarm構成で新規に通知経路を作る方が、テストと証跡を明確にできる。
+```
+
+### 15.7 推奨判断
+
+推奨は以下である。
+
+```text
+既存EventBridgeの受信側と通知到達まで確認できる
+  -> 既存EventBridge流用を検討
+
+受信側や通知到達が確認できない
+  -> 当初案で新規に監視・通知経路を作る
+
+ただし、既存EventBridgeとの二重通知は確認する
+```
+
+## 16. 現場向け報告文例
+
+### 16.1 既存Ruleが通知まで確認できた場合
 
 ```text
 4番台の対象イベントについて、既存EventBridge Ruleが存在し、Target経由で通知先まで到達していることを確認済み。
@@ -697,7 +874,7 @@ EventBridge_07_Teams通知到達.png
 既存設定を流用できる可能性が高いため、不足イベントの有無を整理し、追加が必要なものだけ補完する方針で進める。
 ```
 
-### 15.2 Targetまでは確認できたが通知先が不明な場合
+### 16.2 Targetまでは確認できたが通知先が不明な場合
 
 ```text
 既存EventBridge RuleとTargetは確認済み。ただし、Targetの先で実際にメール、Teams、監視基盤へ通知されているかは未確認。
@@ -705,7 +882,7 @@ EventBridge_07_Teams通知到達.png
 次にSNS Subscription、Lambdaログ、または別アカウントEvent Busの受信側Ruleを確認し、既存経路を流用できるか判断する。
 ```
 
-### 15.3 新規作成が必要な場合
+### 16.3 新規作成が必要な場合
 
 ```text
 対象イベントを拾う既存EventBridge Rule、または通知まで到達する既存経路は確認できなかった。
@@ -713,7 +890,7 @@ EventBridge_07_Teams通知到達.png
 そのため、対象イベント用のEventBridge Ruleを新規作成し、承認済み通知先へ連携する方針で設計する。
 ```
 
-## 16. 参照資料
+## 17. 参照資料
 
 | 資料 | 用途 |
 | :--- | :--- |
