@@ -51,23 +51,115 @@
 
 Filter PatternはCloudWatch LogsのMetric Filter用候補である。作成前に、対象Log GroupのサンプルCloudTrailイベントでテストする。
 
-| 要件 | 監視対象 | Metric Name案 | Filter Pattern候補 |
+| 要件 | 監視対象 | Metric Name案 | Filter Pattern |
 | :--- | :--- | :--- | :--- |
-| 4.1 | 不正なAPI呼び出し | `Req41UnauthorizedApiCallCount` | `{ ($.errorCode = "*UnauthorizedOperation") || ($.errorCode = "AccessDenied*") }` |
-| 4.2 | MFAなし管理コンソールサインイン | `Req42ConsoleLoginWithoutMfaCount` | `{ ($.eventName = "ConsoleLogin") && ($.responseElements.ConsoleLogin = "Success") && ($.additionalEventData.MFAUsed = "No") }` |
-| 4.3 | rootアカウント使用 | `Req43RootAccountUsageCount` | `{ ($.userIdentity.type = "Root") && ($.userIdentity.invokedBy NOT EXISTS) && ($.eventType != "AwsServiceEvent") }` |
-| 4.4 | IAMポリシー変更 | `Req44IamPolicyChangeCount` | `{ ($.eventSource = "iam.amazonaws.com") && (($.eventName = "CreatePolicy") || ($.eventName = "DeletePolicy") || ($.eventName = "CreatePolicyVersion") || ($.eventName = "DeletePolicyVersion") || ($.eventName = "SetDefaultPolicyVersion") || ($.eventName = "PutUserPolicy") || ($.eventName = "PutGroupPolicy") || ($.eventName = "PutRolePolicy") || ($.eventName = "DeleteUserPolicy") || ($.eventName = "DeleteGroupPolicy") || ($.eventName = "DeleteRolePolicy") || ($.eventName = "AttachUserPolicy") || ($.eventName = "AttachGroupPolicy") || ($.eventName = "AttachRolePolicy") || ($.eventName = "DetachUserPolicy") || ($.eventName = "DetachGroupPolicy") || ($.eventName = "DetachRolePolicy")) }` |
-| 4.5 | CloudTrail設定変更 | `Req45CloudTrailChangeCount` | `{ ($.eventSource = "cloudtrail.amazonaws.com") && (($.eventName = "CreateTrail") || ($.eventName = "UpdateTrail") || ($.eventName = "DeleteTrail") || ($.eventName = "StartLogging") || ($.eventName = "StopLogging") || ($.eventName = "PutEventSelectors") || ($.eventName = "PutInsightSelectors")) }` |
-| 4.6 | AWS Management Console認証失敗 | `Req46ConsoleLoginFailureCount` | `{ ($.eventName = "ConsoleLogin") && ($.responseElements.ConsoleLogin = "Failure") }` |
-| 4.7 | CMK無効化または削除予約 | `Req47KmsKeyDisableOrDeletionCount` | `{ ($.eventSource = "kms.amazonaws.com") && (($.eventName = "DisableKey") || ($.eventName = "ScheduleKeyDeletion")) }` |
-| 4.8 | S3バケットポリシー変更 | `Req48S3BucketPolicyChangeCount` | `{ ($.eventSource = "s3.amazonaws.com") && (($.eventName = "PutBucketPolicy") || ($.eventName = "DeleteBucketPolicy")) }` |
-| 4.9 | AWS Config設定変更 | `Req49ConfigChangeCount` | `{ ($.eventSource = "config.amazonaws.com") && (($.eventName = "StopConfigurationRecorder") || ($.eventName = "StartConfigurationRecorder") || ($.eventName = "PutConfigurationRecorder") || ($.eventName = "DeleteConfigurationRecorder") || ($.eventName = "PutDeliveryChannel") || ($.eventName = "DeleteDeliveryChannel") || ($.eventName = "PutConfigRule") || ($.eventName = "DeleteConfigRule")) }` |
-| 4.10 | Security Group変更 | `Req410SecurityGroupChangeCount` | `{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "AuthorizeSecurityGroupIngress") || ($.eventName = "AuthorizeSecurityGroupEgress") || ($.eventName = "RevokeSecurityGroupIngress") || ($.eventName = "RevokeSecurityGroupEgress") || ($.eventName = "CreateSecurityGroup") || ($.eventName = "DeleteSecurityGroup") || ($.eventName = "ModifySecurityGroupRules")) }` |
-| 4.11 | NACL変更 | `Req411NetworkAclChangeCount` | `{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateNetworkAcl") || ($.eventName = "DeleteNetworkAcl") || ($.eventName = "CreateNetworkAclEntry") || ($.eventName = "DeleteNetworkAclEntry") || ($.eventName = "ReplaceNetworkAclEntry") || ($.eventName = "ReplaceNetworkAclAssociation")) }` |
-| 4.12 | Network Gateway変更 | `Req412NetworkGatewayChangeCount` | `{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateInternetGateway") || ($.eventName = "DeleteInternetGateway") || ($.eventName = "AttachInternetGateway") || ($.eventName = "DetachInternetGateway") || ($.eventName = "CreateCustomerGateway") || ($.eventName = "DeleteCustomerGateway")) }` |
-| 4.13 | Route Table変更 | `Req413RouteTableChangeCount` | `{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateRoute") || ($.eventName = "DeleteRoute") || ($.eventName = "ReplaceRoute") || ($.eventName = "CreateRouteTable") || ($.eventName = "DeleteRouteTable") || ($.eventName = "AssociateRouteTable") || ($.eventName = "DisassociateRouteTable") || ($.eventName = "ReplaceRouteTableAssociation")) }` |
-| 4.14 | VPC変更 | `Req414VpcChangeCount` | `{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateVpc") || ($.eventName = "DeleteVpc") || ($.eventName = "ModifyVpcAttribute") || ($.eventName = "AcceptVpcPeeringConnection") || ($.eventName = "CreateVpcPeeringConnection") || ($.eventName = "DeleteVpcPeeringConnection") || ($.eventName = "RejectVpcPeeringConnection")) }` |
-| 4.15 | AWS Organizations変更 | `Req415OrganizationsChangeCount` | `{ ($.eventSource = "organizations.amazonaws.com") }` |
+| 4.1 | 不正なAPI呼び出し | `Req41UnauthorizedApiCallCount` | 後続コードブロック参照 |
+| 4.2 | MFAなし管理コンソールサインイン | `Req42ConsoleLoginWithoutMfaCount` | 後続コードブロック参照 |
+| 4.3 | rootアカウント使用 | `Req43RootAccountUsageCount` | 後続コードブロック参照 |
+| 4.4 | IAMポリシー変更 | `Req44IamPolicyChangeCount` | 後続コードブロック参照 |
+| 4.5 | CloudTrail設定変更 | `Req45CloudTrailChangeCount` | 後続コードブロック参照 |
+| 4.6 | AWS Management Console認証失敗 | `Req46ConsoleLoginFailureCount` | 後続コードブロック参照 |
+| 4.7 | CMK無効化または削除予約 | `Req47KmsKeyDisableOrDeletionCount` | 後続コードブロック参照 |
+| 4.8 | S3バケットポリシー変更 | `Req48S3BucketPolicyChangeCount` | 後続コードブロック参照 |
+| 4.9 | AWS Config設定変更 | `Req49ConfigChangeCount` | 後続コードブロック参照 |
+| 4.10 | Security Group変更 | `Req410SecurityGroupChangeCount` | 後続コードブロック参照 |
+| 4.11 | NACL変更 | `Req411NetworkAclChangeCount` | 後続コードブロック参照 |
+| 4.12 | Network Gateway変更 | `Req412NetworkGatewayChangeCount` | 後続コードブロック参照 |
+| 4.13 | Route Table変更 | `Req413RouteTableChangeCount` | 後続コードブロック参照 |
+| 4.14 | VPC変更 | `Req414VpcChangeCount` | 後続コードブロック参照 |
+| 4.15 | AWS Organizations変更 | `Req415OrganizationsChangeCount` | 後続コードブロック参照 |
+
+GitHub表示でCloudWatch LogsのJSON Filter Patternが数式扱いされることを避けるため、Filter Patternは表内ではなくコードブロックで記載する。
+
+### 4.1 不正なAPI呼び出し
+
+```text
+{ ($.errorCode = "*UnauthorizedOperation") || ($.errorCode = "AccessDenied*") }
+```
+
+### 4.2 MFAなし管理コンソールサインイン
+
+```text
+{ ($.eventName = "ConsoleLogin") && ($.responseElements.ConsoleLogin = "Success") && ($.additionalEventData.MFAUsed = "No") }
+```
+
+### 4.3 rootアカウント使用
+
+```text
+{ ($.userIdentity.type = "Root") && ($.userIdentity.invokedBy NOT EXISTS) && ($.eventType != "AwsServiceEvent") }
+```
+
+### 4.4 IAMポリシー変更
+
+```text
+{ ($.eventSource = "iam.amazonaws.com") && (($.eventName = "CreatePolicy") || ($.eventName = "DeletePolicy") || ($.eventName = "CreatePolicyVersion") || ($.eventName = "DeletePolicyVersion") || ($.eventName = "SetDefaultPolicyVersion") || ($.eventName = "PutUserPolicy") || ($.eventName = "PutGroupPolicy") || ($.eventName = "PutRolePolicy") || ($.eventName = "DeleteUserPolicy") || ($.eventName = "DeleteGroupPolicy") || ($.eventName = "DeleteRolePolicy") || ($.eventName = "AttachUserPolicy") || ($.eventName = "AttachGroupPolicy") || ($.eventName = "AttachRolePolicy") || ($.eventName = "DetachUserPolicy") || ($.eventName = "DetachGroupPolicy") || ($.eventName = "DetachRolePolicy")) }
+```
+
+### 4.5 CloudTrail設定変更
+
+```text
+{ ($.eventSource = "cloudtrail.amazonaws.com") && (($.eventName = "CreateTrail") || ($.eventName = "UpdateTrail") || ($.eventName = "DeleteTrail") || ($.eventName = "StartLogging") || ($.eventName = "StopLogging") || ($.eventName = "PutEventSelectors") || ($.eventName = "PutInsightSelectors")) }
+```
+
+### 4.6 AWS Management Console認証失敗
+
+```text
+{ ($.eventName = "ConsoleLogin") && ($.responseElements.ConsoleLogin = "Failure") }
+```
+
+### 4.7 CMK無効化または削除予約
+
+```text
+{ ($.eventSource = "kms.amazonaws.com") && (($.eventName = "DisableKey") || ($.eventName = "ScheduleKeyDeletion")) }
+```
+
+### 4.8 S3バケットポリシー変更
+
+```text
+{ ($.eventSource = "s3.amazonaws.com") && (($.eventName = "PutBucketPolicy") || ($.eventName = "DeleteBucketPolicy")) }
+```
+
+### 4.9 AWS Config設定変更
+
+```text
+{ ($.eventSource = "config.amazonaws.com") && (($.eventName = "StopConfigurationRecorder") || ($.eventName = "StartConfigurationRecorder") || ($.eventName = "PutConfigurationRecorder") || ($.eventName = "DeleteConfigurationRecorder") || ($.eventName = "PutDeliveryChannel") || ($.eventName = "DeleteDeliveryChannel") || ($.eventName = "PutConfigRule") || ($.eventName = "DeleteConfigRule")) }
+```
+
+### 4.10 Security Group変更
+
+```text
+{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "AuthorizeSecurityGroupIngress") || ($.eventName = "AuthorizeSecurityGroupEgress") || ($.eventName = "RevokeSecurityGroupIngress") || ($.eventName = "RevokeSecurityGroupEgress") || ($.eventName = "CreateSecurityGroup") || ($.eventName = "DeleteSecurityGroup") || ($.eventName = "ModifySecurityGroupRules")) }
+```
+
+### 4.11 NACL変更
+
+```text
+{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateNetworkAcl") || ($.eventName = "DeleteNetworkAcl") || ($.eventName = "CreateNetworkAclEntry") || ($.eventName = "DeleteNetworkAclEntry") || ($.eventName = "ReplaceNetworkAclEntry") || ($.eventName = "ReplaceNetworkAclAssociation")) }
+```
+
+### 4.12 Network Gateway変更
+
+```text
+{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateInternetGateway") || ($.eventName = "DeleteInternetGateway") || ($.eventName = "AttachInternetGateway") || ($.eventName = "DetachInternetGateway") || ($.eventName = "CreateCustomerGateway") || ($.eventName = "DeleteCustomerGateway")) }
+```
+
+### 4.13 Route Table変更
+
+```text
+{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateRoute") || ($.eventName = "DeleteRoute") || ($.eventName = "ReplaceRoute") || ($.eventName = "CreateRouteTable") || ($.eventName = "DeleteRouteTable") || ($.eventName = "AssociateRouteTable") || ($.eventName = "DisassociateRouteTable") || ($.eventName = "ReplaceRouteTableAssociation")) }
+```
+
+### 4.14 VPC変更
+
+```text
+{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateVpc") || ($.eventName = "DeleteVpc") || ($.eventName = "ModifyVpcAttribute") || ($.eventName = "AcceptVpcPeeringConnection") || ($.eventName = "CreateVpcPeeringConnection") || ($.eventName = "DeleteVpcPeeringConnection") || ($.eventName = "RejectVpcPeeringConnection")) }
+```
+
+### 4.15 AWS Organizations変更
+
+```text
+{ ($.eventSource = "organizations.amazonaws.com") }
+```
 
 ## 5. 要件別補足
 
@@ -103,4 +195,3 @@ Filter PatternはCloudWatch LogsのMetric Filter用候補である。作成前�
 | 8 | Teams通知経路が確定している | 未確認 |
 | 9 | 既存EventBridge通知との重複を確認済み | 未確認 |
 | 10 | 通知テストの実施可否が承認済み | 未確認 |
-
