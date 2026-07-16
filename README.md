@@ -8,7 +8,7 @@ README直下は、WBS、作業手順書、切り戻し、通知確認に関係�
 
 | 用途 | 資料 |
 | :--- | :--- |
-| 最新の作業計画、対象要件、スケジュール、対応不要項目を確認する | [AWSセキュリティ監査指摘対応 WBS案](./project-docs/01_plan/aws_security_remediation_wbs_2026_07.md) |
+| 最新の作業計画、対象要件、スケジュール、対応不要項目を確認する | [AWSセキュリティ監査指摘対応 WBS案](./aws_security_remediation_wbs_2026_07.md) |
 
 ## 4番台
 
