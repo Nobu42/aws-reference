@@ -2,7 +2,7 @@
 
 作成日: 2026-07-17
 
-この手順書は、AWSセキュリティ監査指摘対応の先行作業として、要件4.5「CloudTrail設定変更監視」と要件4.7「カスタマー管理KMSキーの無効化・削除予約監視」を、開発環境で設定・確認するための作業手順である。
+この手順書は、AWSセキュリティ監査指摘対応の先行作業として、要件4.5「CloudTrail設定変更監視」と要件4.7「カスタマー管理KMSキーの無効化・削除予約監視」を、検証環境で設定・確認するための作業手順である。
 
 公開リポジトリで扱うことを想定し、顧客名、案件名、具体的なアカウントID、リージョン名、通知先、リソース名は記載しない。
 
@@ -12,7 +12,7 @@ CloudTrailのManagement EventをCloudWatch Logsへ連携し、CloudWatch Logs Me
 
 | 要件 | 監視対象 | 目的 |
 | :--- | :--- | :--- |
-| REQ-4.5 | CloudTrail設定変更 | 監査ログ取得設定の作成、変更、停止、削除、イベントセレクタ変更を検知する |
+| REQ-4.5 | CloudTrail設定変更 | 監査ログ取得設定の作成、変更、停止、削除を検知する |
 | REQ-4.7 | カスタマー管理KMSキーの無効化・削除予約 | ログ暗号化やデータ暗号化に影響するKMSキーの危険操作を検知する |
 
 この先行作業で、以下の型を確認する。
@@ -31,12 +31,17 @@ CloudTrail
 
 | 項目 | 内容 |
 | :--- | :--- |
-| 対象環境 | 開発環境 |
+| 対象環境 | 検証環境 |
 | 対象要件 | REQ-4.5, REQ-4.7 |
 | 作業日 | 2026-07-24予定 |
 | 作業方式 | AWS Management Consoleを基本とする |
 | 通知テスト | 承認済みの方法で実施する |
 | 本番環境変更 | 本手順では実施しない |
+
+注意:
+
+- 現場口頭では「開発環境」と呼ばれる場合があるが、本資料では実態に合わせて「検証環境」と記載する。
+- 本番環境での作業は、別途テストリハまたは本番作業手順で扱う。
 
 ## 3. 前提条件
 
@@ -44,7 +49,7 @@ CloudTrail
 
 | No. | 前提 | 確認内容 |
 | :--- | :--- | :--- |
-| 1 | 対象アカウント | 開発環境の対象AWSアカウントであること |
+| 1 | 対象アカウント | 検証環境の対象AWSアカウントであること |
 | 2 | 対象リージョン | CloudTrailイベントとCloudWatch Logsを確認するリージョンが確定していること |
 | 3 | CloudTrail | Management Eventを記録しているTrailが存在すること |
 | 4 | CloudWatch Logs連携 | CloudTrailがCloudWatch LogsのLog Groupへイベントを送信していること |
@@ -54,6 +59,7 @@ CloudTrail
 | 8 | 通知テスト | 通知テストの実施可否、実施時刻、周知先が承認済みであること |
 | 9 | 切り戻し判断者 | 異常時に切り戻し判断する担当者が明確であること |
 | 10 | 既存監視 | 既存EventBridge Ruleや既存監視基盤との重複有無を確認済みであること |
+| 11 | KMS管理イベント | CloudTrailのManagement Event設定で`kms.amazonaws.com`が除外されていないこと |
 
 CloudTrailからCloudWatch Logsへ送信されるイベントは、Trail側の設定に一致するイベントのみである。Management Eventが対象外になっているTrailでは、今回のMetric Filterは期待どおりに検知できない。
 
@@ -91,8 +97,11 @@ CloudTrailからCloudWatch Logsへ送信されるイベントは、Trail側の�
 ### 5.1 REQ-4.5 CloudTrail設定変更監視
 
 ```text
-{ ($.eventSource = "cloudtrail.amazonaws.com") && (($.eventName = "CreateTrail") || ($.eventName = "UpdateTrail") || ($.eventName = "DeleteTrail") || ($.eventName = "StartLogging") || ($.eventName = "StopLogging") || ($.eventName = "PutEventSelectors") || ($.eventName = "PutInsightSelectors")) }
+{($.eventName=CreateTrail) || ($.eventName=UpdateTrail) || ($.eventName=DeleteTrail) || ($.eventName=StartLogging) || ($.eventName=StopLogging)}
 ```
+
+このFilter Patternは、AWS Security HubのCloudWatch.5およびCIS AWS Foundations Benchmark相当の是正確認で示されている形式に合わせる。
+Security Hub CSPMでは、CISで規定された正確なMetric Filterが使用されていない場合にFAILEDとなる可能性があるため、本手順の必須設定では`eventSource`条件や追加イベントを入れない。
 
 対象イベント:
 
@@ -103,14 +112,25 @@ CloudTrailからCloudWatch Logsへ送信されるイベントは、Trail側の�
 | `DeleteTrail` | Trail削除 | 監査ログ取得停止につながるため重要 |
 | `StartLogging` | ログ記録開始 | 復旧操作でも検知する |
 | `StopLogging` | ログ記録停止 | 高リスク。原則テストで実行しない |
-| `PutEventSelectors` | Event Selector変更 | Management/Data Event対象変更に注意 |
-| `PutInsightSelectors` | Insight Selector変更 | Insight監視設定の変更を検知する |
+
+参考:
+
+Event Selector変更やInsight Selector変更も運用上検知したい場合は、REQ-4.5本体のMetric Filterへ混ぜず、レビュー承認後に任意の拡張監視として別Filterを作成する。
+
+```text
+{($.eventName=PutEventSelectors) || ($.eventName=PutInsightSelectors)}
+```
+
+拡張監視を追加する場合は、監査是正用のREQ-4.5 Filterとは別名、別Metric、別Alarmとして管理し、Security Hub/CIS準拠確認用の基本Filterを変更しない。
 
 ### 5.2 REQ-4.7 KMSキー無効化・削除予約監視
 
 ```text
-{ ($.eventSource = "kms.amazonaws.com") && (($.eventName = "DisableKey") || ($.eventName = "ScheduleKeyDeletion")) }
+{($.eventSource=kms.amazonaws.com) && (($.eventName=DisableKey) || ($.eventName=ScheduleKeyDeletion))}
 ```
+
+このFilter Patternは、AWS Security HubのCloudWatch.7およびCIS AWS Foundations Benchmark相当の是正確認で示されている形式に合わせる。
+CloudTrailのManagement Event設定で`kms.amazonaws.com`が除外されている場合、KMS関連イベントがCloudWatch Logsへ届かず、検知できない可能性がある。
 
 対象イベント:
 
@@ -145,14 +165,13 @@ CloudTrail設定変更監視は、正当な運用作業でも通知する。
 
 - CloudTrailの証跡設定変更
 - CloudWatch Logs連携設定の変更
-- Event Selector変更
-- Insight Selector変更
+- Event Selector変更やInsight Selector変更を拡張監視として追加した場合の設定変更
 - Trailの新規作成または整理
 - 障害復旧時の`StartLogging`
 
 注意:
 
-- `StopLogging`や`DeleteTrail`は高リスク操作であり、開発環境であっても安易に実イベントテストしない。
+- `StopLogging`や`DeleteTrail`は高リスク操作であり、検証環境であっても安易に実イベントテストしない。
 - 本番環境では、CloudTrail停止やTrail削除を通知テスト目的で実施しない。
 
 ### 6.3 REQ-4.7の影響
@@ -164,7 +183,7 @@ AWS KMSでは、カスタマー管理KMSキーを無効化すると、そのキ�
 注意:
 
 - 本番KMSキーで`DisableKey`や`ScheduleKeyDeletion`をテストしない。
-- 開発環境でも、実データを暗号化しているKMSキーをテスト対象にしない。
+- 検証環境でも、実データを暗号化しているKMSキーをテスト対象にしない。
 - `ScheduleKeyDeletion`をテストする場合は、使い捨てのテスト用KMSキーに限定し、実施直後に`CancelKeyDeletion`と必要に応じて`EnableKey`を行う。
 
 ## 7. 誤検知・通知多発の可能性
@@ -236,7 +255,7 @@ Dimensionを付けると、アカウント、リージョン、ユーザー、�
 - 本番Trailの`DeleteTrail`
 - 本番KMSキーの`DisableKey`
 - 本番KMSキーの`ScheduleKeyDeletion`
-- 実データを暗号化している開発環境KMSキーの`ScheduleKeyDeletion`
+- 実データを暗号化している検証環境KMSキーの`ScheduleKeyDeletion`
 
 ## 9. 作業前確認手順
 
@@ -266,13 +285,15 @@ Dimensionを付けると、アカウント、リージョン、ユーザー、�
 2. `証跡`を開く。
 3. 対象Trailを選択する。
 4. Management Eventが記録対象であることを確認する。
-5. CloudWatch Logs連携先Log Groupを確認する。
-6. 組織Trailの場合、管理アカウントまたは適切な権限で確認していることを確認する。
+5. KMS管理イベントが除外されていないことを確認する。
+6. CloudWatch Logs連携先Log Groupを確認する。
+7. 組織Trailの場合、管理アカウントまたは適切な権限で確認していることを確認する。
 
 取得する証跡:
 
 - Trail詳細
 - Management Event設定
+- KMS管理イベント除外有無
 - CloudWatch Logs連携先Log Group
 - CloudWatch Logs Role
 
@@ -315,11 +336,11 @@ Dimensionを付けると、アカウント、リージョン、ユーザー、�
 6. Filter Patternに以下を入力する。
 
 ```text
-{ ($.eventSource = "cloudtrail.amazonaws.com") && (($.eventName = "CreateTrail") || ($.eventName = "UpdateTrail") || ($.eventName = "DeleteTrail") || ($.eventName = "StartLogging") || ($.eventName = "StopLogging") || ($.eventName = "PutEventSelectors") || ($.eventName = "PutInsightSelectors")) }
+{($.eventName=CreateTrail) || ($.eventName=UpdateTrail) || ($.eventName=DeleteTrail) || ($.eventName=StartLogging) || ($.eventName=StopLogging)}
 ```
 
 7. サンプルログまたは既存ログでPatternをテストする。
-8. 想定イベントのみ一致することを確認する。
+8. 公式Patternの対象イベントのみ一致することを確認する。
 9. Filter名を入力する。
 10. Metric Namespaceを入力する。
 11. Metric Nameに`Req45CloudTrailChangeCount`を入力する。
@@ -345,7 +366,7 @@ Dimensionを付けると、アカウント、リージョン、ユーザー、�
 6. Filter Patternに以下を入力する。
 
 ```text
-{ ($.eventSource = "kms.amazonaws.com") && (($.eventName = "DisableKey") || ($.eventName = "ScheduleKeyDeletion")) }
+{($.eventSource=kms.amazonaws.com) && (($.eventName=DisableKey) || ($.eventName=ScheduleKeyDeletion))}
 ```
 
 7. サンプルログまたは既存ログでPatternをテストする。
@@ -509,14 +530,14 @@ aws cloudwatch set-alarm-state \
 REQ-4.5:
 
 - 本番Trailの`StopLogging`、`DeleteTrail`は実施しない。
-- 開発環境でも、監査ログ取得に使っている主要Trailでは実施しない。
+- 検証環境でも、監査ログ取得に使っている主要Trailでは実施しない。
 - 実施する場合は、テスト用Trailまたは承認済みの可逆操作に限定する。
 - 実イベント発生後、CloudWatch Logsへの到着、Metric増加、Alarm遷移、通知を確認する。
 
 REQ-4.7:
 
 - 本番KMSキーでは実施しない。
-- 実データを暗号化している開発環境KMSキーでも実施しない。
+- 実データを暗号化している検証環境KMSキーでも実施しない。
 - `DisableKey`をテストする場合は、使い捨てのテスト用カスタマー管理KMSキーに限定し、確認後すぐに`EnableKey`する。
 - `ScheduleKeyDeletion`をテストする場合は、使い捨てのテスト用KMSキーに限定し、確認後すぐに`CancelKeyDeletion`し、必要に応じて`EnableKey`する。
 
@@ -621,13 +642,18 @@ REQ-4.7:
 
 設定方法と注意事項は、以下のAWS公式資料を確認して作成した。
 
-- [AWS CloudTrail: Creating CloudWatch alarms for CloudTrail events](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html)
-- [AWS CloudTrail: Sending events to CloudWatch Logs](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html)
-- [Amazon CloudWatch Logs: Creating metrics from log events using filters](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/MonitoringLogData.html)
-- [Amazon CloudWatch Logs: Filter pattern syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html)
-- [Amazon CloudWatch: Create a CloudWatch alarm based on a static threshold](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/ConsoleAlarms.html)
-- [Amazon CloudWatch: Configuring how CloudWatch alarms treat missing data](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/alarms-and-missing-data.html)
-- [Amazon CloudWatch: Alarm actions](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/alarm-actions.html)
-- [AWS CLI: cloudwatch set-alarm-state](https://docs.aws.amazon.com/cli/latest/reference/cloudwatch/set-alarm-state.html)
-- [AWS KMS: Enable and disable keys](https://docs.aws.amazon.com/kms/latest/developerguide/enabling-keys.html)
-- [AWS KMS: Schedule key deletion](https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys-scheduling-key-deletion.html)
+日本語版のAWS公式ドキュメントは機械翻訳で提供されている場合がある。日本語版と英語版の内容に差異がある場合は、英語版を優先する。
+
+| 確認内容 | 日本語版 | 英語版 |
+| :--- | :--- | :--- |
+| Security Hub CloudWatchコントロール、REQ-4.5/4.7相当のFilter Pattern | [Amazon CloudWatch の Security Hub CSPM コントロール](https://docs.aws.amazon.com/ja_jp/securityhub/latest/userguide/cloudwatch-controls.html) | [Security Hub CSPM controls for Amazon CloudWatch](https://docs.aws.amazon.com/securityhub/latest/userguide/cloudwatch-controls.html) |
+| CloudTrailイベントに対するCloudWatch Alarm例 | [CloudTrail イベントの CloudWatch アラームの作成: 例](https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html) | [Creating CloudWatch alarms for CloudTrail events: examples](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudwatch-alarms-for-cloudtrail.html) |
+| CloudTrailイベントをCloudWatch Logsへ送信する設定 | [CloudWatch Logs へのイベントの送信](https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html) | [Sending events to CloudWatch Logs](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/send-cloudtrail-events-to-cloudwatch-logs.html) |
+| CloudWatch Logs Metric Filter作成 | [フィルターを使用したログイベントからのメトリクスの作成](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/MonitoringLogData.html) | [Creating metrics from log events using filters](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/MonitoringLogData.html) |
+| Filter Pattern構文 | [フィルターパターン構文](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html) | [Filter pattern syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html) |
+| 静的しきい値のCloudWatch Alarm作成 | [静的しきい値に基づいて CloudWatch アラームを作成する](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/ConsoleAlarms.html) | [Create a CloudWatch alarm based on a static threshold](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/ConsoleAlarms.html) |
+| CloudWatch Alarmの欠落データ処理 | [CloudWatch アラームの欠落データの処理の設定](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/alarms-and-missing-data.html) | [Configuring how CloudWatch alarms treat missing data](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/alarms-and-missing-data.html) |
+| CloudWatch Alarm Action | [アラームアクション](https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/alarm-actions.html) | [Alarm actions](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/alarm-actions.html) |
+| AWS CLIによるAlarm状態変更テスト | - | [cloudwatch set-alarm-state](https://docs.aws.amazon.com/cli/latest/reference/cloudwatch/set-alarm-state.html) |
+| KMSキーの有効化・無効化 | [キーの有効化と無効化](https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/enabling-keys.html) | [Enable and disable keys](https://docs.aws.amazon.com/kms/latest/developerguide/enabling-keys.html) |
+| KMSキー削除予約 | [キー削除をスケジュールする](https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/deleting-keys-scheduling-key-deletion.html) | [Schedule key deletion](https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys-scheduling-key-deletion.html) |
