@@ -18,6 +18,7 @@ README直下は、WBS、作業手順書、切り戻し、通知確認に関係�
 | 4番台の監視設定値案を確認する | [要件4番台 監視設定値一覧 設計パラメータ案](./project-docs/03_procedures/requirements_4_x_monitoring_parameter_design_2026_07.md) |
 | 先行作業4.5/4.7のWebコンソール設定・テストを行う | [要件4.5/4.7 先行作業 Webコンソール作業手順書](./requirements_4_5_4_7_leading_work_procedure_2026_07.md) |
 | 先行作業4.5/4.7の当日作業でクリック箇所と証跡を確認する | [要件4.5/4.7 先行作業 当日Webコンソール作業手順書](./requirements_4_5_4_7_leading_work_day_of_console_runbook_2026_07.md) |
+| 先行作業4.5/4.7の懸念点、注意点、失敗時の切り分けを確認する | [要件4.5/4.7 先行作業 懸念点・注意点・トラブルシューティング](./requirements_4_5_4_7_leading_work_risks_and_troubleshooting_2026_07.md) |
 | 4番台のWebコンソール設定・テストを行う | [要件4番台 Webコンソール作業実施手順書](./project-docs/03_procedures/requirements_4_x_web_console_work_procedure_2026_07.md) |
 | 4番台の当日作業手順をExcel形式で整理する | [要件4番台 当日Webコンソール作業手順書テンプレート](./project-docs/03_procedures/requirements_4_x_day_of_web_console_runbook_template_2026_07.md) |
 | 4番台を2グループに分けて当日作業する | [要件4番台 2グループ分割 当日Webコンソール作業手順書テンプレート](./project-docs/03_procedures/requirements_4_x_two_group_day_of_web_console_runbook_template_2026_07.md) |
