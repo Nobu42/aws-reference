@@ -7,6 +7,113 @@
 目的は、レビュー当日に「前提未確認」「権限未確認」「通知先未確認」「切り戻し未確認」で止まらない状態を作ることである。  
 本資料は、レビュー前日の自己点検、リーダー確認、PM確認、インフラ担当確認に使用する。
 
+## 0. 出社後最初に確認すること: 作業アカウント認証・Role付与
+
+作業用アカウントの登録、WinAuth認証、AWS側Role付与が完了していない場合、レビューや作業手順の妥当性以前に作業開始条件が満たされない。  
+出社後は最初に、作業用アカウントで対象AWSアカウントへログインできるか、対象Roleへ切り替えられるか、必要画面を参照できるかを確認する。
+
+### 0.1 確認の目的
+
+| 確認 | 目的 |
+| :--- | :--- |
+| WinAuth認証が通るか | 社内認証基盤で止まっていないことを確認する |
+| 対象AWSアカウントが表示されるか | アカウント割当が完了していることを確認する |
+| 対象Role / Permission Setを選べるか | Role付与またはPermission Set割当が完了していることを確認する |
+| AWSコンソールへ入れるか | AWS側まで認証連携が到達していることを確認する |
+| CloudTrail / CloudWatch / IAM / SNS画面が見えるか | 先行作業に必要な参照権限があることを確認する |
+
+### 0.2 作業者側で確認すること
+
+| 手順 | 確認内容 | OK条件 | NG時の判断 |
+| :--- | :--- | :--- | :--- |
+| 1 | WinAuthで認証する | 認証が完了する | WinAuthまたはIdP側で停止している可能性 |
+| 2 | AWSアカウント選択画面を開く | 対象アカウントが表示される | 対象アカウントへの割当未完了の可能性 |
+| 3 | 対象Role / Permission Setを選択する | 対象Roleを選択できる | Role付与、ADグループ、Permission Set割当未完了の可能性 |
+| 4 | AWSコンソールへ入る | 画面右上またはアカウント情報で対象アカウントとRoleを確認できる | AWS側連携またはRole引受で失敗している可能性 |
+| 5 | CloudTrailのTrail詳細を開く | 対象Trailを参照できる | CloudTrail参照権限不足 |
+| 6 | CloudWatch LogsのLog Groupを開く | 対象Log Groupを参照できる | Logs参照権限不足 |
+| 7 | CloudWatch Alarm / Metric Filter画面を開く | 作成・参照画面へ到達できる | CloudWatch / Logs権限不足 |
+| 8 | SNS Topicを確認する | 既存通知先Topicを参照できる | SNS参照権限不足 |
+| 9 | IAM Role一覧またはRole詳細を確認する | CloudTrail配信用Role候補を参照できる | IAM参照権限不足 |
+
+注意:
+
+- 画面を開けることと、設定を保存できることは別である。
+- レビュー前確認では、保存、削除、無効化、通知送信などの変更操作を行わない。
+- 対象アカウントへ入れても、別Roleや別環境を見ている可能性があるため、アカウントIDとRole名を必ず確認する。
+
+### 0.3 CloudTrailで原因を確認できる範囲
+
+CloudTrailで確認できるのは、AWS側まで到達した認証・権限操作・Role引受イベントである。  
+WinAuthや社内IdP側でAWSに到達する前に弾かれた場合、CloudTrailに該当イベントが残らない可能性がある。
+
+| CloudTrailに出る可能性があるもの | 代表イベント |
+| :--- | :--- |
+| AWSコンソールログインの成功/失敗 | `ConsoleLogin` |
+| IAM Identity Center / SSO関連の認証イベント | `UserAuthentication`, `CredentialChallenge`, `CredentialVerification` |
+| SAML連携によるRole引受 | `AssumeRoleWithSAML` |
+| Role引受 | `AssumeRole` |
+| Permission Set割当やプロビジョニング | `CreateAccountAssignment`, `ProvisionPermissionSet` |
+| AWS側の権限不足 | `errorCode`, `errorMessage`付きイベント |
+
+| CloudTrailだけでは判断しにくいもの | 確認先 |
+| :--- | :--- |
+| WinAuth側で弾かれた理由 | WinAuth / 社内認証基盤ログ |
+| ADグループ所属不備 | AD / IdP管理側 |
+| 条件付きアクセス、端末制限、ネットワーク制限 | IdP / 認証基盤側 |
+| アカウント割当の同期遅延 | IAM Identity Center / IdP同期状態 |
+
+### 0.4 CloudTrailで見るフィールド
+
+管理者または権限を持つ担当者に確認してもらう場合、以下の項目を指定する。
+
+| フィールド | 見る理由 |
+| :--- | :--- |
+| `eventTime` | 失敗発生時刻と一致するか確認する |
+| `eventSource` | `signin.amazonaws.com`, `sts.amazonaws.com`, `sso.amazonaws.com`等を確認する |
+| `eventName` | `ConsoleLogin`, `AssumeRole`, `AssumeRoleWithSAML`等を確認する |
+| `userIdentity` | どのユーザー/Role/フェデレーション主体か確認する |
+| `requestParameters` | 対象Role、対象アカウント、SAML関連情報を確認する |
+| `responseElements` | 成功時の応答を確認する |
+| `errorCode` | AWS側で失敗した理由を確認する |
+| `errorMessage` | 権限不足、Role引受失敗などの詳細を確認する |
+| `sourceIPAddress` | 接続元が想定端末/ネットワークか確認する |
+
+### 0.5 切り分けの考え方
+
+| 状況 | 判断 |
+| :--- | :--- |
+| CloudTrailに`ConsoleLogin`や`AssumeRole`失敗が残っている | AWS側まで到達しており、Role割当、信頼関係、Permission Set、権限設定を確認する |
+| CloudTrailに該当時刻のイベントがない | WinAuth、IdP、ADグループ、条件付きアクセス側で止まっている可能性が高い |
+| AWSコンソールには入れるが対象画面が見えない | 認証は成功しているが、参照権限が不足している |
+| 対象画面は見えるが保存できない | 変更権限、`iam:PassRole`、SCP、Permission Boundary等が不足している可能性 |
+| IAM Role欄が空欄で候補が出ない | Role未作成、IAM参照権限不足、PassRole権限不足、画面表示制約のいずれかを確認する |
+
+### 0.6 担当者へ確認する内容
+
+```text
+作業用アカウントについて、以下を確認する。
+
+1. WinAuth認証後に対象AWSアカウント/Roleへ入れるか
+2. 認証またはRole選択で失敗する場合、AWS側まで到達しているか
+3. CloudTrailで該当時刻のConsoleLogin、UserAuthentication、AssumeRole、AssumeRoleWithSAMLが確認できるか
+4. CloudTrailイベントにerrorCode/errorMessageが出ているか
+5. CloudTrailに該当イベントがない場合、WinAuthまたはIdP側のログで失敗理由を確認できるか
+6. 対象AWSアカウントへのRole/Permission Set割当、ADグループ所属、Permission Setのプロビジョニングが完了しているか
+
+CloudTrailに該当イベントがない場合、AWS側ではなくWinAuthまたはIdP側で止まっている可能性が高い。
+```
+
+### 0.7 作業開始可否の判断
+
+| 判定 | 条件 |
+| :--- | :--- |
+| 作業開始可 | 対象AWSアカウントへログインでき、CloudTrail / CloudWatch Logs / CloudWatch Alarm / SNS / IAM Role候補を参照できる |
+| 条件付き開始 | 参照はできるが保存可否が未確認。レビューでは権限確認待ちとして扱う |
+| 作業開始不可 | 対象AWSアカウントへ入れない、対象Roleを選べない、CloudTrail/CloudWatchを参照できない |
+
+作業開始不可の場合、手順書の完成度ではなくアカウント・権限の前提不足として扱う。
+
 ## 1. レビュー前日のゴール
 
 レビュー前日のゴールは、手順書を完全確定させることではない。  
