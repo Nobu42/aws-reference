@@ -350,7 +350,58 @@ Detects REQ-4.7 KMS DisableKey or ScheduleKeyDeletion events.
 | 22 | REQ-4.7 Alarm通知 | In alarm、SNS Topic | `22_req47_alarm_notification.png` |
 | 23 | REQ-4.7 Alarm作成後 | Alarm名、状態、Action | `23_req47_alarm_created.png` |
 
-## 12. SNS単体通知テスト
+## 12. 通知テスト実施方針
+
+通知テストは、当日承認された範囲で実施する。
+メール、Teams、監視基盤などの通知先へ実通知するか、通知先への実送信は行わずに設定確認までとするかを、作業開始前に確認する。
+
+### 12.1 実通知する場合
+
+開発環境のREQ-4.5 / REQ-4.7先行作業にて、通知経路確認のためテスト通知を実施する。
+通知件名には【テスト】を付与し、作業時間帯内に1から2回のみ送信する。
+本番監視、本番通知先には影響しない想定だが、宛先と通知内容を事前確認のうえ実施する。
+
+事前周知文例:
+
+```text
+開発環境の4.5 / 4.7先行作業にて、通知経路確認のためテスト通知を実施します。
+通知件名には【テスト】を付与し、作業時間帯内に1〜2回のみ送信します。
+本番監視・本番通知先には影響しない想定ですが、宛先と通知内容を事前確認のうえ実施します。
+```
+
+確認すること:
+
+| 確認項目 | 確認内容 |
+| :--- | :--- |
+| 実施承認 | 通知テストを実施してよいこと |
+| 通知先 | メール、Teams、監視基盤などの宛先が正しいこと |
+| 通知件名 | 【テスト】を付与していること |
+| 通知回数 | 1から2回の範囲で実施すること |
+| 影響範囲 | 本番監視、本番通知先へ影響しないこと |
+
+### 12.2 実通知しない場合
+
+今回は通知先への実送信は行わず、CloudWatch Alarm / EventBridge / SNS Topicまでの発火確認を対象とする。
+メール、Teams等の受信確認は、別途通知テストの合意後に実施する。
+
+事前周知文例:
+
+```text
+今回は通知先への実送信は行わず、CloudWatch Alarm / EventBridge / SNS Topicまでの発火確認を対象とします。
+メール・Teams等の受信確認は、別途通知テストの合意後に実施します。
+```
+
+確認すること:
+
+| 確認項目 | 確認内容 |
+| :--- | :--- |
+| Metric Filter | Filter PatternとMetric設定が設計どおりであること |
+| CloudWatch Alarm | Alarm条件とAction設定が設計どおりであること |
+| SNS Topic | Alarm Actionに指定するTopic ARNが正しいこと |
+| EventBridge | 既存Ruleや代替通知経路がある場合、Target設定が確認済みであること |
+| 未実施範囲 | メール、Teams等の受信確認を別途実施する扱いで記録すること |
+
+## 13. SNS単体通知テスト
 
 実施可否は当日承認に従う。
 
@@ -381,7 +432,7 @@ Notification test for REQ-4.5/REQ-4.7 leading work.
 | 24 | SNS Publish画面 | Subject、Message、Topic | `24_sns_publish_test.png` |
 | 25 | 通知受信結果 | 受信通知、受信時刻 | `25_notification_received.png` |
 
-## 13. Alarm Action通知テスト
+## 14. Alarm Action通知テスト
 
 CloudWatch AlarmからSNS Actionが動くことを確認する場合は、AWS CLIの`set-alarm-state`を使用する。
 
@@ -425,7 +476,7 @@ aws cloudwatch set-alarm-state \
 | 27 | Alarm履歴 | ALARM状態変更履歴 | `27_alarm_history.png` |
 | 28 | Alarm通知受信 | 通知本文、受信時刻 | `28_alarm_notification_received.png` |
 
-## 14. 作業後確認
+## 15. 作業後確認
 
 1. CloudWatchコンソールを開く。
 2. 左メニューで `ログ` -> `ロググループ` をクリックする。
@@ -462,7 +513,7 @@ aws cloudwatch set-alarm-state \
 | 30 | Alarm最終確認 | 4.5/4.7のAlarm一覧 | `30_alarms_after.png` |
 | 31 | Alarm詳細確認 | 条件、通知Action | `31_alarm_detail_after.png` |
 
-## 15. CloudTrail変更履歴確認
+## 16. CloudTrail変更履歴確認
 
 1. CloudTrailコンソールを開く。
 2. 左メニューで `イベント履歴` または `Event history` をクリックする。
@@ -485,7 +536,7 @@ Publish
 | :--- | :--- | :--- | :--- |
 | 32 | CloudTrailイベント履歴 | PutMetricFilter、PutMetricAlarm等 | `32_cloudtrail_event_history.png` |
 
-## 16. 実イベントテスト
+## 17. 実イベントテスト
 
 実イベントテストは承認がある場合のみ実施する。
 
@@ -516,7 +567,7 @@ Filter Pattern Test、SNS通知テスト、Alarm設定確認で代替確認済�
 | :--- | :--- | :--- | :--- |
 | 33 | 実イベントテスト判断 | 実施/未実施、理由、承認有無 | `33_real_event_test_decision.png` |
 
-## 17. 異常時の切り戻し
+## 18. 異常時の切り戻し
 
 切り戻しは、今回作成した設定のみを対象にする。
 
@@ -549,7 +600,7 @@ Filter Pattern Test、SNS通知テスト、Alarm設定確認で代替確認済�
 | 34 | 切り戻し前 | 削除対象Alarm、Metric Filter | `34_rollback_before.png` |
 | 35 | 切り戻し後 | Alarm削除後、Metric Filter削除後 | `35_rollback_after.png` |
 
-## 18. 作業完了
+## 19. 作業完了
 
 1. 作業結果を整理する。
 2. 作成したMetric Filter名、Alarm名、通知先を記録する。
@@ -580,7 +631,7 @@ Filter Pattern Test、SNS通知テスト、Alarm設定確認で代替確認済�
 | :--- | :--- | :--- | :--- |
 | 36 | 作業完了連絡 | 完了報告、証跡保存先 | `36_work_complete_notice.png` |
 
-## 19. 当日チェックリスト
+## 20. 当日チェックリスト
 
 | No. | 作業 | 結果 | 証跡 |
 | :--- | :--- | :--- | :--- |
