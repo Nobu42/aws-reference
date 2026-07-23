@@ -2,135 +2,70 @@
 
 作成日: 2026-07-24
 
-対象: REQ-3.4、REQ-3.5、REQ-3.6、REQ-3.7、REQ-4.1〜REQ-4.15
+対象: 3.4、3.5、3.6、3.7、4.1〜4.15
 
-対象外: REQ-A3、REQ-A4
+対象外: A3、A4
 
 前提: Webコンソール作業を基本とする。CLIは現場承認がある場合のみ補助的に使用する。
 
 ## 1. 使い方
 
-この手順書は、テストリハ当日にExcelへ転記して使用する想定の作業表である。
+この手順書は、テストリハ当日の作業をExcelへ転記して使用する想定の表である。
 
-最初に全要件共通の作業を実施し、その後に要件番号固有の設定を行う。A-gateまたはEventBridgeで対応可能と確定した要件は、該当する要件番号の行群を削除またはスキップしても、他要件の作業に影響しない構成とする。
+列構成は、現場手順書の管理列に合わせて `要件番号`、`作業内容`、`作業にかかる時間`、`作業詳細`、`備考` の5列とする。
 
-Excelの1セルが長くなりすぎないよう、長いFilter Patternや確認手順は複数行へ分割している。
+最初に全要件共通の準備、確認、共通設定を行い、その後に要件番号固有の設定を行う。A-gateまたはEventBridgeで対応可能と確定した要件は、該当する要件番号の行を削除またはスキップしても、他要件の作業に影響しない構成とする。
+
+Excelの1セルが長くなりすぎる手順は、同じ要件番号で複数行に分割する。
 
 ## 2. テストリハ当日作業表
 
-| No. | 区分 | 要件番号 | 作業内容 | 作業詳細 | 目安 | 証跡 | 備考 |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 001 | 共通 | 全要件 | 作業開始判断 | 作業申請、作業日時、対象環境、対象アカウント、対象リージョン、作業者、確認者、連絡先を確認する。 | 5分 | 作業開始連絡 | 作業開始承認がない場合は開始しない |
-| 002 | 共通 | 全要件 | AWSログイン確認 | AWS Management Consoleへログインし、対象アカウントと対象リージョンが作業対象と一致することを確認する。 | 3分 | アカウント、リージョン画面 | アカウント誤りは即中断 |
-| 003 | 共通 | 全要件 | パラメータシート確認 | Log Group名、IAM Role名、Metric Namespace、Metric Name、Alarm名、SNS Topic ARN、KMS Key名、S3 bucket名、VPC IDを開く。 | 5分 | パラメータシート該当箇所 | 作業中は常に参照する |
-| 004 | 共通 | 全要件 | 証跡保存先準備 | 証跡保存先フォルダを作成し、ファイル名規則を確認する。 | 3分 | 保存先フォルダ | 証跡は作業前、作業後、テスト、切り戻しで分ける |
-| 005 | 共通 | 4番台 | A-gate対応可否確認 | A-gateまたはEventBridgeで対応可能と確定した要件番号を確認する。 | 5分 | A-gate対応表、EventBridge確認結果 | 対応可要件は該当REQ行群を削除またはスキップ |
-| 006 | 共通 | 4番台 | EventBridge既存設定確認 | EventBridgeのRule、Event pattern、Target、別アカウントEvent bus、通知先を確認する。 | 10分 | EventBridge Rule、Target画面 | 既存設定は変更しない |
-| 007 | 共通 | 4番台 | CloudTrail現状確認 | CloudTrailで対象Trailを開き、ログ記録、Management events、Multi-region、CloudWatch Logs連携状況を確認する。 | 5分 | Trail詳細、Event selectors | 対象Trail誤りは即中断 |
-| 008 | 共通 | 4番台 | CloudWatch Logs連携設定前確認 | CloudTrail編集画面で、CloudWatch Logs連携先Log Groupがパラメータシート記載値と一致することを確認する。 | 5分 | CloudTrail編集画面 | Log Group不一致なら保存しない |
-| 009 | 共通 | 4番台 | CloudWatch Logs連携有効化 | CloudTrailでCloudWatch Logs連携を有効化し、既存Log Groupを指定する。IAM Roleは新規作成を選択し、現場命名規則に沿ったRole名を入力する。 | 10分 | 保存前入力画面、保存後Trail詳細 | UpdateTrailが発生する。REQ-4.5の実イベントにもなる |
-| 010 | 共通 | 4番台 | IAM Role確認 | IAMで新規作成されたRoleを開き、信頼されたエンティティが`cloudtrail.amazonaws.com`であることを確認する。 | 5分 | IAM Role信頼関係 | 権限不足でRole確認不可の場合は確認者へ依頼 |
-| 011 | 共通 | 4番台 | IAM Role権限確認 | IAM RoleにCloudWatch Logsへの`logs:CreateLogStream`と`logs:PutLogEvents`相当の権限があることを確認する。 | 5分 | IAM Role権限画面 | 対象Log Group ARNに書き込めること |
-| 012 | 共通 | 4番台 | Log Stream作成確認 | CloudWatch Logsで対象Log Groupを開き、CloudTrail用Log Streamが作成または更新されることを確認する。 | 10分 | Log Stream一覧 | 数分待機して確認 |
-| 013 | 共通 | 4番台 | CloudTrailイベント到達確認 | 対象Log Groupの最新Log Streamを開き、CloudTrailイベントJSONが到達していることを確認する。 | 10分 | CloudTrailイベントJSON | ログ未到達の場合、Metric Filter作成へ進まない |
-| 014 | 共通 | 4番台 | Metric Namespace確認 | Metric Namespaceは`Custom`を使用する。既存Hinemos関連Alarmとの混在が許容済みであることを確認する。 | 3分 | Namespace確認メモ | NamespaceはAlarm側でも同じ値を指定 |
-| 015 | 共通 | 4番台 | SNS Topic確認 | SNSで既存Topicを開き、Topic ARN、Subscription、通知先、Confirmed状態を確認する。 | 5分 | SNS Topic、Subscription | 既存Topicは変更しない |
-| 016 | 共通 | 4番台 | Alarm共通条件確認 | 4番台Alarmは原則、Statistic `Sum`、Period `5 minutes`、Threshold `>= 1`、Datapoints `1 out of 1`、Missing data `notBreaching`とする。 | 3分 | 設定値メモ | 現場設計値が優先 |
-| 017 | 共通 | 4番台 | 通知テスト方針確認 | 通知テスト実施可否、通知先確認者、メール、Teams、A-gate側確認者、通知回数を確認する。 | 5分 | 通知テスト承認 | 未承認の場合はSNS Publishや実通知を行わない |
-| 018 | 共通 | 3番台 | 3番台対象確認 | CloudTrailログ保存先S3、Server Access Logging保存先、CMK、VPC一覧、Flow Logs保存先を確認する。 | 10分 | 対象リソース一覧 | Prod、OPER、検証の差異を確認 |
-| 019 | 3番台 | REQ-3.4 | Server Access Logging変更前確認 | S3でCloudTrailログ保存先bucketを開き、プロパティのServer Access Loggingが無効または想定状態であることを確認する。 | 5分 | 変更前Server Access Logging | 対象bucket誤りに注意 |
-| 020 | 3番台 | REQ-3.4 | Target bucket確認 | Server Access Logging保存先bucketとprefixを確認する。Source bucket自身をTargetにしない。 | 5分 | Target bucket、prefix | ログのループが発生する設定を避ける |
-| 021 | 3番台 | REQ-3.4 | Target bucket権限確認 | Target bucket policyで`logging.s3.amazonaws.com`からの書き込みが許可されていることを確認する。 | 5分 | Bucket policy | 権限不足時は保存前に中断 |
-| 022 | 3番台 | REQ-3.4 | Server Access Logging有効化 | Source bucketのプロパティでServer Access Loggingを有効化し、Target bucketとprefixを設定する。 | 10分 | 設定画面、保存後画面 | 配信遅延あり |
-| 023 | 3番台 | REQ-3.4 | Server Access Logging確認 | Target bucketの指定prefixにログオブジェクトが作成されるか確認する。すぐ出ない場合は遅延として記録する。 | 10分 | Target prefix一覧 | ベストエフォート配信 |
-| 024 | 3番台 | REQ-3.5 | CloudTrail暗号化変更前確認 | CloudTrailで対象Trailを開き、KMS暗号化未設定または作業前設定を確認する。 | 5分 | Trail暗号化変更前 | 既存KMS設定がある場合は中断して確認 |
-| 025 | 3番台 | REQ-3.5 | CMK作成または選定 | KMSでCloudTrailログ暗号化用のカスタマー管理対称CMKを作成または承認済み既存CMKを選択する。 | 15分 | KMS Key詳細 | Alias、タグ、説明は命名規則に合わせる |
-| 026 | 3番台 | REQ-3.5 | Key Policy確認 | CMKのKey PolicyでCloudTrailが`kms:GenerateDataKey*`、`kms:DescribeKey`相当を利用できることを確認する。 | 10分 | Key Policy | `aws:SourceArn`に対象Trail ARNを指定できる形が望ましい |
-| 027 | 3番台 | REQ-3.5 | ログ参照者権限確認 | CloudTrailログを参照する運用主体が、対象CMKのDecrypt権限を持つことを確認する。 | 5分 | Key usersまたはPolicy | 権限不足だとログ参照に影響 |
-| 028 | 3番台 | REQ-3.5 | TrailへCMK設定 | CloudTrailのTrail編集でSSE-KMS暗号化を有効化し、対象CMKを指定して保存する。 | 10分 | 保存前、保存後Trail詳細 | 保存後に配信エラーを確認 |
-| 029 | 3番台 | REQ-3.5 | CloudTrail配信確認 | Trail statusで配信エラーがないことを確認し、新規CloudTrailログがS3へ配信されることを確認する。 | 15分 | Trail status、S3新規ログ | 配信遅延あり |
-| 030 | 3番台 | REQ-3.5 | S3オブジェクト暗号化確認 | 新規CloudTrailログオブジェクトの暗号化方式がSSE-KMSで対象CMKになっていることを確認する。 | 5分 | S3 object properties | 既存ログは自動再暗号化されない |
-| 031 | 3番台 | REQ-3.6 | CMKローテーション変更前確認 | KMSでREQ-3.5のCMKを開き、自動キーローテーションの変更前状態を確認する。 | 3分 | Rotation変更前 | 対称カスタマー管理CMKが対象 |
-| 032 | 3番台 | REQ-3.6 | CMKローテーション有効化 | KMSで自動キーローテーションを有効化する。 | 5分 | Rotation変更後 | Key IDは変わらない |
-| 033 | 3番台 | REQ-3.7 | VPC Flow Logs変更前確認 | VPC一覧で利用中VPCを確認し、各VPCのFlow Logsタブで有効化状況を確認する。 | 10分 | VPC一覧、Flow Logs変更前 | 不要VPCや削除予定VPCは対象外確認 |
-| 034 | 3番台 | REQ-3.7 | Flow Logs保存先確認 | Flow Logsの保存先を確認する。CloudWatch LogsまたはS3のどちらを使うかパラメータシートに合わせる。 | 5分 | 保存先設定値 | 保存先、保持期間、暗号化を確認 |
-| 035 | 3番台 | REQ-3.7 | VPC Flow Logs作成 | 対象VPCでFlow Logsを作成する。Filterは設計値に従い、未指定なら`ALL`を候補とする。 | 10分/1VPC | Flow Log作成画面 | IAM RoleまたはS3 bucket policyに注意 |
-| 036 | 3番台 | REQ-3.7 | Flow Logs配信確認 | Flow Logsの状態がActiveになり、CloudWatch LogsまたはS3へログが配信されることを確認する。 | 15分 | Flow Log詳細、ログ到着 | 配信遅延あり |
-| 037 | 4番台 | REQ-4.1 | A-gate確認 | 不正なAPI呼び出し監視がA-gateまたはEventBridgeで対応済みか確認する。 | 3分 | A-gate対応表 | 対応可ならREQ-4.1行群を削除またはスキップ |
-| 038 | 4番台 | REQ-4.1 | Metric Filter作成 | CloudWatch Logsの対象Log GroupでMetric Filterを作成する。Filter Patternは`{ ($.errorCode = "*UnauthorizedOperation") \|\| ($.errorCode = "AccessDenied*") }`。 | 7分 | Filter Pattern、作成後Filter | AccessDenied系は通常運用でも発生し得る |
-| 039 | 4番台 | REQ-4.1 | Alarm作成 | Metric Name `Req41UnauthorizedApiCallCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | 通知過多の可能性を記録 |
-| 040 | 4番台 | REQ-4.1 | テスト確認 | Pattern Testで一致確認を行う。承認済みの実イベントがない場合、実通知テストはAlarm ActionまたはSNSテストで代替する。 | 5分 | Pattern Test、通知結果 | 不用意に権限不足操作を連発しない |
-| 041 | 4番台 | REQ-4.2 | A-gate確認 | MFAなしConsoleLogin監視がA-gateまたはEventBridgeで対応済みか確認する。 | 3分 | A-gate対応表 | 対応可ならREQ-4.2行群を削除またはスキップ |
-| 042 | 4番台 | REQ-4.2 | Metric Filter作成 | Filter Patternは`{ ($.eventName = "ConsoleLogin") && ($.responseElements.ConsoleLogin = "Success") && ($.additionalEventData.MFAUsed = "No") }`。 | 7分 | Filter Pattern、作成後Filter | 実環境でMFAなしログインは原則発生させない |
-| 043 | 4番台 | REQ-4.2 | Alarm作成 | Metric Name `Req42ConsoleLoginWithoutMfaCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | 1件発報が基本 |
-| 044 | 4番台 | REQ-4.2 | テスト確認 | Pattern TestでMFAUsed `No` のサンプルを使用し、一致確認を行う。 | 5分 | Pattern Test | 実ログイン試験は承認なしに行わない |
-| 045 | 4番台 | REQ-4.3 | A-gate確認 | rootアカウント使用監視がA-gateまたはEventBridgeで対応済みか確認する。 | 3分 | A-gate対応表 | 対応可ならREQ-4.3行群を削除またはスキップ |
-| 046 | 4番台 | REQ-4.3 | Metric Filter作成 | Filter Patternは`{ ($.userIdentity.type = "Root") && ($.userIdentity.invokedBy NOT EXISTS) && ($.eventType != "AwsServiceEvent") }`。 | 7分 | Filter Pattern、作成後Filter | root使用は高リスク |
-| 047 | 4番台 | REQ-4.3 | Alarm作成 | Metric Name `Req43RootAccountUsageCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | 1件発報が妥当 |
-| 048 | 4番台 | REQ-4.3 | テスト確認 | Pattern TestでRootサンプルを使用し、一致確認を行う。 | 5分 | Pattern Test | root実ログインは実施しない |
-| 049 | 4番台 | REQ-4.4 | A-gate確認 | IAMポリシー変更監視がA-gateまたはEventBridgeで対応可能か確認する。 | 3分 | A-gate対応表、EventBridge証跡 | 対応可ならREQ-4.4行群を削除またはスキップ |
-| 050 | 4番台 | REQ-4.4 | Metric Filter作成 1/3 | Filter Pattern先頭は`{ ($.eventSource = "iam.amazonaws.com") && (`を入力する。 | 3分 | Filter Pattern | 長文のため分割 |
-| 051 | 4番台 | REQ-4.4 | Metric Filter作成 2/3 | 対象イベントは`CreatePolicy`、`DeletePolicy`、`CreatePolicyVersion`、`DeletePolicyVersion`、`SetDefaultPolicyVersion`、`PutUserPolicy`、`PutGroupPolicy`、`PutRolePolicy`。 | 3分 | Filter Pattern | 各eventNameをOR条件で結合 |
-| 052 | 4番台 | REQ-4.4 | Metric Filter作成 3/3 | 対象イベントに`DeleteUserPolicy`、`DeleteGroupPolicy`、`DeleteRolePolicy`、`AttachUserPolicy`、`AttachGroupPolicy`、`AttachRolePolicy`、`DetachUserPolicy`、`DetachGroupPolicy`、`DetachRolePolicy`を追加し、Metric Filterを作成する。 | 5分 | 作成後Filter | 完成Patternは設定値一覧と突合 |
-| 053 | 4番台 | REQ-4.4 | Alarm作成 | Metric Name `Req44IamPolicyChangeCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | 通常変更でも通知される |
-| 054 | 4番台 | REQ-4.4 | テスト確認 | Pattern TestでIAM Policy変更サンプルを使用し、一致確認を行う。 | 5分 | Pattern Test | 実IAM変更は承認なしに行わない |
-| 055 | 4番台 | REQ-4.5 | A-gate確認 | CloudTrail設定変更監視がA-gateまたはEventBridgeで対応済みか確認する。 | 3分 | A-gate対応表 | 先行作業結果を優先 |
-| 056 | 4番台 | REQ-4.5 | Metric Filter作成 | Filter Patternは`{ ($.eventSource = "cloudtrail.amazonaws.com") && (($.eventName = "CreateTrail") \|\| ($.eventName = "UpdateTrail") \|\| ($.eventName = "DeleteTrail") \|\| ($.eventName = "StartLogging") \|\| ($.eventName = "StopLogging") \|\| ($.eventName = "PutEventSelectors") \|\| ($.eventName = "PutInsightSelectors")) }`。 | 7分 | Filter Pattern、作成後Filter | CloudWatch Logs連携時のUpdateTrailが実イベントになる |
-| 057 | 4番台 | REQ-4.5 | Alarm作成 | Metric Name `Req45CloudTrailChangeCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | 先行作業の設定値と一致させる |
-| 058 | 4番台 | REQ-4.5 | テスト確認 | CloudTrailからCloudWatch Logsへの連携有効化に伴うUpdateTrailイベント到達、Metric増加、Alarm遷移、通知を確認する。 | 15分 | CloudTrailイベント、Metric、Alarm履歴、通知 | StopLoggingとDeleteTrailは実施しない |
-| 059 | 4番台 | REQ-4.6 | A-gate確認 | Console認証失敗監視がA-gateまたはEventBridgeで対応済みか確認する。 | 3分 | A-gate対応表 | 対応可ならREQ-4.6行群を削除またはスキップ |
-| 060 | 4番台 | REQ-4.6 | Metric Filter作成 | Filter Patternは`{ ($.eventName = "ConsoleLogin") && ($.responseElements.ConsoleLogin = "Failure") }`。 | 7分 | Filter Pattern、作成後Filter | 誤入力でも発生し得る |
-| 061 | 4番台 | REQ-4.6 | Alarm作成 | Metric Name `Req46ConsoleLoginFailureCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | しきい値1件でよいか記録 |
-| 062 | 4番台 | REQ-4.6 | テスト確認 | Pattern TestでConsoleLogin Failureサンプルを使用し、一致確認を行う。 | 5分 | Pattern Test | 実ログイン失敗試験は承認時のみ |
-| 063 | 4番台 | REQ-4.7 | A-gate確認 | CMK無効化または削除予約監視がA-gateまたはEventBridgeで対応済みか確認する。 | 3分 | A-gate対応表 | 先行作業結果を優先 |
-| 064 | 4番台 | REQ-4.7 | Metric Filter作成 | Filter Patternは`{ ($.eventSource = "kms.amazonaws.com") && (($.eventName = "DisableKey") \|\| ($.eventName = "ScheduleKeyDeletion")) }`。 | 7分 | Filter Pattern、作成後Filter | テスト専用CMKのみで実イベント確認 |
-| 065 | 4番台 | REQ-4.7 | Alarm作成 | Metric Name `Req47KmsKeyDisableOrDeletionCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | 1件発報が妥当 |
-| 066 | 4番台 | REQ-4.7 | テスト専用CMK作成 | KMSでテスト専用の対称カスタマー管理CMKを作成し、Alias、説明、タグにテスト用途を明記する。 | 10分 | テストCMK詳細 | 実データ用途のCMKは使用しない |
-| 067 | 4番台 | REQ-4.7 | DisableKeyテスト | テスト専用CMKでDisableKeyを実行し、CloudTrailイベント、Metric増加、Alarm、通知を確認する。確認後すぐEnableKeyする。 | 15分 | DisableKey、EnableKey、Alarm履歴 | 本物CMKでは実施しない |
-| 068 | 4番台 | REQ-4.7 | ScheduleKeyDeletionテスト | テスト専用CMKでScheduleKeyDeletionを実行し、検知確認後すぐCancelKeyDeletionする。必要に応じてEnableKeyを確認する。 | 15分 | ScheduleKeyDeletion、CancelKeyDeletion | キャンセル証跡を必ず取得 |
-| 069 | 4番台 | REQ-4.8 | A-gate確認 | S3バケットポリシー変更監視がA-gateまたはEventBridgeで対応可能か確認する。 | 3分 | A-gate対応表、EventBridge証跡 | 対応可ならREQ-4.8行群を削除またはスキップ |
-| 070 | 4番台 | REQ-4.8 | Metric Filter作成 | Filter Patternは`{ ($.eventSource = "s3.amazonaws.com") && (($.eventName = "PutBucketPolicy") \|\| ($.eventName = "DeleteBucketPolicy")) }`。 | 7分 | Filter Pattern、作成後Filter | 既存A-gate対応済みなら新規作成しない |
-| 071 | 4番台 | REQ-4.8 | Alarm作成 | Metric Name `Req48S3BucketPolicyChangeCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | A-gateとの重複に注意 |
-| 072 | 4番台 | REQ-4.8 | テスト確認 | Pattern TestでPutBucketPolicyサンプルを使用し、一致確認を行う。実バケットポリシー変更は承認時のみ実施する。 | 5分 | Pattern Test | 実変更時は切り戻しPolicyを用意 |
-| 073 | 4番台 | REQ-4.9 | A-gate確認 | AWS Config設定変更監視がA-gateまたはEventBridgeで対応済みか確認する。 | 3分 | A-gate対応表 | 対応可ならREQ-4.9行群を削除またはスキップ |
-| 074 | 4番台 | REQ-4.9 | Metric Filter作成 | Filter Patternは`{ ($.eventSource = "config.amazonaws.com") && (($.eventName = "StopConfigurationRecorder") \|\| ($.eventName = "StartConfigurationRecorder") \|\| ($.eventName = "PutConfigurationRecorder") \|\| ($.eventName = "DeleteConfigurationRecorder") \|\| ($.eventName = "PutDeliveryChannel") \|\| ($.eventName = "DeleteDeliveryChannel") \|\| ($.eventName = "PutConfigRule") \|\| ($.eventName = "DeleteConfigRule")) }`。 | 7分 | Filter Pattern、作成後Filter | Config未導入環境は対象範囲を記録 |
-| 075 | 4番台 | REQ-4.9 | Alarm作成 | Metric Name `Req49ConfigChangeCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | AWS Config停止系は高リスク |
-| 076 | 4番台 | REQ-4.9 | テスト確認 | Pattern TestでAWS Config変更サンプルを使用し、一致確認を行う。 | 5分 | Pattern Test | 実Config停止は実施しない |
-| 077 | 4番台 | REQ-4.10 | A-gate確認 | Security Group変更監視がA-gateまたはEventBridgeで対応可能か確認する。 | 3分 | A-gate対応表、EventBridge証跡 | 対応可ならREQ-4.10行群を削除またはスキップ |
-| 078 | 4番台 | REQ-4.10 | Metric Filter作成 | Filter Patternは`{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "AuthorizeSecurityGroupIngress") \|\| ($.eventName = "AuthorizeSecurityGroupEgress") \|\| ($.eventName = "RevokeSecurityGroupIngress") \|\| ($.eventName = "RevokeSecurityGroupEgress") \|\| ($.eventName = "CreateSecurityGroup") \|\| ($.eventName = "DeleteSecurityGroup") \|\| ($.eventName = "ModifySecurityGroupRules")) }`。 | 7分 | Filter Pattern、作成後Filter | 通常変更でも通知される |
-| 079 | 4番台 | REQ-4.10 | Alarm作成 | Metric Name `Req410SecurityGroupChangeCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | A-gateとの重複に注意 |
-| 080 | 4番台 | REQ-4.10 | テスト確認 | Pattern TestでSecurity Group変更サンプルを使用し、一致確認を行う。 | 5分 | Pattern Test | 実SG変更は承認時のみ |
-| 081 | 4番台 | REQ-4.11 | A-gate確認 | NACL変更監視がA-gateまたはEventBridgeで対応済みか確認する。 | 3分 | A-gate対応表 | 対応可ならREQ-4.11行群を削除またはスキップ |
-| 082 | 4番台 | REQ-4.11 | Metric Filter作成 | Filter Patternは`{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateNetworkAcl") \|\| ($.eventName = "DeleteNetworkAcl") \|\| ($.eventName = "CreateNetworkAclEntry") \|\| ($.eventName = "DeleteNetworkAclEntry") \|\| ($.eventName = "ReplaceNetworkAclEntry") \|\| ($.eventName = "ReplaceNetworkAclAssociation")) }`。 | 7分 | Filter Pattern、作成後Filter | 通信影響が大きい変更 |
-| 083 | 4番台 | REQ-4.11 | Alarm作成 | Metric Name `Req411NetworkAclChangeCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | 1件発報が妥当 |
-| 084 | 4番台 | REQ-4.11 | テスト確認 | Pattern TestでNACL変更サンプルを使用し、一致確認を行う。 | 5分 | Pattern Test | 実NACL変更は実施しない |
-| 085 | 4番台 | REQ-4.12 | A-gate確認 | Network Gateway変更監視がA-gateまたはEventBridgeで対応可能か確認する。 | 3分 | A-gate対応表、EventBridge証跡 | 対応可ならREQ-4.12行群を削除またはスキップ |
-| 086 | 4番台 | REQ-4.12 | Metric Filter作成 | Filter Patternは`{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateInternetGateway") \|\| ($.eventName = "DeleteInternetGateway") \|\| ($.eventName = "AttachInternetGateway") \|\| ($.eventName = "DetachInternetGateway") \|\| ($.eventName = "CreateCustomerGateway") \|\| ($.eventName = "DeleteCustomerGateway")) }`。 | 7分 | Filter Pattern、作成後Filter | 正式資料はIGW/Customer Gateway中心 |
-| 087 | 4番台 | REQ-4.12 | Alarm作成 | Metric Name `Req412NetworkGatewayChangeCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | NAT/TGW/VPNを含めるかは別途承認 |
-| 088 | 4番台 | REQ-4.12 | テスト確認 | Pattern TestでNetwork Gateway変更サンプルを使用し、一致確認を行う。 | 5分 | Pattern Test | 実Gateway変更は実施しない |
-| 089 | 4番台 | REQ-4.13 | A-gate確認 | Route Table変更監視がA-gateまたはEventBridgeで対応可能か確認する。 | 3分 | A-gate対応表、EventBridge証跡 | 対応可ならREQ-4.13行群を削除またはスキップ |
-| 090 | 4番台 | REQ-4.13 | Metric Filter作成 | Filter Patternは`{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateRoute") \|\| ($.eventName = "DeleteRoute") \|\| ($.eventName = "ReplaceRoute") \|\| ($.eventName = "CreateRouteTable") \|\| ($.eventName = "DeleteRouteTable") \|\| ($.eventName = "AssociateRouteTable") \|\| ($.eventName = "DisassociateRouteTable") \|\| ($.eventName = "ReplaceRouteTableAssociation")) }`。 | 7分 | Filter Pattern、作成後Filter | 通信経路に直結 |
-| 091 | 4番台 | REQ-4.13 | Alarm作成 | Metric Name `Req413RouteTableChangeCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | A-gateとの重複に注意 |
-| 092 | 4番台 | REQ-4.13 | テスト確認 | Pattern TestでRoute Table変更サンプルを使用し、一致確認を行う。 | 5分 | Pattern Test | 実Route変更は実施しない |
-| 093 | 4番台 | REQ-4.14 | A-gate確認 | VPC変更監視がA-gateまたはEventBridgeで対応可能か確認する。 | 3分 | A-gate対応表、EventBridge証跡 | 対応可ならREQ-4.14行群を削除またはスキップ |
-| 094 | 4番台 | REQ-4.14 | Metric Filter作成 | Filter Patternは`{ ($.eventSource = "ec2.amazonaws.com") && (($.eventName = "CreateVpc") \|\| ($.eventName = "DeleteVpc") \|\| ($.eventName = "ModifyVpcAttribute") \|\| ($.eventName = "AcceptVpcPeeringConnection") \|\| ($.eventName = "CreateVpcPeeringConnection") \|\| ($.eventName = "DeleteVpcPeeringConnection") \|\| ($.eventName = "RejectVpcPeeringConnection")) }`。 | 7分 | Filter Pattern、作成後Filter | VPC Peeringを含む |
-| 095 | 4番台 | REQ-4.14 | Alarm作成 | Metric Name `Req414VpcChangeCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | EndpointやSubnet変更を含める場合は別途承認 |
-| 096 | 4番台 | REQ-4.14 | テスト確認 | Pattern TestでVPC変更サンプルを使用し、一致確認を行う。 | 5分 | Pattern Test | 実VPC変更は実施しない |
-| 097 | 4番台 | REQ-4.15 | A-gate確認 | Organizations変更監視がA-gateまたはEventBridgeで対応済みか確認する。 | 3分 | A-gate対応表 | 対応可ならREQ-4.15行群を削除またはスキップ |
-| 098 | 4番台 | REQ-4.15 | Metric Filter作成 | Filter Patternは`{ ($.eventSource = "organizations.amazonaws.com") }`。 | 7分 | Filter Pattern、作成後Filter | 管理アカウント側での確認が必要な場合あり |
-| 099 | 4番台 | REQ-4.15 | Alarm作成 | Metric Name `Req415OrganizationsChangeCount`、Namespace `Custom`、共通Alarm条件、既存SNS TopicでAlarmを作成する。 | 7分 | Alarm設定、通知Action | 対象アカウントを確認 |
-| 100 | 4番台 | REQ-4.15 | テスト確認 | Pattern TestでOrganizations変更サンプルを使用し、一致確認を行う。 | 5分 | Pattern Test | 実Organizations変更は実施しない |
-| 101 | 共通 | 4番台 | Metric Filter最終確認 | 対象Log GroupのMetric Filter一覧で、作成対象要件分が存在し、Filter名とMetric Nameが設計値と一致することを確認する。 | 10分 | Metric Filter一覧 | A-gate対応要件は作成しない |
-| 102 | 共通 | 4番台 | Alarm最終確認 | CloudWatch Alarm一覧で、作成対象要件分が存在し、Metric、条件、Actionが設計値と一致することを確認する。 | 10分 | Alarm一覧、Alarm詳細 | OKまたは想定状態を確認 |
-| 103 | 共通 | 4番台 | 通知到達確認 | 承認済みの方法でSNS、メール、Teams、A-gate側への通知到達を確認する。 | 15分 | 通知受信結果 | 未実施の場合は未実施理由を記録 |
-| 104 | 共通 | 全要件 | CloudTrail作業証跡確認 | CloudTrail Event historyで当日作業に関係する`UpdateTrail`、`PutMetricFilter`、`PutMetricAlarm`、KMS操作等を確認する。 | 10分 | CloudTrail Event history | 見えない場合は到達遅延または権限不足を記録 |
-| 105 | 共通 | 全要件 | 変更後設定値突合 | パラメータシート、手順書、Webコンソールの設定値を突合し、差異を記録する。 | 10分 | 設定値突合結果 | 差異がある場合はリーダー判断 |
-| 106 | 切り戻し | 4番台 | Alarm切り戻し | 切り戻し判断時は、今回作成したAlarmのActionを無効化し、承認後に今回作成分のみ削除する。 | 10分 | 切り戻し前後Alarm | 既存Alarmは削除しない |
-| 107 | 切り戻し | 4番台 | Metric Filter切り戻し | 切り戻し判断時は、今回作成したMetric Filterのみ削除する。 | 10分 | 切り戻し前後Metric Filter | 既存Filterは削除しない |
-| 108 | 切り戻し | REQ-3.4 | Server Access Logging切り戻し | 切り戻し判断時は、Source bucketのServer Access Loggingを作業前状態へ戻す。 | 5分 | Server Access Logging切り戻し後 | 配信済みログは保持方針に従う |
-| 109 | 切り戻し | REQ-3.5 | CloudTrail CMK切り戻し | 切り戻し判断時は、TrailのKMS設定を作業前状態へ戻す。作成済みCMKは無効化または削除しない。 | 10分 | Trail暗号化設定 | 既に暗号化されたログ参照にCMKが必要 |
-| 110 | 切り戻し | REQ-3.7 | VPC Flow Logs切り戻し | 切り戻し判断時は、今回作成したFlow Logのみ削除する。 | 10分 | Flow Logs切り戻し後 | 配信済みログは保持方針に従う |
-| 111 | 切り戻し | REQ-4.7 | テスト専用CMK後始末 | テスト専用CMKでScheduleKeyDeletionを実施した場合、CancelKeyDeletion済みであることを確認する。最終的な削除予約は別途承認に従う。 | 5分 | CMK状態 | Pending deletionを残さない方針なら削除予約をキャンセル |
-| 112 | 共通 | 全要件 | 証跡ファイル確認 | 作業前、作業後、通知、CloudTrail、切り戻し有無、未実施理由の証跡ファイルが揃っていることを確認する。 | 10分 | 証跡一覧 | ファイル名規則に合わせる |
-| 113 | 共通 | 全要件 | 未実施項目整理 | A-gate対応済み、権限不足、承認未取得、配信遅延、実イベント未実施などの理由を記録する。 | 10分 | 未実施項目一覧 | テストリハ結果報告へ転記 |
-| 114 | 共通 | 全要件 | 作業完了報告 | 対象環境、実施要件、作業結果、通知結果、切り戻し有無、残課題、証跡保存先をまとめて報告する。 | 5分 | 作業完了連絡 | 完了判断者の確認を受ける |
+| 要件番号 | 作業内容 | 作業にかかる時間 | 作業詳細 | 備考 |
+| :--- | :--- | :--- | :--- | :--- |
+| 共通 | 作業開始前確認 | 10分 | 作業申請、作業日時、対象環境、対象アカウント、対象リージョン、作業者、確認者、連絡先、証跡保存先を確認する。作業開始承認が取れていない場合は開始しない。 | 作業前の連絡、作業台帳、証跡保存先を確認する。 |
+| 共通 | AWSログイン、アカウント、リージョン確認 | 5分 | AWS Management Consoleへログインし、画面右上のアカウントとリージョンが作業対象と一致することを確認する。対象外アカウントまたは対象外リージョンの場合は作業を中断する。 | アカウント誤りは最も危険なため、最初に確認する。 |
+| 共通 | 変更パラメータ一覧確認 | 10分 | 変更パラメータ一覧を開き、各要件の対応区分、対象リソース、Log Group名、IAM Role名、Metric Namespace、Metric Name、Alarm名、SNS Topic ARN、KMS Key名、S3 bucket名、VPC IDを確認する。 | 作業中は変更パラメータ一覧の値を正とする。 |
+| 共通 | A-gate / EventBridge対応区分確認 | 10分 | A-gateまたはEventBridgeで対応可能と確認済みの要件番号を確認する。対応区分が「対応なし」の要件は新規設定を行わず、「既存EventBridge / A-gate対応済み要件の対応なし記録」へ進む。 | 対応なし要件は削除せず、根拠を残してスキップする。 |
+| 共通 | 既存EventBridge確認 | 15分 | EventBridgeのRule一覧を開き、クラウドセキュリティ対応に関係するRule、Event pattern、Target、別アカウントEvent bus、通知先を確認する。既存Ruleは変更しない。 | A-gate対応可否の根拠として証跡を保存する。 |
+| 共通 | 既存EventBridge / A-gate対応済み要件の対応なし記録 | 10分 | 対応区分が「対応なし」の要件について、要件番号、既存Rule名またはA-gate管理対象、通知経路、確認資料、確認日を作業台帳へ記録する。設定変更は行わない。 | 後から該当要件行を削除してもよいが、対応なし根拠は残す。 |
+| 共通 | CloudTrail現状確認 | 10分 | CloudTrailで対象Trailを開き、ログ記録状態、Management events、Multi-region、CloudWatch Logs連携状況、Event selectorsを確認する。対象Trailが違う場合は作業を中断する。 | 4番台の前提確認。 |
+| 共通 | CloudTrail -> CloudWatch Logs連携確認 | 20分 | CloudTrail編集画面でCloudWatch Logs連携を有効化する。Log Groupはパラメータシート記載の既存Log Groupを使用する。IAM Roleは新規作成を選択し、現場命名規則に沿ったRole名を入力する。保存後、Trail詳細でLog Group ARNとRole ARNを確認する。 | UpdateTrailが発生するため、4.5の実イベント確認にも使える。 |
+| 共通 | IAM Role確認 | 10分 | IAMで新規作成されたCloudTrail CloudWatch Logs連携用Roleを開き、信頼されたエンティティが`cloudtrail.amazonaws.com`であること、CloudWatch Logsへの書き込み権限があることを確認する。 | 権限不足でRole確認できない場合は確認者または権限保持者へ確認を依頼する。 |
+| 共通 | CloudWatch Logs到達確認 | 20分 | CloudWatch Logsで対象Log Groupを開き、Log Streamが作成または更新されることを確認する。最新Log Streamを開き、CloudTrailイベントJSONが到達していることを確認する。ログ未到達の場合はMetric Filter作成へ進まず原因確認を行う。 | Metric FilterとAlarmはCloudTrailログ到達が前提である。 |
+| 共通 | Metric Filter / Alarm共通設定確認 | 10分 | Metric Namespaceは`Custom`を使用する。Alarm条件は原則としてStatistic `Sum`、Period `5 minutes`、Threshold `>= 1`、Datapoints `1 out of 1`、Missing data `notBreaching`とする。現場設計値がある場合は現場設計値を優先する。 | Namespace、Metric Name、Alarm名は変更パラメータ一覧と一致させる。 |
+| 共通 | SNS Topic確認 | 10分 | SNSで既存Topicを開き、Topic ARN、Subscription、通知先、Confirmed状態を確認する。Alarm Actionには変更パラメータ一覧で指定された既存SNS Topicを設定する。 | 既存SNS Topic自体は変更しない。 |
+| 共通 | Metric Filter / Alarm作成の詳細操作 | 15分 | CloudWatch Logsの対象Log Groupを開き、Metric Filterを作成する。Filter Patternを入力し、可能な場合はPattern Testを実施する。Filter名、Metric Namespace、Metric Name、Metric Value、Default Valueを入力して保存する。その後CloudWatch Alarmを作成し、対象Metric、しきい値、Missing data、SNS Topicを設定する。 | 各要件行からこの共通手順を参照する。 |
+| 3.4 | CloudTrailログ保存先S3バケットのServer Access Logging設定 | 35分 | 変更パラメータ一覧で3.4の対象Source bucket、Target bucket、Target prefixを確認する。S3でCloudTrailログ保存先bucketを開き、Server Access Loggingの変更前状態を証跡保存する。Target bucketがSource bucket自身でないこと、Target bucket policyでログ配信サービスの書き込みが許可されていることを確認してから、Server Access Loggingを有効化する。 | Target bucketを自身にするとログのループが発生するため避ける。ログ配信は遅延する場合がある。 |
+| 3.4 | Server Access Logging配信確認 | 20分 | Target bucketの指定prefixを開き、Server Access Loggingのログオブジェクトが作成されるか確認する。すぐに作成されない場合は、設定値、Target bucket、prefix、権限を確認し、配信遅延として記録する。 | Server Access Loggingはベストエフォート配信であり、即時確認できない場合がある。 |
+| 3.5 | CloudTrailログのCMK暗号化設定 1/2 | 35分 | 変更パラメータ一覧で3.5の対象Trail、CloudTrailログ保存先S3 bucket、使用するカスタマー管理CMK、Alias、Key Policy方針を確認する。KMSでCloudTrailログ暗号化用の対称CMKを作成または承認済み既存CMKを選定する。Key PolicyでCloudTrailが利用できること、ログ参照者にDecrypt権限があることを確認する。 | CMK権限不備はCloudTrailログ配信やログ参照に影響する。 |
+| 3.5 | CloudTrailログのCMK暗号化設定 2/2 | 30分 | CloudTrailで対象Trailを開き、SSE-KMS暗号化を有効化して対象CMKを指定する。保存後、Trail statusで配信エラーがないことを確認する。新規CloudTrailログがS3に配信され、S3オブジェクトの暗号化方式がSSE-KMSかつ対象CMKであることを確認する。 | 既存ログは自動で再暗号化されない。作業後は新規ログで確認する。 |
+| 3.6 | カスタマー管理対称CMKのローテーション有効化 | 15分 | 変更パラメータ一覧で3.6の対象CMKを確認する。KMSで対象CMKを開き、変更前のキーローテーション設定を証跡保存する。自動キーローテーションを有効化し、変更後の状態を証跡保存する。 | 3.5で使用するカスタマー管理対称CMKが対象である。AWS管理キーは対象外である。 |
+| 3.7 | VPC Flow Logs有効化 1/2 | 30分 | 変更パラメータ一覧で3.7の対象VPC、対象環境、保存先、Traffic type、Log format、保持期間、暗号化方針を確認する。VPC一覧で利用中VPCを確認し、各VPCのFlow Logsタブで変更前状態を証跡保存する。削除予定VPCや不要VPCは対象外であることを確認する。 | 対象VPCの取り違えに注意する。 |
+| 3.7 | VPC Flow Logs有効化 2/2 | 35分 | 対象VPCでFlow Logsを作成する。保存先は変更パラメータ一覧に従い、CloudWatch LogsまたはS3を指定する。Filterは設計値に従い、未指定の場合は`ALL`を候補とする。作成後、Flow Logsの状態がActiveになり、保存先へログが配信されることを確認する。 | ログ量増加と保存先権限に注意する。 |
+| 4.1 | 不正なAPI呼び出し監視の設定 | 25分 | 変更パラメータ一覧で4.1の対応区分を確認する。対応区分が「対応なし」の場合は「既存EventBridge / A-gate対応済み要件の対応なし記録」へ進む。対応区分が「新規」の場合は、CloudWatch Logsの対象Log Groupで4.1用のMetric Filterを作成する。Filter Pattern、Filter名、Metric Namespace、Metric Name、Alarm名、しきい値、通知先SNS Topicは変更パラメータ一覧の4.1行を使用する。作成手順は「Metric Filter / Alarm作成の詳細操作」に従う。 | AccessDenied系は通常運用でも発生し得るため、しきい値と通知対象範囲を作業前に確認する。 |
+| 4.2 | MFAなしコンソールログイン監視の設定 | 25分 | 変更パラメータ一覧で4.2の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、ConsoleLogin成功かつMFAUsedがNoのFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。Filter名、Metric Namespace、Metric Name、Alarm名、しきい値、通知先SNS Topicは変更パラメータ一覧の4.2行を使用する。 | MFA強制済みでも監査要件上の設定要否を確認する。不要判断の場合は根拠を残す。 |
+| 4.3 | rootアカウント使用監視の設定 | 25分 | 変更パラメータ一覧で4.3の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、userIdentity.typeがRootのFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。通知先は既存SNS Topicを指定する。作成後、Metric Filter詳細とAlarm詳細を証跡として保存する。 | root利用は重要度が高いため、1件発報が基本である。 |
+| 4.4 | IAMポリシー変更監視の設定 | 30分 | 変更パラメータ一覧で4.4の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、IAM Policy作成、削除、Version変更、Inline Policy変更、Attach、Detachを対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。作成後、Filter Patternが設計値どおりであることを確認する。 | IAMユーザー、ロール、グループ変更まで含めるかは設計判断が必要である。 |
+| 4.5 | CloudTrail設定変更監視の設定 | 25分 | 変更パラメータ一覧で4.5の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、CreateTrail、UpdateTrail、DeleteTrail、StartLogging、StopLogging、PutEventSelectors、PutInsightSelectorsを対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。 | 正当な復旧操作や設定変更でも通知されるため、通知後の確認手順を運用側で持つ。 |
+| 4.5 | CloudTrail設定変更監視の実イベント確認 | 20分 | CloudTrail -> CloudWatch Logs連携有効化により発生したUpdateTrailイベントが対象Log Groupへ届いていることを確認する。4.5用Metric Filterが作成済みの場合は、Metric増加、Alarm状態、通知到達を確認する。 | StopLogging、DeleteTrailは実施しない。 |
+| 4.6 | コンソール認証失敗監視の設定 | 25分 | 変更パラメータ一覧で4.6の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、ConsoleLogin失敗を対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。しきい値は変更パラメータ一覧に従う。 | 誤入力でも発生するため、1件発報か複数件発報かを作業前に確認する。 |
+| 4.7 | CMK無効化または削除予約監視の設定 | 25分 | 変更パラメータ一覧で4.7の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、KMSのDisableKeyとScheduleKeyDeletionを対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。通知先は既存SNS Topicを指定する。 | 鍵の無効化や削除予約は影響が大きいため、1件発報が基本である。 |
+| 4.7 | テスト専用CMKによる実イベント確認 | 35分 | KMSでテスト専用の対称カスタマー管理CMKを作成する。DisableKeyを実行し、CloudTrailイベント、Metric増加、Alarm、通知を確認した後、すぐにEnableKeyする。ScheduleKeyDeletionを実行する場合は、検知確認後すぐにCancelKeyDeletionを実行し、必要に応じてEnableKey状態を確認する。 | 実データに使用しているCMKでは実施しない。CancelKeyDeletionの証跡を必ず保存する。 |
+| 4.8 | S3バケットポリシー変更監視の設定 | 25分 | 変更パラメータ一覧で4.8の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、PutBucketPolicyとDeleteBucketPolicyを対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。Filter名、Metric Namespace、Metric Name、Alarm名、通知先SNS Topicは変更パラメータ一覧の4.8行を使用する。 | A-gateまたは既存EventBridgeで対応済みの場合は新規作成しない。実バケットポリシー変更を行う場合は切り戻しPolicyを用意する。 |
+| 4.9 | AWS Config変更監視の設定 | 25分 | 変更パラメータ一覧で4.9の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、Config Recorder、Delivery Channel、Config Ruleの作成、変更、削除を対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。 | AWS Config未導入または一部環境のみの場合、対象範囲を確認する。 |
+| 4.10 | Security Group変更監視の設定 | 25分 | 変更パラメータ一覧で4.10の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、Security GroupのIngress、Egress、作成、削除、ルール変更を対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。 | 通常の作業変更でも通知されるため、変更管理との突合が必要である。 |
+| 4.11 | NACL変更監視の設定 | 25分 | 変更パラメータ一覧で4.11の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、Network ACLの作成、削除、Entry作成、Entry削除、Entry置換、Association置換を対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。 | NACL変更は通信影響が大きいため、1件発報が基本である。 |
+| 4.12 | Network Gateway変更監視の設定 | 25分 | 変更パラメータ一覧で4.12の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、Internet GatewayとCustomer Gatewayの作成、削除、Attach、Detachを対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。 | 正式資料はInternet Gateway / Customer Gateway中心である。NAT Gateway、Transit Gateway、VPN Gatewayを含める場合は別途承認を得る。 |
+| 4.13 | Route Table変更監視の設定 | 25分 | 変更パラメータ一覧で4.13の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、Route作成、削除、置換、Route Table作成、削除、関連付け、関連付け解除、関連付け置換を対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。 | ルート変更は通信経路に直結するため、通知後の確認観点を運用側で持つ。 |
+| 4.14 | VPC変更監視の設定 | 25分 | 変更パラメータ一覧で4.14の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、VPC作成、削除、属性変更、VPC Peering作成、承諾、拒否、削除を対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。 | VPC EndpointやSubnet変更まで含める場合は別途設計判断が必要である。 |
+| 4.15 | AWS Organizations変更監視の設定 | 25分 | 変更パラメータ一覧で4.15の対応区分を確認する。対応区分が「対応なし」の場合は対応なし記録へ進む。対応区分が「新規」の場合は、eventSourceがorganizations.amazonaws.comであるCloudTrailイベントを対象にするFilter PatternでMetric Filterを作成し、CloudWatch Alarmを作成する。 | 管理アカウント側での設定確認が必要な場合がある。 |
+| 4-G | 4番台全体の通知テスト | 30分 | 通知テスト承認を確認する。実イベントを起こせる要件は承認済みの軽微な操作で確認する。実イベントを起こせない要件は、CloudWatch LogsのMetric Filter画面でPattern Test結果を保存し、CloudWatch Alarm詳細画面でActions enabledと通知先SNS Topicを確認し、SNS TopicのSubscription状態を確認する。通知が発生した場合はメール、Teams、監視基盤で受信画面を保存する。 | IAM、KMS、CloudTrail、ネットワーク系は影響が大きいため、実変更テストは無理に行わない。 |
+| 4-G | 4番台全体の通知受信確認 | 20分 | 通知確認者へ通知到達を確認する。メール、Teams、監視基盤などの通知先で受信を確認する。通知本文またはAlarm詳細から、要件番号、イベント名、発生時刻、対象リソースを追跡できることを確認する。通知確認者、確認時刻、証跡保存先を作業台帳へ記録する。 | 通知が届かない場合は、SNS Subscription、Alarm Action、Metric Filter一致条件を確認する。 |
+| 4-G | 4番台全体の作業後エビデンス取得 | 30分 | 作成または変更したMetric Filter一覧、各Metric Filter詳細、CloudWatch Alarm一覧、各Alarm詳細、SNS Topic、通知受信画面、関連EventBridge Ruleをスクリーンショットで保存する。作業前エビデンスと比較し、想定外の既存設定変更がないことを確認する。 | 作業前後比較、設定値、通知到達を証跡として残す。 |
+| 共通 | 変更後設定値突合 | 20分 | 変更パラメータ一覧、作業手順書、Webコンソールの設定値を突合する。差異がある場合は、差異内容、影響、判断者、対応方針を作業台帳へ記録する。 | テストリハでは差異を見つけることも目的である。 |
+| 共通 | CloudTrail作業証跡確認 | 15分 | CloudTrail Event historyで当日作業に関係するUpdateTrail、PutMetricFilter、PutMetricAlarm、KMS操作、S3 Logging変更、Flow Logs作成などを確認する。表示されない場合は、到達遅延、対象リージョン違い、権限不足の可能性を記録する。 | Event historyの反映には遅延がある。 |
+| 共通 | 切り戻し判断 | 10分 | 作業中に想定外のエラー、通知多発、ログ配信エラー、KMS権限エラー、既存設定への影響が発生した場合は、作業を停止し、切り戻し要否を判断する。切り戻しは今回作成または変更した設定のみを対象にする。 | 既存Alarm、既存Metric Filter、既存SNS Topic、既存EventBridge Ruleは削除しない。 |
+| 共通 | 切り戻し作業 | 40分 | 切り戻し判断時は、今回作成したAlarmのAction無効化、Alarm削除、Metric Filter削除、Server Access Loggingの作業前状態復旧、CloudTrail KMS設定の作業前状態復旧、今回作成したFlow Log削除を実施する。テスト専用CMKのScheduleKeyDeletionを実施済みの場合はCancelKeyDeletion済みであることを確認する。 | CMKで暗号化済みのCloudTrailログを参照するため、作成済みCMKを安易に無効化または削除しない。 |
+| 共通 | 証跡ファイル確認 | 20分 | 作業前、作業後、通知、CloudTrail Event history、A-gate対応なし根拠、未実施理由、切り戻し有無の証跡が揃っていることを確認する。ファイル名規則に従って保存されていることを確認する。 | 証跡不足はレビュー指摘になりやすい。 |
+| 共通 | 未実施項目整理 | 15分 | A-gate対応済み、権限不足、承認未取得、配信遅延、実イベント未実施、対象外環境などの理由で実施しなかった項目を作業台帳へ記録する。 | 未実施項目は失敗ではなく、判断理由を残すことが重要である。 |
+| 共通 | 作業完了報告 | 10分 | 対象環境、実施要件、対応なし要件、作業結果、通知結果、切り戻し有無、残課題、証跡保存先をまとめて関係者へ報告する。 | 完了判断者の確認を受ける。 |
