@@ -9,6 +9,7 @@ README直下は、WBS、作業手順書、切り戻し、通知確認に関係�
 | 用途 | 資料 |
 | :--- | :--- |
 | 最新の作業計画、対象要件、スケジュール、対応不要項目を確認する | [AWSセキュリティ監査指摘対応 WBS案](./aws_security_remediation_wbs_2026_07.md) |
+| A-gate explicit deny後の週初め対応、PM/リーダー共有事項、WBS修正観点を確認する | [週初め対応メモ A-gate explicit deny後の進め方](./week_start_action_plan_after_agate_deny_2026_07.md) |
 | 開発環境設定テストとテストリハの違いを確認する | [開発環境設定テストとテストリハの違い](./development_environment_test_vs_rehearsal_2026_07.md) |
 
 ## テストリハ
