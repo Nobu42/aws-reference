@@ -41,8 +41,9 @@ A-gateまたはEventBridgeで対応可能と確定した要件は、該当する
 共通	IAM Role確認	10分	IAMコンソールを開き、左メニューの「ロール」をクリックする。CloudTrail連携設定で新規作成したRole名を検索して開く。信頼関係タブでPrincipal Serviceがcloudtrail.amazonaws.comであることを確認する。許可タブでCloudWatch LogsへのCreateLogStream、PutLogEvents相当の権限があることを確認する。	権限不足でRole確認できない場合は権限保持者へ確認を依頼する。
 共通	CloudWatch Logs到達確認	20分	CloudWatchコンソールを開き、左メニューの「ログ」から「ロググループ」をクリックする。対象Log Group名で検索し、Log Groupを開く。「ログストリーム」タブで直近のLog Streamを開き、CloudTrailイベントJSONが到達していることを確認する。ログ未到達の場合はMetric Filter作成へ進まず原因確認を行う。	Metric FilterとAlarmはCloudTrailログ到達が前提である。
 共通	SNS Topic確認	10分	SNSコンソールを開き、左メニューの「トピック」をクリックする。既存SNS Topicを開き、Topic ARNがパラメータと一致することを確認する。「サブスクリプション」欄で通知先がConfirmedまたは有効状態であることを確認する。	既存SNS Topic自体は変更しない。通知先情報は証跡でマスクする。
-共通	Metric Filter作成共通手順	15分	CloudWatchコンソールで「ログ」から対象Log Groupを開く。「メトリクスフィルター」タブをクリックし、「メトリクスフィルターを作成」をクリックする。対象要件のFilter Patternを入力し、サンプルログを貼り付けて「パターンをテスト」を実行する。一致を確認後、Filter名、Metric Namespace、Metric Name、Metric Value 1、Default Value 0を入力して作成する。	Filter Pattern、Filter名、Metric Nameは下部の変更パラメータを使用する。
-共通	CloudWatch Alarm作成共通手順	15分	CloudWatchコンソールで「アラーム」から「すべてのアラーム」を開き、「アラームの作成」をクリックする。「メトリクスの選択」でCustom配下の該当Metricを選択する。StatisticはSum、Periodは5 minutes、しきい値は1以上、Datapoints to alarmは1 out of 1、欠損データの処理はnotBreachingを選択する。通知先は既存SNS Topicを指定し、Alarm名を入力して作成する。	現場設計値がある場合は現場設計値を優先する。
+共通	Metric Filter一括設定	60分	4.1〜4.15のMetric Filterは要件ごとに個別行で作業せず、変更パラメータ一覧に従ってまとめて設定する。詳細な画面操作、Pattern Test、Filter名、Metric Namespace、Metric Name、Metric Value、Default Value、作成後確認は別ファイルの「メトリックフィルター詳細手順書」を参照する。	対応区分が既存A-gate/EventBridge対応済みの要件は新規作成せず、対応なし根拠を保存する。
+共通	CloudWatch Alarm作成	45分	Metric Filter一括設定後、変更パラメータ一覧に従ってCloudWatch Alarmをまとめて作成する。Metric NamespaceはCustom、StatisticはSum、欠損データの処理はnotBreaching、通知先は既存SNS Topicを使用する。詳細な入力値は変更パラメータ一覧を正とする。	Alarm名、しきい値、通知Actionは現場設計値を優先する。
+共通	Alarmテスト	60分	作成または確認したAlarmについて、状態確認、メトリクス発生確認、通知Action、SNS Topic、通知受信、Alarm履歴、復旧確認を実施する。詳細なテスト手順、実イベントを使うかPattern Testで代替するかの判断、証跡取得は別ファイルの「アラームテスト詳細手順書」を参照する。	影響が大きい実イベントは無理に発生させない。承認済みの範囲で確認する。
 3.4	CloudTrailログ保存先S3バケットのServer Access Logging設定	40分	S3コンソールを開き、CloudTrailログ保存先bucketをクリックする。「プロパティ」タブを開き、「サーバーアクセスのログ記録」欄までスクロールする。変更前状態を証跡保存する。「編集」をクリックし、「有効にする」を選択する。Target bucketに3.4パラメータのTarget bucketを指定し、Target prefixに3.4パラメータのprefixを入力して保存する。	Target bucketをSource bucket自身にしない。ログのループを避ける。
 3.4	Server Access Logging配信確認	20分	S3コンソールでTarget bucketを開き、3.4パラメータのTarget prefixを開く。ログオブジェクトが作成されるか確認する。すぐに作成されない場合は、設定値、Target bucket、prefix、bucket policy、配信遅延を確認し、配信待ちとして記録する。	Server Access Loggingは即時配信ではない。
 3.5	CloudTrailログ暗号化用CMK確認	25分	KMSコンソールを開き、左メニューの「カスタマー管理キー」をクリックする。3.5パラメータのCMKまたはAliasを検索して開く。Key typeがSymmetricであること、Key stateがEnabledであること、Key policyでCloudTrailサービスおよびログ参照者の利用が許可されていることを確認する。	新規CMKを作る場合は現場命名規則、管理者、利用者、タグを事前確認する。
@@ -51,26 +52,9 @@ A-gateまたはEventBridgeで対応可能と確定した要件は、該当する
 3.6	カスタマー管理対称CMKのローテーション有効化	15分	KMSコンソールで3.6パラメータの対象CMKを開く。「キーローテーション」欄または「ローテーション」タブを開き、変更前状態を証跡保存する。「編集」または「有効化」をクリックし、自動キーローテーションを有効化して保存する。	3.5で使用するカスタマー管理対称CMKが対象である。AWS管理キーは対象外である。
 3.7	VPC Flow Logs有効化	40分	VPCコンソールを開き、左メニューの「VPC」をクリックする。3.7パラメータの対象VPC IDを検索して選択し、「フローログ」タブを開く。変更前状態を証跡保存する。「フローログを作成」をクリックし、Filter、Maximum aggregation interval、Destination、Log GroupまたはS3 bucket、IAM Role、Log formatを3.7パラメータ通りに入力して作成する。	削除予定VPCや不要VPCは対象外であることを確認する。
 3.7	VPC Flow Logs配信確認	20分	VPCの「フローログ」タブで作成したFlow LogのStatusがActiveであることを確認する。保存先がCloudWatch Logsの場合は対象Log GroupでLog Streamとログイベントを確認する。保存先がS3の場合は対象bucketとprefixでログオブジェクトを確認する。	保存先権限、IAM Role、KMS暗号化の設定不備で配信されない場合がある。
-4.1	不正なAPI呼び出し監視の設定	20分	CloudWatchコンソールで「ログ」からCloudTrail連携先Log Groupを開き、「メトリクスフィルター」タブで「メトリクスフィルターを作成」をクリックする。4.1パラメータのFilter Patternを入力し、サンプルログで一致確認する。Metric NamespaceはCustom、Metric Nameは4.1パラメータ、Metric Valueは1、Default Valueは0で作成する。続けてCloudWatchの「アラーム」から該当Metricを選択し、Sum、しきい値1以上、欠損データnotBreaching、通知先に既存SNS Topicを指定する。	AccessDenied系は通常運用でも発生し得るため、1件発報でよいか作業前に確認する。
-4.2	MFAなしコンソールログイン監視の設定	20分	CloudWatch Logsの対象Log Groupで「メトリクスフィルターを作成」をクリックする。4.2パラメータのFilter Patternを入力し、ConsoleLogin成功かつMFAUsedがNoのサンプルログで一致確認する。Metric NamespaceはCustom、Metric Nameは4.2パラメータで作成する。CloudWatch Alarmで該当Metricを選択し、既存SNS Topicへ通知する。	MFA強制済みでも、監査要件上は検知設定が必要か確認する。
-4.3	rootアカウント使用監視の設定	20分	CloudWatch Logsの対象Log Groupで4.3パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern TestでuserIdentity.typeがRootのサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.3パラメータで作成し、CloudWatch Alarmで1件以上を既存SNS Topicへ通知する。	root利用は重要度が高いため、1件発報が基本である。
-4.4	IAMポリシー変更監視の設定	25分	CloudWatch Logsの対象Log Groupで4.4パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern TestでIAM Policy作成、削除、Version変更、Inline Policy変更、Attach、Detachのいずれかのサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.4パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	IAMユーザー、ロール、グループ変更まで含めるかは別要件化または設計判断が必要である。
-4.5	CloudTrail設定変更監視の設定	20分	CloudWatch Logsの対象Log Groupで4.5パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern TestでUpdateTrailのサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.5パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	正当な復旧操作や設定変更でも通知されるため、通知後の確認手順を運用側で持つ。
-4.5	CloudTrail設定変更監視の実イベント確認	20分	CloudTrailからCloudWatch Logsへの連携有効化により発生したUpdateTrailイベントをCloudTrail Event historyで確認する。CloudWatch Logsの対象Log Groupで同イベントが到達していることを確認する。4.5用Metric Filter作成後、Metric増加、Alarm履歴、通知到達を確認する。	StopLogging、DeleteTrailは実施しない。
-4.6	コンソール認証失敗監視の設定	20分	CloudWatch Logsの対象Log Groupで4.6パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern TestでConsoleLogin Failureのサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.6パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	誤入力でも発生するため、1件発報か複数件発報かを作業前に確認する。
-4.7	CMK無効化または削除予約監視の設定	20分	CloudWatch Logsの対象Log Groupで4.7パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern TestでDisableKeyまたはScheduleKeyDeletionのサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.7パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	鍵の無効化や削除予約は影響が大きいため、1件発報が基本である。
-4.7	テスト専用CMKによる実イベント確認	35分	KMSコンソールでテスト専用の対称カスタマー管理CMKを作成する。対象キーを開き、「キーアクション」からDisableKeyを実行し、CloudTrailイベント、Metric増加、Alarm、通知を確認した後、すぐにEnableKeyする。ScheduleKeyDeletionを実行する場合は、検知確認後すぐにCancelKeyDeletionを実行し、必要に応じてEnableKey状態を確認する。	実データに使用しているCMKでは実施しない。CancelKeyDeletionの証跡を必ず保存する。
-4.8	S3バケットポリシー変更監視の設定	20分	CloudWatch Logsの対象Log Groupで4.8パラメータのFilter Patternを使ってMetric Filterを作成する。対象バケットを限定する場合はFilter PatternにrequestParameters.bucketName条件を含める。Metric NamespaceはCustom、Metric Nameは4.8パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	既存EventBridgeで同等設定がある場合、二重通知にならないよう先に方式を確定する。
-4.9	AWS Config変更監視の設定	20分	CloudWatch Logsの対象Log Groupで4.9パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern TestでConfig Recorder、Delivery Channel、Config Rule変更のサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.9パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	AWS Config未導入または一部環境のみの場合、対象範囲を確認する。
-4.10	Security Group変更監視の設定	20分	CloudWatch Logsの対象Log Groupで4.10パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern TestでIngress、Egress、Security Group作成、削除、ルール変更のサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.10パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	通常変更でも通知されるため、変更管理番号との突合が必要である。
-4.11	NACL変更監視の設定	20分	CloudWatch Logsの対象Log Groupで4.11パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern TestでNetwork ACL作成、削除、Entry作成、削除、置換、関連付け変更のサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.11パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	NACL変更は通信影響が大きいため、通知後の確認先を明確にする。
-4.12	Network Gateway変更監視の設定	20分	CloudWatch Logsの対象Log Groupで4.12パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern TestでInternet GatewayまたはCustomer Gateway変更のサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.12パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	NAT Gateway、Transit Gateway、VPN Gatewayを含めるかは作業前に確認する。
-4.13	Route Table変更監視の設定	20分	CloudWatch Logsの対象Log Groupで4.13パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern TestでRoute作成、削除、置換、Route Table作成、削除、関連付け、関連付け解除、関連付け置換のサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.13パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	通信経路変更の通知であるため、通知後の確認先を明確にする。
-4.14	VPC変更監視の設定	20分	CloudWatch Logsの対象Log Groupで4.14パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern TestでVPC作成、削除、属性変更、VPC Peeringの作成、承認、拒否、削除のサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.14パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	VPC EndpointやSubnet変更まで含めるかは作業前に確認する。
-4.15	AWS Organizations変更監視の設定	20分	CloudWatch Logsの対象Log Groupで4.15パラメータのFilter Patternを使ってMetric Filterを作成する。Pattern Testでorganizations.amazonaws.comのサンプルログが一致することを確認する。Metric NamespaceはCustom、Metric Nameは4.15パラメータで作成し、CloudWatch Alarmで既存SNS Topicへ通知する。	Organizationsは管理アカウント側にイベントが出る可能性があるため、対象アカウントを作業前に確認する。
-4-G	4番台全体の通知テスト	30分	通知テスト承認を確認する。実イベントを起こせる要件は承認済みの軽微な操作で確認する。実イベントを起こせない要件は、CloudWatch LogsのMetric Filter画面でPattern Test結果を保存し、CloudWatch Alarm詳細画面でActions enabledと通知先SNS Topicを確認し、SNS TopicのSubscription状態を確認する。通知が発生した場合はメール、Teams、監視基盤で受信画面を保存する。	IAM、KMS、CloudTrail、ネットワーク系は影響が大きいため、実変更テストは無理に行わない。
+4-G	4番台全体の設定値確認	20分	Metric Filter一括設定、CloudWatch Alarm作成、Alarmテストの結果を要件4.1〜4.15ごとに確認する。Filter Pattern、Metric名、Alarm名、しきい値、通知先、対応区分、未実施理由を作業台帳へ記録する。	詳細な作業はメトリックフィルター詳細手順書とアラームテスト詳細手順書を正とする。
 4-G	4番台全体の通知受信確認	20分	通知確認者へ通知到達を確認する。メール、Teams、監視基盤などの通知先で受信を確認する。通知本文またはAlarm詳細から、要件番号、イベント名、発生時刻、対象リソースを追跡できることを確認する。通知確認者、確認時刻、証跡保存先を作業台帳へ記録する。	通知が届かない場合は、SNS Subscription、Alarm Action、Metric Filter一致条件を確認する。
-4-G	4番台全体の作業後エビデンス取得	30分	作成または変更したMetric Filter一覧、各Metric Filter詳細、CloudWatch Alarm一覧、各Alarm詳細、SNS Topic、通知受信画面、関連EventBridge Ruleをスクリーンショットで保存する。作業前エビデンスと比較し、想定外の既存設定変更がないことを確認する。	作業前後比較、設定値、通知到達を証跡として残す。
+4-G	4番台全体の作業後証跡取得	30分	作成または変更したMetric Filter一覧、各Metric Filter詳細、Pattern Test結果、CloudWatch Alarm一覧、各Alarm詳細、Alarm履歴、SNS Topic、通知受信画面、関連EventBridge Ruleを保存する。作業前証跡と比較し、想定外の既存設定変更がないことを確認する。	作業前後比較、設定値、通知到達を証跡として残す。
 共通	変更後設定値突合	20分	変更パラメータ一覧、作業手順書、Webコンソールの設定値を突合する。差異がある場合は、差異内容、影響、判断者、対応方針を作業台帳へ記録する。	テストリハでは差異を見つけることも目的である。
 共通	CloudTrail作業証跡確認	15分	CloudTrail Event historyで当日作業に関係するUpdateTrail、PutMetricFilter、PutMetricAlarm、KMS操作、S3 Logging変更、Flow Logs作成などを確認する。表示されない場合は、到達遅延、対象リージョン違い、権限不足の可能性を記録する。	Event historyの反映には遅延がある。
 共通	切り戻し判断	10分	作業中に想定外のエラー、通知多発、ログ配信エラー、KMS権限エラー、既存設定への影響が発生した場合は、作業を停止し、切り戻し要否を判断する。切り戻しは今回作成または変更した設定のみを対象にする。	既存Alarm、既存Metric Filter、既存SNS Topic、既存EventBridge Ruleは削除しない。
@@ -80,7 +64,99 @@ A-gateまたはEventBridgeで対応可能と確定した要件は、該当する
 共通	作業完了報告	10分	対象環境、実施要件、対応なし要件、作業結果、通知結果、切り戻し有無、残課題、証跡保存先をまとめて関係者へ報告する。	完了判断者の確認を受ける。
 ```
 
-## 3. 変更パラメータ
+## 3. 証跡ファイル名一覧
+
+`202608XX` は作業日に置換する。画面キャプチャは `.png`、一覧出力や設定値は `.xlsx` または `.txt`、JSON出力がある場合は `.json` を付与する。
+
+| No | 証跡名 | 内容 |
+|---:|---|---|
+| 01 | `01_共通_作業開始前確認_202608XX` | 作業申請、作業日時、承認、連絡先、証跡保存先 |
+| 02 | `02_共通_アカウント確認_202608XX` | AWSアカウントIDまたはアカウント名 |
+| 03 | `03_共通_リージョン確認_202608XX` | 対象リージョン |
+| 04 | `04_共通_変更パラメータ一覧確認_202608XX` | 変更パラメータ一覧 |
+| 05 | `05_共通_A-gate対応区分確認_202608XX` | 要件別対応区分 |
+| 06 | `06_共通_EventBridgeルール一覧_202608XX` | 既存EventBridge Rule一覧 |
+| 07 | `07_共通_EventBridge対象ルール詳細_202608XX` | 対象RuleのEvent patternとTarget |
+| 08 | `08_共通_A-gate対応済み根拠_202608XX` | A-gateまたは既存監視で対応済みとする根拠 |
+| 09 | `09_共通_CloudTrail証跡詳細_202608XX` | 対象Trail詳細 |
+| 10 | `10_共通_CloudTrailイベントセレクタ_202608XX` | Event selectors |
+| 11 | `11_共通_CloudWatchLogs連携変更前_202608XX` | CloudWatch Logs連携変更前 |
+| 12 | `12_共通_CloudWatchLogs連携変更後_202608XX` | CloudWatch Logs連携変更後 |
+| 13 | `13_共通_CloudTrail配信用IAMRole信頼関係_202608XX` | IAM Role信頼関係 |
+| 14 | `14_共通_CloudTrail配信用IAMRole権限_202608XX` | IAM Role権限 |
+| 15 | `15_共通_CloudWatchLogsロググループ_202608XX` | 対象Log Group |
+| 16 | `16_共通_CloudWatchLogsログ到達確認_202608XX` | CloudTrailイベント到達確認 |
+| 17 | `17_共通_SNSTopic詳細_202608XX` | SNS Topic ARN |
+| 18 | `18_共通_SNSTopicSubscription確認_202608XX` | Subscription状態 |
+| 19 | `19_共通_MetricFilter一覧_202608XX` | Metric Filter一覧 |
+| 20 | `20_共通_MetricFilter詳細一覧_202608XX` | 要件別Metric Filter詳細 |
+| 21 | `21_共通_MetricFilterパターンテスト結果_202608XX` | Pattern Test結果 |
+| 22 | `22_共通_CloudWatchAlarm一覧_202608XX` | Alarm一覧 |
+| 23 | `23_共通_CloudWatchAlarm詳細一覧_202608XX` | 要件別Alarm詳細 |
+| 24 | `24_共通_Alarm通知アクション確認_202608XX` | Alarm ActionとSNS Topic |
+| 25 | `25_共通_Alarmテスト結果_202608XX` | Alarmテスト結果 |
+| 26 | `26_共通_通知受信確認_202608XX` | メール、Teams、監視基盤の受信確認 |
+| 27 | `27_共通_CloudTrail作業イベント履歴_202608XX` | 当日作業のCloudTrail Event history |
+| 28 | `28_共通_変更後設定値突合_202608XX` | パラメータと実設定の突合 |
+| 29 | `29_共通_切り戻し判断記録_202608XX` | 切り戻し要否判断 |
+| 30 | `30_共通_切り戻し後確認_202608XX` | 切り戻し後の状態確認 |
+| 31 | `31_共通_未実施項目一覧_202608XX` | 未実施理由、対象外、権限不足 |
+| 32 | `32_共通_作業完了報告_202608XX` | 作業結果、残課題、証跡保存先 |
+| 33 | `33_3.4_ServerAccessLogging変更前_202608XX` | 3.4変更前 |
+| 34 | `34_3.4_ServerAccessLogging変更後_202608XX` | 3.4変更後 |
+| 35 | `35_3.4_TargetBucket確認_202608XX` | ログ保存先bucket |
+| 36 | `36_3.4_ServerAccessLogging配信確認_202608XX` | ログ配信確認または配信待ち記録 |
+| 37 | `37_3.5_CMK詳細_202608XX` | 対象CMK詳細 |
+| 38 | `38_3.5_CMKKeyPolicy確認_202608XX` | Key Policy |
+| 39 | `39_3.5_CloudTrailKMS設定変更前_202608XX` | KMS設定変更前 |
+| 40 | `40_3.5_CloudTrailKMS設定変更後_202608XX` | KMS設定変更後 |
+| 41 | `41_3.5_CloudTrailログSSEKMS確認_202608XX` | 新規ログのSSE-KMS確認 |
+| 42 | `42_3.6_CMKローテーション変更前_202608XX` | Rotation変更前 |
+| 43 | `43_3.6_CMKローテーション変更後_202608XX` | Rotation変更後 |
+| 44 | `44_3.7_VPCFlowLogs変更前_202608XX` | Flow Logs変更前 |
+| 45 | `45_3.7_VPCFlowLogs変更後_202608XX` | Flow Logs変更後 |
+| 46 | `46_3.7_VPCFlowLogs配信確認_202608XX` | Flow Logs配信確認 |
+| 47 | `47_3.7_VPCFlowLogs保存先確認_202608XX` | 保存先Log GroupまたはS3 |
+| 48 | `48_4.1_MetricFilter詳細_202608XX` | 4.1 Metric Filter |
+| 49 | `49_4.1_Alarm詳細_202608XX` | 4.1 Alarm |
+| 50 | `50_4.2_MetricFilter詳細_202608XX` | 4.2 Metric Filter |
+| 51 | `51_4.2_Alarm詳細_202608XX` | 4.2 Alarm |
+| 52 | `52_4.3_MetricFilter詳細_202608XX` | 4.3 Metric Filter |
+| 53 | `53_4.3_Alarm詳細_202608XX` | 4.3 Alarm |
+| 54 | `54_4.4_MetricFilter詳細またはA-gate根拠_202608XX` | 4.4 Metric Filterまたは対応済み根拠 |
+| 55 | `55_4.4_Alarm詳細または通知経路根拠_202608XX` | 4.4 Alarmまたは通知経路 |
+| 56 | `56_4.5_MetricFilter詳細_202608XX` | 4.5 Metric Filter |
+| 57 | `57_4.5_Alarm詳細_202608XX` | 4.5 Alarm |
+| 58 | `58_4.5_UpdateTrailイベント確認_202608XX` | 4.5実イベント確認 |
+| 59 | `59_4.6_MetricFilter詳細_202608XX` | 4.6 Metric Filter |
+| 60 | `60_4.6_Alarm詳細_202608XX` | 4.6 Alarm |
+| 61 | `61_4.7_MetricFilter詳細_202608XX` | 4.7 Metric Filter |
+| 62 | `62_4.7_Alarm詳細_202608XX` | 4.7 Alarm |
+| 63 | `63_4.7_テストCMK作成確認_202608XX` | テストCMK作成 |
+| 64 | `64_4.7_DisableKeyイベント確認_202608XX` | DisableKey確認 |
+| 65 | `65_4.7_ScheduleKeyDeletionイベント確認_202608XX` | ScheduleKeyDeletion確認 |
+| 66 | `66_4.7_CancelKeyDeletion確認_202608XX` | CancelKeyDeletion確認 |
+| 67 | `67_4.8_MetricFilter詳細またはA-gate根拠_202608XX` | 4.8 Metric Filterまたは対応済み根拠 |
+| 68 | `68_4.8_Alarm詳細または通知経路根拠_202608XX` | 4.8 Alarmまたは通知経路 |
+| 69 | `69_4.9_MetricFilter詳細_202608XX` | 4.9 Metric Filter |
+| 70 | `70_4.9_Alarm詳細_202608XX` | 4.9 Alarm |
+| 71 | `71_4.10_MetricFilter詳細またはA-gate根拠_202608XX` | 4.10 Metric Filterまたは対応済み根拠 |
+| 72 | `72_4.10_Alarm詳細または通知経路根拠_202608XX` | 4.10 Alarmまたは通知経路 |
+| 73 | `73_4.11_MetricFilter詳細_202608XX` | 4.11 Metric Filter |
+| 74 | `74_4.11_Alarm詳細_202608XX` | 4.11 Alarm |
+| 75 | `75_4.12_MetricFilter詳細またはA-gate根拠_202608XX` | 4.12 Metric Filterまたは対応済み根拠 |
+| 76 | `76_4.12_Alarm詳細または通知経路根拠_202608XX` | 4.12 Alarmまたは通知経路 |
+| 77 | `77_4.13_MetricFilter詳細またはA-gate根拠_202608XX` | 4.13 Metric Filterまたは対応済み根拠 |
+| 78 | `78_4.13_Alarm詳細または通知経路根拠_202608XX` | 4.13 Alarmまたは通知経路 |
+| 79 | `79_4.14_MetricFilter詳細またはA-gate根拠_202608XX` | 4.14 Metric Filterまたは対応済み根拠 |
+| 80 | `80_4.14_Alarm詳細または通知経路根拠_202608XX` | 4.14 Alarmまたは通知経路 |
+| 81 | `81_4.15_MetricFilter詳細_202608XX` | 4.15 Metric Filter |
+| 82 | `82_4.15_Alarm詳細_202608XX` | 4.15 Alarm |
+| 83 | `83_4番台_通知受信確認一覧_202608XX` | 4番台通知受信一覧 |
+| 84 | `84_4番台_対応なし根拠一覧_202608XX` | A-gate/EventBridge対応済み要件の根拠 |
+| 85 | `85_全要件_証跡不足確認結果_202608XX` | 証跡不足の有無 |
+
+## 4. 変更パラメータ
 
 ### 共通パラメータ
 
