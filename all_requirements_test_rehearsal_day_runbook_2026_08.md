@@ -73,142 +73,142 @@ A-gateまたはEventBridgeで対応可能と確定した要件は、該当する
 アカウントとリージョンは同じ画面ヘッダーで確認できるため、1枚にまとめる。
 
 ```text
-### 共通証跡
+[共通証跡]
 
-1. `01_共通_アカウントリージョン確認_202608XX.png`
-   - AWSコンソール右上のアカウント表示と対象リージョンが分かる画面。
+01_共通_アカウントリージョン確認_202608XX.png
+取得画面: AWSコンソール右上のアカウント表示と対象リージョンが分かる画面。
 
-2. `02_共通_CloudTrail証跡詳細_202608XX.png`
-   - 対象Trailの詳細画面。Trail名、ログ記録状態、Multi-region、ログ保存先が分かる画面。
+02_共通_CloudTrail証跡詳細_202608XX.png
+取得画面: 対象Trailの詳細画面。Trail名、ログ記録状態、Multi-region、ログ保存先が分かる画面。
 
-3. `03_共通_CloudTrailイベントセレクタ_202608XX.png`
-   - 対象TrailのEvent selectorsが分かる画面。
+03_共通_CloudTrailイベントセレクタ_202608XX.png
+取得画面: 対象TrailのEvent selectorsが分かる画面。
 
-4. `04_共通_CloudWatchLogs連携状態_202608XX.png`
-   - 対象TrailのCloudWatch Logs連携状態、Log Group、IAM Roleが分かる画面。
+04_共通_CloudWatchLogs連携状態_202608XX.png
+取得画面: 対象TrailのCloudWatch Logs連携状態、Log Group、IAM Roleが分かる画面。
 
-5. `05_共通_CloudWatchLogsログ到達確認_202608XX.png`
-   - 対象Log GroupにCloudTrailイベントが到達していることが分かる画面。
+05_共通_CloudWatchLogsログ到達確認_202608XX.png
+取得画面: 対象Log GroupにCloudTrailイベントが到達していることが分かる画面。
 
-6. `06_共通_SNSTopic詳細_202608XX.png`
-   - 通知先SNS Topic ARNが分かる画面。
+06_共通_SNSTopic詳細_202608XX.png
+取得画面: 通知先SNS Topic ARNが分かる画面。
 
-7. `07_共通_SNSTopicSubscription確認_202608XX.png`
-   - Subscriptionの状態が分かる画面。メールアドレス等は必要に応じてマスクする。
+07_共通_SNSTopicSubscription確認_202608XX.png
+取得画面: Subscriptionの状態が分かる画面。メールアドレス等は必要に応じてマスクする。
 
-8. `08_共通_EventBridgeルール一覧_202608XX.png`
-   - 既存EventBridge Rule一覧。A-gate/EventBridge対応済み要件がある場合のみ取得する。
+08_共通_EventBridgeルール一覧_202608XX.png
+取得画面: 既存EventBridge Rule一覧。A-gate/EventBridge対応済み要件がある場合のみ取得する。
 
-9. `09_共通_EventBridge対象ルール詳細_202608XX.png`
-   - 対象RuleのEvent patternとTargetが分かる画面。A-gate/EventBridge対応済み要件がある場合のみ取得する。
+09_共通_EventBridge対象ルール詳細_202608XX.png
+取得画面: 対象RuleのEvent patternとTargetが分かる画面。A-gate/EventBridge対応済み要件がある場合のみ取得する。
 
-10. `10_共通_MetricFilter一覧_202608XX.png`
-    - 対象Log GroupのMetric Filter一覧。
+10_共通_MetricFilter一覧_202608XX.png
+取得画面: 対象Log GroupのMetric Filter一覧。
 
-11. `11_共通_CloudWatchAlarm一覧_202608XX.png`
-    - 作成または確認したAlarm一覧。
+11_共通_CloudWatchAlarm一覧_202608XX.png
+取得画面: 作成または確認したAlarm一覧。
 
-12. `12_共通_通知受信確認_202608XX.png`
-    - メール、Teams、監視基盤などの通知受信画面。通知先情報は必要に応じてマスクする。
+12_共通_通知受信確認_202608XX.png
+取得画面: メール、Teams、監視基盤などの通知受信画面。通知先情報は必要に応じてマスクする。
 
-13. `13_共通_CloudTrail作業イベント履歴_202608XX.png`
-    - 当日作業に関係するCloudTrail Event history。
+13_共通_CloudTrail作業イベント履歴_202608XX.png
+取得画面: 当日作業に関係するCloudTrail Event history。
 
-14. `14_共通_切り戻し後確認_202608XX.png`
-    - 切り戻しを実施した場合のみ取得する。切り戻し未実施の場合は不要。
+14_共通_切り戻し後確認_202608XX.png
+取得画面: 切り戻しを実施した場合のみ取得する。切り戻し未実施の場合は不要。
 
-### 3番台証跡
+[3番台証跡]
 
-15. `15_3.4_ServerAccessLogging変更前_202608XX.png`
-    - CloudTrailログ保存先S3 bucketのServer Access Logging変更前。
+15_3.4_ServerAccessLogging変更前_202608XX.png
+取得画面: CloudTrailログ保存先S3 bucketのServer Access Logging変更前。
 
-16. `16_3.4_ServerAccessLogging変更後_202608XX.png`
-    - Server Access Logging変更後。Target bucketとPrefixが分かる画面。
+16_3.4_ServerAccessLogging変更後_202608XX.png
+取得画面: Server Access Logging変更後。Target bucketとPrefixが分かる画面。
 
-17. `17_3.4_ServerAccessLogging配信確認_202608XX.png`
-    - Target bucket側でログ配信が分かる画面。配信待ちの場合はTarget bucketとPrefixの画面を取得する。
+17_3.4_ServerAccessLogging配信確認_202608XX.png
+取得画面: Target bucket側でログ配信が分かる画面。配信待ちの場合はTarget bucketとPrefixの画面を取得する。
 
-18. `18_3.5_CMK詳細_202608XX.png`
-    - CloudTrailログ暗号化に使用するCMK詳細。Key ID、Alias、Key stateが分かる画面。
+18_3.5_CMK詳細_202608XX.png
+取得画面: CloudTrailログ暗号化に使用するCMK詳細。Key ID、Alias、Key stateが分かる画面。
 
-19. `19_3.5_CMKKeyPolicy確認_202608XX.png`
-    - Key policyが分かる画面。
+19_3.5_CMKKeyPolicy確認_202608XX.png
+取得画面: Key policyが分かる画面。
 
-20. `20_3.5_CloudTrailKMS設定変更前_202608XX.png`
-    - CloudTrail KMS設定変更前。
+20_3.5_CloudTrailKMS設定変更前_202608XX.png
+取得画面: CloudTrail KMS設定変更前。
 
-21. `21_3.5_CloudTrailKMS設定変更後_202608XX.png`
-    - CloudTrail KMS設定変更後。KMS Key IDが分かる画面。
+21_3.5_CloudTrailKMS設定変更後_202608XX.png
+取得画面: CloudTrail KMS設定変更後。KMS Key IDが分かる画面。
 
-22. `22_3.5_CloudTrailログSSEKMS確認_202608XX.png`
-    - 新規CloudTrailログオブジェクトの暗号化方式がSSE-KMSであることが分かる画面。
+22_3.5_CloudTrailログSSEKMS確認_202608XX.png
+取得画面: 新規CloudTrailログオブジェクトの暗号化方式がSSE-KMSであることが分かる画面。
 
-23. `23_3.6_CMKローテーション変更前_202608XX.png`
-    - 対象CMKのRotation変更前。
+23_3.6_CMKローテーション変更前_202608XX.png
+取得画面: 対象CMKのRotation変更前。
 
-24. `24_3.6_CMKローテーション変更後_202608XX.png`
-    - 対象CMKのRotation変更後。
+24_3.6_CMKローテーション変更後_202608XX.png
+取得画面: 対象CMKのRotation変更後。
 
-25. `25_3.7_VPCFlowLogs変更前_202608XX.png`
-    - 対象VPCのFlow Logs変更前。
+25_3.7_VPCFlowLogs変更前_202608XX.png
+取得画面: 対象VPCのFlow Logs変更前。
 
-26. `26_3.7_VPCFlowLogs変更後_202608XX.png`
-    - 対象VPCのFlow Logs変更後。Flow Log ID、送信先、状態が分かる画面。
+26_3.7_VPCFlowLogs変更後_202608XX.png
+取得画面: 対象VPCのFlow Logs変更後。Flow Log ID、送信先、状態が分かる画面。
 
-27. `27_3.7_VPCFlowLogs配信確認_202608XX.png`
-    - CloudWatch LogsまたはS3にFlow Logsが配信されていることが分かる画面。
+27_3.7_VPCFlowLogs配信確認_202608XX.png
+取得画面: CloudWatch LogsまたはS3にFlow Logsが配信されていることが分かる画面。
 
-### 4番台証跡
+[4番台証跡]
 
-28. `28_4番台_MetricFilter一覧_202608XX.png`
-    - 4番台で作成または確認したMetric Filter一覧。
+28_4番台_MetricFilter一覧_202608XX.png
+取得画面: 4番台で作成または確認したMetric Filter一覧。
 
-29. `29_4.X_MetricFilter詳細_202608XX.png`
-    - 要件ごとのMetric Filter詳細。`4.X` は `4.1` から `4.15` の対象要件番号に置換する。
+29_4.X_MetricFilter詳細_202608XX.png
+取得画面: 要件ごとのMetric Filter詳細。4.Xは4.1から4.15の対象要件番号に置換する。
 
-30. `30_4.X_MetricFilterパターンテスト結果_202608XX.png`
-    - Pattern Testを実施した場合のみ取得する。`4.X` は対象要件番号に置換する。
+30_4.X_MetricFilterパターンテスト結果_202608XX.png
+取得画面: Pattern Testを実施した場合のみ取得する。4.Xは対象要件番号に置換する。
 
-31. `31_4番台_CloudWatchAlarm一覧_202608XX.png`
-    - 4番台で作成または確認したAlarm一覧。
+31_4番台_CloudWatchAlarm一覧_202608XX.png
+取得画面: 4番台で作成または確認したAlarm一覧。
 
-32. `32_4.X_CloudWatchAlarm詳細_202608XX.png`
-    - 要件ごとのAlarm詳細。`4.X` は対象要件番号に置換する。
+32_4.X_CloudWatchAlarm詳細_202608XX.png
+取得画面: 要件ごとのAlarm詳細。4.Xは対象要件番号に置換する。
 
-33. `33_4.X_Alarm通知アクション確認_202608XX.png`
-    - Alarm Actionと通知先SNS Topicが分かる画面。`4.X` は対象要件番号に置換する。
+33_4.X_Alarm通知アクション確認_202608XX.png
+取得画面: Alarm Actionと通知先SNS Topicが分かる画面。4.Xは対象要件番号に置換する。
 
-34. `34_4.X_Alarmテスト結果_202608XX.png`
-    - Alarmテストを実施した場合のみ取得する。`4.X` は対象要件番号に置換する。
+34_4.X_Alarmテスト結果_202608XX.png
+取得画面: Alarmテストを実施した場合のみ取得する。4.Xは対象要件番号に置換する。
 
-35. `35_4.X_A-gateまたはEventBridge対応済み根拠_202608XX.png`
-    - 新規Metric Filter / Alarmを作成しない要件のみ取得する。`4.X` は対象要件番号に置換する。
+35_4.X_A-gateまたはEventBridge対応済み根拠_202608XX.png
+取得画面: 新規Metric Filter / Alarmを作成しない要件のみ取得する。4.Xは対象要件番号に置換する。
 
-36. `36_4.5_UpdateTrailイベント確認_202608XX.png`
-    - 4.5の実イベント確認を行った場合のみ取得する。
+36_4.5_UpdateTrailイベント確認_202608XX.png
+取得画面: 4.5の実イベント確認を行った場合のみ取得する。
 
-37. `37_4.7_テストCMK詳細_202608XX.png`
-    - 4.7でテストCMKを作成した場合のみ取得する。
+37_4.7_テストCMK詳細_202608XX.png
+取得画面: 4.7でテストCMKを作成した場合のみ取得する。
 
-38. `38_4.7_DisableKeyイベント確認_202608XX.png`
-    - 4.7でDisableKeyを実施した場合のみ取得する。
+38_4.7_DisableKeyイベント確認_202608XX.png
+取得画面: 4.7でDisableKeyを実施した場合のみ取得する。
 
-39. `39_4.7_ScheduleKeyDeletionイベント確認_202608XX.png`
-    - 4.7でScheduleKeyDeletionを実施した場合のみ取得する。
+39_4.7_ScheduleKeyDeletionイベント確認_202608XX.png
+取得画面: 4.7でScheduleKeyDeletionを実施した場合のみ取得する。
 
-40. `40_4.7_CancelKeyDeletion確認_202608XX.png`
-    - 4.7でScheduleKeyDeletionを実施した場合は必ず取得する。
+40_4.7_CancelKeyDeletion確認_202608XX.png
+取得画面: 4.7でScheduleKeyDeletionを実施した場合は必ず取得する。
 
-### 条件付き証跡
+[条件付き証跡]
 
-41. `41_共通_権限エラー画面_202608XX.png`
-    - AccessDenied、A-gate explicit deny、権限不足が出た場合のみ取得する。
+41_共通_権限エラー画面_202608XX.png
+取得画面: AccessDenied、A-gate explicit deny、権限不足が出た場合のみ取得する。
 
-42. `42_共通_ログ未到達確認_202608XX.png`
-    - CloudWatch Logs、S3、VPC Flow Logsなどの配信確認でログ未到達の場合のみ取得する。
+42_共通_ログ未到達確認_202608XX.png
+取得画面: CloudWatch Logs、S3、VPC Flow Logsなどの配信確認でログ未到達の場合のみ取得する。
 
-43. `43_共通_想定外エラー画面_202608XX.png`
-    - 作業中に想定外のエラーが出た場合のみ取得する。
+43_共通_想定外エラー画面_202608XX.png
+取得画面: 作業中に想定外のエラーが出た場合のみ取得する。
 ```
 
 ## 4. 変更パラメータ
