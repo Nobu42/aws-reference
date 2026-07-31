@@ -1,0 +1,220 @@
+CloudWatch Alarmテスト・確認手順
+
+対象:
+4.1〜4.15
+
+前提:
+Metric Filterは作成済みとする。
+CloudWatch Alarmは作成済みとする。
+通知先は既存SNS Topicを使用する。
+
+共通確認手順:
+1. AWS Management Consoleへログインする。
+2. 対象アカウント、対象リージョンを確認する。
+3. CloudWatchを開く。
+4. 左メニューで「アラーム」を開く。
+5. 「すべてのアラーム」を開く。
+6. 対象Alarm名を検索する。
+7. 対象Alarmを開く。
+8. Metric NamespaceがCustomであることを確認する。
+9. Metric Nameが対象要件のMetric Nameであることを確認する。
+10. StatisticがSumであることを確認する。
+11. Periodが5 minutesであることを確認する。
+12. Thresholdが1以上であることを確認する。
+13. Datapoints to alarmが1 out of 1であることを確認する。
+14. Missing data treatmentがnotBreachingであることを確認する。
+15. Actions enabledが有効であることを確認する。
+16. Alarm actionの通知先SNS Topicを確認する。
+17. SNSを開く。
+18. 対象SNS Topicを開く。
+19. Subscriptionが有効であることを確認する。
+20. 通知確認者へテスト開始を連絡する。
+
+実イベント確認手順:
+1. 対象要件の承認済みテストイベントを実施する。
+2. CloudTrailのイベント履歴で対象イベントを確認する。
+3. CloudWatch LogsのCloudTrail連携先Log Groupを開く。
+4. 対象イベントがLog Groupへ到達していることを確認する。
+5. CloudWatchの対象Metricを開く。
+6. 対象MetricのDatapointが1以上であることを確認する。
+7. 対象Alarmを開く。
+8. Alarm stateがALARMへ変わったことを確認する。
+9. Alarm historyで状態変更履歴を確認する。
+10. 通知確認者へ通知到達を確認する。
+11. 通知本文にAlarm名、発生時刻、対象Metric、対象要件を追跡できる情報があることを確認する。
+12. テスト後、必要に応じてAlarm stateがOKへ戻ることを確認する。
+
+手動ALARM確認手順:
+1. CloudWatchを開く。
+2. 左メニューで「アラーム」を開く。
+3. 対象Alarmを選択する。
+4. Actionsまたはアクションメニューを開く。
+5. Set stateまたは状態の設定を選択する。
+6. State valueにALARMを選択する。
+7. State reasonにテスト理由を入力する。
+8. 保存する。
+9. Alarm stateがALARMへ変わったことを確認する。
+10. Alarm historyで手動変更履歴を確認する。
+11. 通知確認者へ通知到達を確認する。
+12. 確認後、State valueをOKへ戻す。
+13. Alarm historyでOKへ戻ったことを確認する。
+
+設定確認のみの手順:
+1. 対象Alarmを開く。
+2. Metric Name、Namespace、Statistic、Period、Thresholdを確認する。
+3. Actions enabledを確認する。
+4. 通知先SNS Topicを確認する。
+5. SNS Subscriptionの有効状態を確認する。
+6. Alarm historyを確認する。
+7. CloudWatch LogsのMetric Filter詳細を開く。
+8. 対象Metric Nameへ出力される設定であることを確認する。
+9. Pattern Test結果がある場合は確認する。
+10. 実イベント未実施理由を記録する。
+
+要件別テスト方法:
+
+4.1
+監視対象: 不正なAPI呼び出し
+Alarm Name: <system>-security-4-1-unauthorized-api-call-alarm
+Metric Name: Req41UnauthorizedApiCallCount
+テスト方法: 実イベントまたは手動ALARM確認
+実イベント: 権限がない操作を承認済みの範囲で1回実施する。
+確認イベント: AccessDeniedまたはUnauthorizedOperation
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.2
+監視対象: MFAなしコンソールログイン
+Alarm Name: <system>-security-4-2-console-login-without-mfa-alarm
+Metric Name: Req42ConsoleLoginWithoutMfaCount
+テスト方法: 手動ALARM確認または設定確認のみ
+実イベント: 原則実施しない。
+確認イベント: ConsoleLogin Success MFAUsed No
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.3
+監視対象: rootアカウント使用
+Alarm Name: <system>-security-4-3-root-account-usage-alarm
+Metric Name: Req43RootAccountUsageCount
+テスト方法: 手動ALARM確認または設定確認のみ
+実イベント: 原則実施しない。
+確認イベント: userIdentity.type Root
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.4
+監視対象: IAMポリシー変更
+Alarm Name: <system>-security-4-4-iam-policy-change-alarm
+Metric Name: Req44IamPolicyChangeCount
+テスト方法: 実イベントまたは手動ALARM確認
+実イベント: テスト用IAM Policyを作成し、確認後に削除する。
+確認イベント: CreatePolicy、DeletePolicy、PutUserPolicy、DeleteUserPolicy、AttachRolePolicy、DetachRolePolicyなど
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.5
+監視対象: CloudTrail設定変更
+Alarm Name: <system>-security-4-5-cloudtrail-change-alarm
+Metric Name: Req45CloudTrailChangeCount
+テスト方法: 実イベントまたは手動ALARM確認
+実イベント: CloudTrailからCloudWatch Logsへの連携有効化または承認済みTrail設定変更を実施する。
+確認イベント: UpdateTrail
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.6
+監視対象: コンソール認証失敗
+Alarm Name: <system>-security-4-6-console-login-failure-alarm
+Metric Name: Req46ConsoleLoginFailureCount
+テスト方法: 手動ALARM確認または設定確認のみ
+実イベント: 原則実施しない。
+確認イベント: ConsoleLogin Failure
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.7
+監視対象: CMK無効化または削除予約
+Alarm Name: <system>-security-4-7-kms-key-disable-or-deletion-alarm
+Metric Name: Req47KmsKeyDisableOrDeletionCount
+テスト方法: 実イベントまたは手動ALARM確認
+実イベント: テスト専用CMKをDisableKeyし、確認後すぐEnableKeyする。承認済みの場合のみScheduleKeyDeletionを実施し、確認後すぐCancelKeyDeletionする。
+確認イベント: DisableKey、ScheduleKeyDeletion
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.8
+監視対象: S3バケットポリシー変更
+Alarm Name: <system>-security-4-8-s3-bucket-policy-change-alarm
+Metric Name: Req48S3BucketPolicyChangeCount
+テスト方法: 実イベント、手動ALARM確認、または設定確認のみ
+実イベント: 承認済みテスト用S3 bucketのBucket policyを変更し、確認後に戻す。
+確認イベント: PutBucketPolicy、DeleteBucketPolicy
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.9
+監視対象: AWS Config変更
+Alarm Name: <system>-security-4-9-config-change-alarm
+Metric Name: Req49ConfigChangeCount
+テスト方法: 手動ALARM確認または設定確認のみ
+実イベント: 原則実施しない。
+確認イベント: PutConfigurationRecorder、DeleteConfigurationRecorder、PutConfigRule、DeleteConfigRuleなど
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.10
+監視対象: Security Group変更
+Alarm Name: <system>-security-4-10-security-group-change-alarm
+Metric Name: Req410SecurityGroupChangeCount
+テスト方法: 実イベントまたは手動ALARM確認
+実イベント: テスト用Security Groupを作成し、確認後に削除する。
+確認イベント: CreateSecurityGroup、DeleteSecurityGroup、AuthorizeSecurityGroupIngress、RevokeSecurityGroupIngressなど
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.11
+監視対象: NACL変更
+Alarm Name: <system>-security-4-11-network-acl-change-alarm
+Metric Name: Req411NetworkAclChangeCount
+テスト方法: 実イベントまたは手動ALARM確認
+実イベント: 未関連付けのテスト用Network ACLを作成し、確認後に削除する。
+確認イベント: CreateNetworkAcl、DeleteNetworkAcl、CreateNetworkAclEntry、DeleteNetworkAclEntryなど
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.12
+監視対象: Network Gateway変更
+Alarm Name: <system>-security-4-12-network-gateway-change-alarm
+Metric Name: Req412NetworkGatewayChangeCount
+テスト方法: 手動ALARM確認または設定確認のみ
+実イベント: 原則実施しない。
+確認イベント: CreateInternetGateway、DeleteInternetGateway、AttachInternetGateway、DetachInternetGateway、CreateCustomerGateway、DeleteCustomerGateway
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.13
+監視対象: Route Table変更
+Alarm Name: <system>-security-4-13-route-table-change-alarm
+Metric Name: Req413RouteTableChangeCount
+テスト方法: 実イベントまたは手動ALARM確認
+実イベント: テスト用Route Tableを作成し、確認後に削除する。
+確認イベント: CreateRouteTable、DeleteRouteTable、CreateRoute、DeleteRouteなど
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.14
+監視対象: VPC変更
+Alarm Name: <system>-security-4-14-vpc-change-alarm
+Metric Name: Req414VpcChangeCount
+テスト方法: 手動ALARM確認または設定確認のみ
+実イベント: 原則実施しない。
+確認イベント: CreateVpc、DeleteVpc、ModifyVpcAttribute、CreateVpcPeeringConnection、DeleteVpcPeeringConnectionなど
+実イベント不可時: 設定確認のみの手順を実施する。
+
+4.15
+監視対象: AWS Organizations変更
+Alarm Name: <system>-security-4-15-organizations-change-alarm
+Metric Name: Req415OrganizationsChangeCount
+テスト方法: 手動ALARM確認または設定確認のみ
+実イベント: 原則実施しない。
+確認イベント: organizations.amazonaws.comの各種イベント
+実イベント不可時: 設定確認のみの手順を実施する。
+
+テスト後確認:
+1. CloudWatch Alarm一覧を開く。
+2. 対象Alarmの状態を確認する。
+3. Alarm historyを保存する。
+4. SNS通知受信画面を保存する。
+5. CloudTrail Event historyを保存する。
+6. CloudWatch Logsの対象イベント画面を保存する。
+7. 実イベントで変更したテスト用リソースを削除または元に戻す。
+8. 手動ALARM確認を実施した場合はAlarm stateをOKへ戻す。
+9. テスト結果を作業記録表へ記録する。
