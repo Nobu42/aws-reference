@@ -17,6 +17,7 @@ README直下は、WBS、作業手順書、切り戻し、通知確認に関係�
 | 用途 | 資料 |
 | :--- | :--- |
 | A3/A4を除く全要件のテストリハ当日手順を確認する | [全要件 テストリハ当日作業手順書](./all_requirements_test_rehearsal_day_runbook_2026_08.md) |
+| 4.1〜4.15のCloudWatch Alarm設定手順だけを確認する | [全要件 CloudWatch Alarm設定手順](./cloudwatch_alarm_setting_procedure_all_requirements_2026_08.txt) |
 | テストリハ当日の作業結果、証跡、未実施理由、切り戻し有無を記録する | [全要件 テストリハ作業記録表テンプレート](./test_rehearsal_work_record_table_template_2026_08.md) |
 
 ## 4番台

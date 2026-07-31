@@ -1,0 +1,147 @@
+CloudWatch Alarm設定手順
+
+対象:
+4.1〜4.15
+
+前提:
+Metric Filterは作成済みとする。
+Metric NamespaceはCustomを使用する。
+通知先は既存SNS Topicを使用する。
+
+共通設定値:
+Statistic: Sum
+Period: 5 minutes
+Threshold type: Static
+Condition: Greater/Equal
+Threshold value: 1
+Datapoints to alarm: 1 out of 1
+Missing data treatment: Treat missing data as not breaching
+Alarm action: In alarm
+SNS Topic: 既存SNS Topic
+Actions enabled: 有効
+
+作成手順:
+1. AWS Management Consoleへログインする。
+2. 対象アカウント、対象リージョンを確認する。
+3. CloudWatchを開く。
+4. 左メニューで「アラーム」を開く。
+5. 「すべてのアラーム」を開く。
+6. 「アラームの作成」をクリックする。
+7. 「メトリクスの選択」をクリックする。
+8. 「すべてのメトリクス」からCustomを選択する。
+9. 対象要件のMetric Nameを検索する。
+10. 対象Metricを選択する。
+11. 「メトリクスの選択」をクリックする。
+12. StatisticにSumを選択する。
+13. Periodに5 minutesを選択する。
+14. ConditionsでStaticを選択する。
+15. Whenever Metric Name is...でGreater/Equalを選択する。
+16. thanに1を入力する。
+17. Additional configurationを開く。
+18. Datapoints to alarmに1 out of 1を設定する。
+19. Missing data treatmentでTreat missing data as not breachingを選択する。
+20. 「次へ」をクリックする。
+21. NotificationでIn alarmを選択する。
+22. Select an SNS topicで既存SNS Topicを選択する。
+23. 「次へ」をクリックする。
+24. Alarm nameに対象要件のAlarm名を入力する。
+25. Alarm descriptionに対象要件番号と監視対象を入力する。
+26. 「次へ」をクリックする。
+27. PreviewでMetric Name、Statistic、Period、Threshold、SNS Topic、Alarm名を確認する。
+28. 「アラームの作成」をクリックする。
+29. 作成後、Alarm一覧で対象Alarmを検索する。
+30. 対象Alarmを開く。
+31. Metric、Condition、Notification、Actions enabledを確認する。
+32. 同じ手順を対象要件分繰り返す。
+
+要件別Alarm設定値:
+
+4.1
+監視対象: 不正なAPI呼び出し
+Metric Name: Req41UnauthorizedApiCallCount
+Alarm Name: <system>-security-4-1-unauthorized-api-call-alarm
+Alarm description: 4.1 Unauthorized API call monitoring
+
+4.2
+監視対象: MFAなしコンソールログイン
+Metric Name: Req42ConsoleLoginWithoutMfaCount
+Alarm Name: <system>-security-4-2-console-login-without-mfa-alarm
+Alarm description: 4.2 Console login without MFA monitoring
+
+4.3
+監視対象: rootアカウント使用
+Metric Name: Req43RootAccountUsageCount
+Alarm Name: <system>-security-4-3-root-account-usage-alarm
+Alarm description: 4.3 Root account usage monitoring
+
+4.4
+監視対象: IAMポリシー変更
+Metric Name: Req44IamPolicyChangeCount
+Alarm Name: <system>-security-4-4-iam-policy-change-alarm
+Alarm description: 4.4 IAM policy change monitoring
+
+4.5
+監視対象: CloudTrail設定変更
+Metric Name: Req45CloudTrailChangeCount
+Alarm Name: <system>-security-4-5-cloudtrail-change-alarm
+Alarm description: 4.5 CloudTrail change monitoring
+
+4.6
+監視対象: コンソール認証失敗
+Metric Name: Req46ConsoleLoginFailureCount
+Alarm Name: <system>-security-4-6-console-login-failure-alarm
+Alarm description: 4.6 Console login failure monitoring
+
+4.7
+監視対象: CMK無効化または削除予約
+Metric Name: Req47KmsKeyDisableOrDeletionCount
+Alarm Name: <system>-security-4-7-kms-key-disable-or-deletion-alarm
+Alarm description: 4.7 KMS key disable or deletion monitoring
+
+4.8
+監視対象: S3バケットポリシー変更
+Metric Name: Req48S3BucketPolicyChangeCount
+Alarm Name: <system>-security-4-8-s3-bucket-policy-change-alarm
+Alarm description: 4.8 S3 bucket policy change monitoring
+
+4.9
+監視対象: AWS Config変更
+Metric Name: Req49ConfigChangeCount
+Alarm Name: <system>-security-4-9-config-change-alarm
+Alarm description: 4.9 AWS Config change monitoring
+
+4.10
+監視対象: Security Group変更
+Metric Name: Req410SecurityGroupChangeCount
+Alarm Name: <system>-security-4-10-security-group-change-alarm
+Alarm description: 4.10 Security Group change monitoring
+
+4.11
+監視対象: NACL変更
+Metric Name: Req411NetworkAclChangeCount
+Alarm Name: <system>-security-4-11-network-acl-change-alarm
+Alarm description: 4.11 Network ACL change monitoring
+
+4.12
+監視対象: Network Gateway変更
+Metric Name: Req412NetworkGatewayChangeCount
+Alarm Name: <system>-security-4-12-network-gateway-change-alarm
+Alarm description: 4.12 Network Gateway change monitoring
+
+4.13
+監視対象: Route Table変更
+Metric Name: Req413RouteTableChangeCount
+Alarm Name: <system>-security-4-13-route-table-change-alarm
+Alarm description: 4.13 Route Table change monitoring
+
+4.14
+監視対象: VPC変更
+Metric Name: Req414VpcChangeCount
+Alarm Name: <system>-security-4-14-vpc-change-alarm
+Alarm description: 4.14 VPC change monitoring
+
+4.15
+監視対象: AWS Organizations変更
+Metric Name: Req415OrganizationsChangeCount
+Alarm Name: <system>-security-4-15-organizations-change-alarm
+Alarm description: 4.15 AWS Organizations change monitoring
