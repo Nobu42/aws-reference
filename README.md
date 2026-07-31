@@ -45,6 +45,7 @@ README直下は、WBS、作業手順書、切り戻し、通知確認に関係�
 | 用途 | 資料 |
 | :--- | :--- |
 | 3番台のWebコンソール設定・テストを行う | [要件3番台 Webコンソール作業実施手順書](./project-docs/03_procedures/requirements_3_x_web_console_work_procedure_2026_07.md) |
+| 要件3.4のS3 Server Access Logging保存先、既存/新規Bucket、注意点を確認する | [要件3.4 S3 Server Access Logging確認手順・注意点](./requirement_3_4_s3_server_access_logging_confirmation_procedure_2026_08.md) |
 
 ## A3/A4
 
