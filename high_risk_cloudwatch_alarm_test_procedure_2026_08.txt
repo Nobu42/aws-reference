@@ -1,0 +1,404 @@
+危険度高め要件 CloudWatch Alarmテスト手順
+
+目的:
+危険度の高い監視要件について、実業務リソースへ影響する操作を避けながら、CloudWatch Alarmの通知到達、Metric Filterの検知条件、CloudTrailイベントの確認方法を整理する。
+
+対象:
+4.2 MFAなしコンソールログイン監視
+4.3 rootアカウント使用監視
+4.5 CloudTrail設定変更監視
+4.7 CMK無効化または削除予約監視
+4.9 AWS Config変更監視
+4.12 Network Gateway変更監視
+4.14 VPC変更監視
+4.15 AWS Organizations変更監視
+
+準危険要件:
+4.4 IAMポリシー変更監視
+4.8 S3バケットポリシー変更監視
+4.10 Security Group変更監視
+4.11 NACL変更監視
+4.13 Route Table変更監視
+
+基本方針:
+本番または業務利用中リソースに対して、停止、削除、無効化、経路変更、認証方式変更を伴う実イベントテストは行わない。
+通知経路の確認は、原則としてCloudWatch Alarmの手動状態変更で行う。
+検知条件の確認は、CloudWatch LogsのMetric Filter Pattern Testまたは既存CloudTrailログで行う。
+実イベントが必要な場合は、承認済みの検証環境またはテスト専用リソースだけを使用する。
+テスト用リソースで実イベントを起こした場合は、確認直後に必ず戻しまたは削除を行う。
+
+テスト方式の採用順:
+1. 手動ALARM遷移で通知到達を確認する。
+2. Metric Filter Pattern Testで検知条件を確認する。
+3. 既存CloudTrailログで過去イベントの検知条件を確認する。
+4. テスト専用リソースで軽微な実イベントを発生させる。
+5. 業務リソースでの実イベントは、明示承認がある場合のみ実施する。
+
+方式A: 手動ALARM遷移による通知到達確認
+用途:
+危険操作を起こさず、CloudWatch AlarmからSNS、メール、Teams、監視基盤へ通知が届くことを確認する。
+
+Webコンソール手順:
+1. AWS Management Consoleへログインする。
+2. 対象アカウント、対象リージョンを確認する。
+3. CloudWatchを開く。
+4. 左メニューで「アラーム」を開く。
+5. 「すべてのアラーム」を開く。
+6. 対象Alarm名を検索する。
+7. 対象Alarmを選択する。
+8. 画面右上またはActionsメニューから「状態の設定」または「Set state」を選択する。
+9. State valueに「ALARM」を選択する。
+10. State reasonに「テストリハ通知確認。危険実イベント回避のため手動ALARM遷移」と入力する。
+11. 保存する。
+12. Alarm状態がALARMへ変化したことを確認する。
+13. Alarm履歴を開き、手動状態変更の履歴を確認する。
+14. 通知確認者へメール、Teams、監視基盤の通知到達を確認する。
+15. 通知到達画面を証跡として保存する。
+16. 確認後、同じ手順でState valueを「OK」へ戻す。
+17. Alarm履歴でOKへ戻ったことを確認する。
+
+CLI承認時の代替手順:
+aws cloudwatch set-alarm-state --alarm-name "<AlarmName>" --state-value ALARM --state-reason "test rehearsal notification check"
+aws cloudwatch set-alarm-state --alarm-name "<AlarmName>" --state-value OK --state-reason "test rehearsal restore to OK"
+
+注意:
+Alarm Actionは状態遷移時に動作する。既にALARM状態の場合、再通知されない可能性がある。
+手動ALARM遷移は通知経路確認であり、Metric Filterの条件一致確認ではない。
+
+方式B: Metric Filter Pattern Testによる検知条件確認
+用途:
+危険イベントを実際に起こさず、Metric FilterのFilter Patternが想定イベントに一致することを確認する。
+
+Webコンソール手順:
+1. CloudWatchを開く。
+2. 左メニューで「ログ」から「ロググループ」を開く。
+3. CloudTrail連携先Log Groupを開く。
+4. 「メトリクスフィルター」タブを開く。
+5. 対象Metric Filterを開く。
+6. Filter Patternを確認する。
+7. Pattern Testまたはテスト欄に対象イベントのサンプルJSONを入力する。
+8. テストを実行する。
+9. 一致したイベント数またはMatched表示を確認する。
+10. Pattern Test結果を証跡として保存する。
+
+注意:
+Pattern Testは通知を飛ばさない。
+Pattern TestはCloudWatch Alarmの状態遷移確認ではない。
+通知到達確認は方式Aと組み合わせる。
+
+方式C: 既存CloudTrailログによる検知条件確認
+用途:
+過去に発生済みのイベントを使用し、新しい危険操作を起こさずに確認する。
+
+Webコンソール手順:
+1. CloudTrailを開く。
+2. 「イベント履歴」を開く。
+3. イベント名、リソース名、ユーザー名、期間で検索する。
+4. 対象イベントが存在する場合、イベント詳細を開く。
+5. eventName、eventSource、userIdentity、requestParameters、errorCodeを確認する。
+6. CloudWatch LogsのCloudTrail連携先Log Groupを開く。
+7. 対象イベントがLog Groupへ届いているか確認する。
+8. Metric Filterの条件に一致する項目を確認する。
+9. CloudTrailイベント詳細とCloudWatch Logs側イベントを証跡として保存する。
+
+注意:
+CloudTrailイベント履歴は検索範囲や権限で見え方が変わる。
+CloudWatch Logs連携が未設定またはA-gate側制御で拒否されている場合、Log Group側で確認できない。
+
+方式D: テスト専用リソースによる実イベント確認
+用途:
+承認済みの検証環境で、業務影響のないテスト用リソースに限定して実イベントを発生させる。
+
+共通条件:
+作業対象が検証環境であること。
+テスト用リソース名に「test」「rehearsal」など識別子を付けること。
+業務用リソース、既存通信、既存鍵、既存Trail、既存Organizations設定に触れないこと。
+作業前に承認者、実施者、確認者、戻し方法を決めること。
+作業後にテスト用リソースを削除または元に戻すこと。
+
+4.2 MFAなしコンソールログイン監視
+危険理由:
+MFAなしログインを実際に作る、またはMFAを外す行為は認証統制を弱める。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B ConsoleLogin SuccessかつMFAUsed NoのサンプルJSONでPattern Testを行う。
+方式C 既存のConsoleLoginイベントでMFAUsedの値を確認する。
+
+原則禁止:
+既存ユーザーのMFA解除。
+MFAなしIAMユーザー作成によるログイン。
+rootまたは管理者ユーザーでの認証弱体化。
+
+4.3 rootアカウント使用監視
+危険理由:
+rootログインは権限が極めて強く、テスト目的であっても不要な利用として扱われる。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B userIdentity.type RootのサンプルJSONでPattern Testを行う。
+方式C 既存のroot ConsoleLoginまたはroot APIイベントがある場合だけ確認する。
+
+原則禁止:
+通知テスト目的のrootログイン。
+root認証情報の共有、再設定、操作。
+
+4.5 CloudTrail設定変更監視
+危険理由:
+Trail停止、削除、Event Selector変更は監査ログ欠落や想定外のログ増減につながる。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B UpdateTrail、StopLogging、DeleteTrail、PutEventSelectorsのサンプルJSONでPattern Testを行う。
+方式C 既存のUpdateTrailイベントがある場合だけ確認する。
+方式D 承認済み作業としてCloudTrailからCloudWatch Logsへの連携有効化を行う場合、そのUpdateTrailを実イベント確認として利用する。
+
+原則禁止:
+StopLoggingの実行。
+DeleteTrailの実行。
+業務TrailのEvent Selectorをテスト目的で変更すること。
+
+戻し観点:
+CloudTrail設定変更を伴った場合、CloudWatch Logs連携先、IAM Role、S3保存先、Multi-region、Log file validation、Event Selectorを作業前設定と突合する。
+
+4.7 CMK無効化または削除予約監視
+危険理由:
+業務用CMKを無効化すると暗号化、復号、ログ出力、アプリケーション処理に影響する。削除予約は待機期間後に復旧不能となる可能性がある。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B DisableKey、ScheduleKeyDeletionのサンプルJSONでPattern Testを行う。
+方式D テスト専用CMKを作成し、DisableKey後すぐEnableKeyする。
+方式D 承認済みの場合のみ、テスト専用CMKでScheduleKeyDeletion後すぐCancelKeyDeletionする。
+
+テスト専用CMK DisableKey手順:
+1. KMSを開く。
+2. 「カスタマー管理型のキー」を開く。
+3. テスト専用CMKを作成する。
+4. キー名、キーARN、Key IDを保存する。
+5. テスト専用CMKだけを選択する。
+6. 「キーアクション」から「無効化」を選択する。
+7. 確認画面で対象キーがテスト専用CMKであることを再確認する。
+8. 無効化する。
+9. CloudTrail Event historyでDisableKeyを確認する。
+10. CloudWatch Logsへ届いたDisableKeyイベントを確認する。
+11. Metric、Alarm、通知を確認する。
+12. 確認直後に同じテスト専用CMKを有効化する。
+13. 有効化後のKey stateを確認する。
+
+テスト専用CMK ScheduleKeyDeletion手順:
+1. KMSを開く。
+2. テスト専用CMKだけを選択する。
+3. 「キーアクション」から「削除をスケジュール」を選択する。
+4. 最短の待機期間を選択する。
+5. 対象キーがテスト専用CMKであることを再確認する。
+6. 削除予約を実行する。
+7. CloudTrail Event historyでScheduleKeyDeletionを確認する。
+8. CloudWatch Logsへ届いたScheduleKeyDeletionイベントを確認する。
+9. Metric、Alarm、通知を確認する。
+10. 確認直後に「キーの削除をキャンセル」を実行する。
+11. Key stateがPendingDeletionから戻ったことを確認する。
+12. 必要に応じてテスト専用CMKを再度削除予約し、検証用リソース整理方針に従う。
+
+原則禁止:
+業務用CMKのDisableKey。
+業務用CMKのScheduleKeyDeletion。
+CloudTrail、S3、EBS、RDS、Secrets Manager、ログ暗号化に使われているCMKでの実イベントテスト。
+
+4.9 AWS Config変更監視
+危険理由:
+Configuration RecorderやDelivery Channelの停止、削除は構成変更記録の欠落につながる。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B PutConfigurationRecorder、DeleteConfigurationRecorder、StopConfigurationRecorder、PutConfigRule、DeleteConfigRuleのサンプルJSONでPattern Testを行う。
+方式C 既存Config変更イベントがある場合だけ確認する。
+方式D 承認済みのテスト用Config Ruleだけを作成、削除する。
+
+原則禁止:
+本番または業務環境のConfiguration Recorder停止。
+Delivery Channel削除。
+既存Config Ruleの無断変更、削除。
+
+4.12 Network Gateway変更監視
+危険理由:
+Internet Gateway、Customer Gateway、VPN系Gatewayの変更は外部通信、拠点間通信、閉域接続に影響する。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B CreateInternetGateway、DeleteInternetGateway、AttachInternetGateway、DetachInternetGateway、CreateCustomerGateway、DeleteCustomerGatewayのサンプルJSONでPattern Testを行う。
+方式C 既存Gateway変更イベントがある場合だけ確認する。
+方式D 承認済みの独立テストVPCで未接続Internet Gatewayを作成し、削除する。
+
+原則禁止:
+業務VPCへのInternet Gateway Attach/Detach。
+既存Customer Gateway、VPN Gateway、Transit Gatewayの変更。
+既存通信経路に関係するGateway削除。
+
+注意:
+正式資料上の対象がInternet GatewayとCustomer Gatewayの場合、NAT Gateway、Transit Gateway、VPN Gatewayを含めるかは作業前に確認する。
+
+4.14 VPC変更監視
+危険理由:
+VPC作成、削除、属性変更、VPC Peering変更はネットワーク基盤や通信経路へ影響する。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B CreateVpc、DeleteVpc、ModifyVpcAttribute、CreateVpcPeeringConnection、DeleteVpcPeeringConnectionのサンプルJSONでPattern Testを行う。
+方式C 既存VPC変更イベントがある場合だけ確認する。
+方式D 承認済みの検証環境で独立テストVPCを作成し、すぐ削除する。
+
+原則禁止:
+業務VPCのDeleteVpc。
+業務VPCのDNS属性変更。
+既存VPC Peeringの作成、承認、削除。
+既存Subnet、Route Table、NACL、Security Groupが紐づくVPCのテスト目的変更。
+
+4.15 AWS Organizations変更監視
+危険理由:
+Organizations変更はアカウント構成、OU、SCP、管理アカウント統制に影響する。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B organizations.amazonaws.comのサンプルJSONでPattern Testを行う。
+方式C 管理アカウント側の既存Organizationsイベントがある場合だけ確認する。
+方式C A-gateまたは既存EventBridgeでOrganizations変更通知が存在する場合、その設定証跡と通知経路証跡で代替確認する。
+
+原則禁止:
+テスト目的のアカウント作成。
+OU移動。
+SCP Attach/Detach。
+Organizations設定変更。
+管理アカウントでの不要操作。
+
+4.4 IAMポリシー変更監視
+危険理由:
+IAM変更は権限付与、権限剥奪、運用停止につながる。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B IAM Policy変更イベントのサンプルJSONでPattern Testを行う。
+方式D 承認済みのテスト用IAM Policyを作成し、削除する。
+
+実イベントを行う場合:
+業務User、Role、GroupへAttachしない。
+テスト用Policyは権限なしまたは最小権限のダミー内容にする。
+作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、直後に削除する。
+
+4.8 S3バケットポリシー変更監視
+危険理由:
+Bucket Policy変更は公開範囲、通信制御、サービス連携、ログ出力へ影響する。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B PutBucketPolicy、DeleteBucketPolicyのサンプルJSONでPattern Testを行う。
+方式D 承認済みのテスト用S3 BucketだけでBucket Policyを一時変更し、直後に戻す。
+
+原則禁止:
+業務BucketのPolicy削除。
+公開許可を含むPolicyの投入。
+CloudTrailログ保存先Bucketやログ集約Bucketのテスト目的変更。
+
+4.10 Security Group変更監視
+危険理由:
+Security Group変更は通信許可、遮断、不要公開につながる。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B Security Group変更イベントのサンプルJSONでPattern Testを行う。
+方式D 承認済みのテスト用Security Groupを作成し、削除する。
+
+実イベントを行う場合:
+業務ENIやEC2へ紐づけない。
+0.0.0.0/0の広い許可を入れない。
+作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、直後に削除する。
+
+4.11 NACL変更監視
+危険理由:
+NACL変更はSubnet単位の通信許可、遮断に影響する。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B Network ACL変更イベントのサンプルJSONでPattern Testを行う。
+方式D 承認済みのテスト用Network ACLを作成し、削除する。
+
+実イベントを行う場合:
+業務Subnetへ関連付けない。
+既存NACL Entryを変更しない。
+作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、直後に削除する。
+
+4.13 Route Table変更監視
+危険理由:
+Route Table変更は通信経路、外部接続、閉域接続に影響する。
+
+採用可能なテスト:
+方式A 手動ALARM遷移で通知到達を確認する。
+方式B Route Table変更イベントのサンプルJSONでPattern Testを行う。
+方式D 承認済みのテスト用Route Tableを作成し、削除する。
+
+実イベントを行う場合:
+業務Subnetへ関連付けない。
+既存Routeを変更しない。
+0.0.0.0/0や閉域向けRouteを追加しない。
+作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、直後に削除する。
+
+証跡名:
+01_危険要件_対象Alarm一覧_202608XX.png
+02_危険要件_対象Alarm詳細_202608XX.png
+03_危険要件_AlarmAction通知先SNS_202608XX.png
+04_危険要件_SNSSubscription確認_202608XX.png
+05_危険要件_手動ALARM状態変更_202608XX.png
+06_危険要件_通知受信確認_202608XX.png
+07_危険要件_AlarmHistory_ALARM遷移_202608XX.png
+08_危険要件_AlarmHistory_OK復旧_202608XX.png
+09_危険要件_MetricFilter一覧_202608XX.png
+10_危険要件_MetricFilter詳細_202608XX.png
+11_危険要件_PatternTest結果_202608XX.png
+12_危険要件_CloudTrailイベント履歴_202608XX.png
+13_危険要件_CloudWatchLogsイベント到達確認_202608XX.png
+14_4.7_テスト専用CMK作成_202608XX.png
+15_4.7_テスト専用CMK_DisableKey確認_202608XX.png
+16_4.7_テスト専用CMK_EnableKey復旧_202608XX.png
+17_4.7_テスト専用CMK_ScheduleKeyDeletion確認_202608XX.png
+18_4.7_テスト専用CMK_CancelKeyDeletion確認_202608XX.png
+19_4.4_テスト用IAMPolicy作成削除確認_202608XX.png
+20_4.8_テスト用S3BucketPolicy変更戻し確認_202608XX.png
+21_4.10_テスト用SecurityGroup作成削除確認_202608XX.png
+22_4.11_テスト用NACL作成削除確認_202608XX.png
+23_4.13_テスト用RouteTable作成削除確認_202608XX.png
+24_危険要件_未実施理由記録_202608XX.png
+25_危険要件_テスト結果一覧_202608XX.png
+
+未実施理由の記録例:
+業務リソースへの影響があるため実イベント未実施。通知到達は手動ALARM遷移で確認。検知条件はMetric Filter Pattern Testで確認。
+Organizations変更は管理アカウント統制へ影響するため実イベント未実施。既存ログまたはA-gate通知設定の証跡で代替確認。
+CloudTrail StopLoggingは監査ログ欠落につながるため実イベント未実施。UpdateTrail発生作業が承認済みの場合のみ、そのイベントを確認に使用。
+業務CMKのDisableKeyまたはScheduleKeyDeletionは復号不能リスクがあるため実イベント未実施。テスト専用CMKだけを使用。
+
+作業中止条件:
+対象アカウントまたはリージョンが違う。
+対象Alarm名、Metric名、SNS Topicが変更パラメータ一覧と一致しない。
+通知先SNS TopicのSubscriptionが未確認である。
+CloudTrailからCloudWatch Logsへの連携が未設定またはA-gate等で明示拒否されている。
+テスト用リソースと業務用リソースの区別がつかない。
+戻し手順または削除手順が確定していない。
+承認されていない実イベントが必要になった。
+
+参照URL:
+CloudWatch Alarm Actions:
+https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/alarm-actions.html
+
+CloudWatch Alarm状態:
+https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html
+
+CloudWatch Logs Metric Filter:
+https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/MonitoringLogData.html
+
+AWS KMS key deletion:
+https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/deleting-keys.html
+
+AWS KMS disabling keys:
+https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/enabling-keys.html
+
+CloudTrail event history:
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/view-cloudtrail-events.html
