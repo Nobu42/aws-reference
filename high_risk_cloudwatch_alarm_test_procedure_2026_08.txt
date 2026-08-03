@@ -86,6 +86,13 @@ Pattern Testは通知を飛ばさない。
 Pattern TestはCloudWatch Alarmの状態遷移確認ではない。
 通知到達確認は方式Aと組み合わせる。
 
+擬似ログ投入の扱い:
+CloudWatch LogsにはPutLogEventsでログイベントを投入するAPIが存在する。
+ただし、CloudTrailが記録した実イベントの代替証跡として、業務用CloudTrail連携先Log Groupへ擬似CloudTrail JSONを投入する運用は採用しない。
+擬似ログ投入を使う場合は、テスト専用Log Group、テスト専用Metric Filter、テスト専用Alarmに限定する。
+擬似ログ投入は、Metric FilterからAlarmまでの技術動作確認として扱う。
+擬似ログ投入は、実CloudTrailイベントが発生したことの証跡として扱わない。
+
 方式C: 既存CloudTrailログによる検知条件確認
 用途:
 過去に発生済みのイベントを使用し、新しい危険操作を起こさずに確認する。
@@ -384,21 +391,64 @@ CloudTrailからCloudWatch Logsへの連携が未設定またはA-gate等で明�
 戻し手順または削除手順が確定していない。
 承認されていない実イベントが必要になった。
 
-参照URL:
-CloudWatch Alarm Actions:
+公式ドキュメント根拠:
+
+方式A 手動ALARM遷移:
+CloudWatchのSetAlarmState APIには、テスト目的でAlarm状態を一時的に変更でき、ALARM状態へ変更した場合に設定済みActionが実行される旨が記載されている。
+https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_SetAlarmState.html
+
+CloudWatch Alarm Actionは、OK、ALARM、INSUFFICIENT_DATAの状態間で状態が変わったときに実行され、SNS通知をActionとして設定できる旨が記載されている。
 https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/alarm-actions.html
 
-CloudWatch Alarm状態:
-https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html
+Alarm変更時の通知、状態変更、EventBridge連携に関する説明が記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/Acting_Alarm_Changes.html
 
-CloudWatch Logs Metric Filter:
-https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/MonitoringLogData.html
+方式B Metric Filter Pattern Test:
+CloudWatch LogsのMetric Filter作成手順には、Test Pattern欄へログイベントを入力してFilter Patternをテストできる旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/CreateMetricFilterProcedure.html
 
-AWS KMS key deletion:
+CloudWatch LogsのFilter Pattern構文説明には、Filter PatternをCloudWatchコンソールでテストできる旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html
+
+TestMetricFilter APIには、Metric FilterのFilter Patternをサンプルログイベントメッセージに対してテストできる旨が記載されている。
+https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_TestMetricFilter.html
+
+Metric Filterは、ログデータに一致したときにメトリクス値を増分する機能である旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/FilterAndPatternSyntaxForMetricFilters.html
+
+方式C 既存CloudTrailログ確認:
+CloudTrailは、ユーザー、ロール、AWSサービスによって実行されたアクションをイベントとして記録する旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/
+
+CloudTrailイベントは、AWSアカウントのアクティビティの記録であり、AWS Management Console、AWS CLI、AWS SDK、APIなどを通じたアクティビティの履歴を提供する旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/cloudtrail-events.html
+
+CloudTrailイベント履歴は、過去90日間の管理イベントを表示、検索、ダウンロードできる旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/view-cloudtrail-events.html
+
+CloudTrailコンソールで最近の管理イベントを確認し、フィルタリングや詳細表示ができる旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/view-cloudtrail-events-console.html
+
+方式D テスト専用リソースでの実イベント確認:
+CloudTrailがAPIやコンソール操作をイベントとして記録する仕組みに基づき、承認済みのテスト専用リソースで実APIイベントを発生させた場合は、CloudTrailイベントとして確認できる。
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/cloudtrail-events.html
+
+4.7 KMS削除予約、削除キャンセル、無効化:
+KMSキー削除は破壊的で潜在的に危険であり、削除後は当該KMSキーで暗号化されたデータを復号できなくなる旨が記載されている。
 https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/deleting-keys.html
 
-AWS KMS disabling keys:
+ScheduleKeyDeletion APIはKMSキー削除をスケジュールし、待機期間中はPendingDeletionとなり、CancelKeyDeletionで削除をキャンセルできる旨が記載されている。
+https://docs.aws.amazon.com/kms/latest/APIReference/API_ScheduleKeyDeletion.html
+
+KMSキー削除のスケジュールとキャンセル手順、削除操作の危険性、CloudTrailログへの記録について記載されている。
+https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys-scheduling-key-deletion.html
+
+KMSキーの有効化、無効化に関する手順が記載されている。
 https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/enabling-keys.html
 
-CloudTrail event history:
-https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/view-cloudtrail-events.html
+擬似ログ投入の技術的根拠:
+CloudWatch LogsのPutLogEvents APIには、指定したLog Streamへログイベントをアップロードできる旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html
+
+ただし、PutLogEventsはCloudWatch Logsへログイベントを投入するAPIであり、CloudTrailが実際にAWS APIイベントを記録したことの証明ではない。
+本手順では、PutLogEventsを本番CloudTrail連携先Log Groupへの擬似CloudTrailイベント投入手段として採用しない。
