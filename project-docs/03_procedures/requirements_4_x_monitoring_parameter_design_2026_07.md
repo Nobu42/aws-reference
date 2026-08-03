@@ -161,7 +161,415 @@ GitHub表示でCloudWatch LogsのJSON Filter Patternが数式扱いされるこ�
 { ($.eventSource = "organizations.amazonaws.com") }
 ```
 
-## 5. 要件別補足
+## 5. Metric Filter Pattern Testサンプル
+
+Pattern Testでは、Filter Pattern内のOR条件をすべて個別に確認する。
+
+例:
+`{ ($.errorCode = "*UnauthorizedOperation") || ($.errorCode = "AccessDenied*") }` の場合、`UnauthorizedOperation` 系と `AccessDenied` 系の両方を一致確認する。
+
+AND条件を含む要件は、一致するサンプルだけでなく、必要に応じて不一致サンプルも確認する。
+
+### 5.1 共通ルール
+
+- 各サンプルJSONは、CloudWatch LogsのMetric Filter作成画面または編集画面のTest Pattern欄へ入力する。
+- 複数サンプルを一度に貼り付ける場合は、1イベント1行で入力する。
+- 一致確認では、対象サンプルがMatchedになることを確認する。
+- 不一致確認では、対象サンプルがMatchedにならないことを確認する。
+- 実イベントではなくサンプルJSONによるテストであるため、通知到達確認はCloudWatch Alarmの手動ALARM遷移で別途確認する。
+
+### 5.2 4.1 不正なAPI呼び出し
+
+確認する分岐:
+- `$.errorCode = "*UnauthorizedOperation"`
+- `$.errorCode = "AccessDenied*"`
+
+一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"DescribeInstances","errorCode":"Client.UnauthorizedOperation","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"s3.amazonaws.com","eventName":"PutBucketPolicy","errorCode":"AccessDenied","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"CreatePolicy","errorCode":"AccessDeniedException","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"DescribeInstances","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.3 4.2 MFAなし管理コンソールサインイン
+
+確認する条件:
+- `eventName = ConsoleLogin`
+- `responseElements.ConsoleLogin = Success`
+- `additionalEventData.MFAUsed = No`
+
+一致サンプル:
+
+```text
+{"eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","responseElements":{"ConsoleLogin":"Success"},"additionalEventData":{"MFAUsed":"No"},"userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","responseElements":{"ConsoleLogin":"Success"},"additionalEventData":{"MFAUsed":"Yes"},"userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/mfa-user"}}
+{"eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","responseElements":{"ConsoleLogin":"Failure"},"additionalEventData":{"MFAUsed":"No"},"userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/failed-user"}}
+```
+
+### 5.4 4.3 rootアカウント使用
+
+確認する条件:
+- `userIdentity.type = Root`
+- `userIdentity.invokedBy NOT EXISTS`
+- `eventType != AwsServiceEvent`
+
+一致サンプル:
+
+```text
+{"eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","eventType":"AwsConsoleSignIn","userIdentity":{"type":"Root","arn":"arn:aws:iam::123456789012:root"}}
+{"eventSource":"iam.amazonaws.com","eventName":"CreateUser","eventType":"AwsApiCall","userIdentity":{"type":"Root","arn":"arn:aws:iam::123456789012:root"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","eventType":"AwsConsoleSignIn","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"support.amazonaws.com","eventName":"DescribeTrustedAdvisorChecks","eventType":"AwsServiceEvent","userIdentity":{"type":"Root","invokedBy":"support.amazonaws.com","arn":"arn:aws:iam::123456789012:root"}}
+```
+
+### 5.5 4.4 IAMポリシー変更
+
+確認する分岐:
+- `CreatePolicy`
+- `DeletePolicy`
+- `CreatePolicyVersion`
+- `DeletePolicyVersion`
+- `SetDefaultPolicyVersion`
+- `PutUserPolicy`
+- `PutGroupPolicy`
+- `PutRolePolicy`
+- `DeleteUserPolicy`
+- `DeleteGroupPolicy`
+- `DeleteRolePolicy`
+- `AttachUserPolicy`
+- `AttachGroupPolicy`
+- `AttachRolePolicy`
+- `DetachUserPolicy`
+- `DetachGroupPolicy`
+- `DetachRolePolicy`
+
+一致サンプル:
+
+```text
+{"eventSource":"iam.amazonaws.com","eventName":"CreatePolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"DeletePolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"CreatePolicyVersion","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"DeletePolicyVersion","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"SetDefaultPolicyVersion","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"PutUserPolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"PutGroupPolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"PutRolePolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"DeleteUserPolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"DeleteGroupPolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"DeleteRolePolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"AttachUserPolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"AttachGroupPolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"AttachRolePolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"DetachUserPolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"DetachGroupPolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"iam.amazonaws.com","eventName":"DetachRolePolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"iam.amazonaws.com","eventName":"CreateUser","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"CreatePolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.6 4.5 CloudTrail設定変更
+
+確認する分岐:
+- `CreateTrail`
+- `UpdateTrail`
+- `DeleteTrail`
+- `StartLogging`
+- `StopLogging`
+- `PutEventSelectors`
+- `PutInsightSelectors`
+
+一致サンプル:
+
+```text
+{"eventSource":"cloudtrail.amazonaws.com","eventName":"CreateTrail","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"cloudtrail.amazonaws.com","eventName":"UpdateTrail","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"cloudtrail.amazonaws.com","eventName":"DeleteTrail","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"cloudtrail.amazonaws.com","eventName":"StartLogging","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"cloudtrail.amazonaws.com","eventName":"StopLogging","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"cloudtrail.amazonaws.com","eventName":"PutEventSelectors","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"cloudtrail.amazonaws.com","eventName":"PutInsightSelectors","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"cloudtrail.amazonaws.com","eventName":"DescribeTrails","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.7 4.6 AWS Management Console認証失敗
+
+確認する条件:
+- `eventName = ConsoleLogin`
+- `responseElements.ConsoleLogin = Failure`
+
+一致サンプル:
+
+```text
+{"eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","responseElements":{"ConsoleLogin":"Failure"},"additionalEventData":{"MFAUsed":"No"},"userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"signin.amazonaws.com","eventName":"ConsoleLogin","responseElements":{"ConsoleLogin":"Success"},"additionalEventData":{"MFAUsed":"Yes"},"userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.8 4.7 CMK無効化または削除予約
+
+確認する分岐:
+- `DisableKey`
+- `ScheduleKeyDeletion`
+
+一致サンプル:
+
+```text
+{"eventSource":"kms.amazonaws.com","eventName":"DisableKey","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"kms.amazonaws.com","eventName":"ScheduleKeyDeletion","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"kms.amazonaws.com","eventName":"DescribeKey","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"s3.amazonaws.com","eventName":"DisableKey","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.9 4.8 S3バケットポリシー変更
+
+確認する分岐:
+- `PutBucketPolicy`
+- `DeleteBucketPolicy`
+
+一致サンプル:
+
+```text
+{"eventSource":"s3.amazonaws.com","eventName":"PutBucketPolicy","requestParameters":{"bucketName":"test-bucket"},"userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"s3.amazonaws.com","eventName":"DeleteBucketPolicy","requestParameters":{"bucketName":"test-bucket"},"userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"s3.amazonaws.com","eventName":"GetBucketPolicy","requestParameters":{"bucketName":"test-bucket"},"userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.10 4.9 AWS Config設定変更
+
+確認する分岐:
+- `StopConfigurationRecorder`
+- `StartConfigurationRecorder`
+- `PutConfigurationRecorder`
+- `DeleteConfigurationRecorder`
+- `PutDeliveryChannel`
+- `DeleteDeliveryChannel`
+- `PutConfigRule`
+- `DeleteConfigRule`
+
+一致サンプル:
+
+```text
+{"eventSource":"config.amazonaws.com","eventName":"StopConfigurationRecorder","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"config.amazonaws.com","eventName":"StartConfigurationRecorder","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"config.amazonaws.com","eventName":"PutConfigurationRecorder","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"config.amazonaws.com","eventName":"DeleteConfigurationRecorder","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"config.amazonaws.com","eventName":"PutDeliveryChannel","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"config.amazonaws.com","eventName":"DeleteDeliveryChannel","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"config.amazonaws.com","eventName":"PutConfigRule","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"config.amazonaws.com","eventName":"DeleteConfigRule","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"config.amazonaws.com","eventName":"DescribeConfigurationRecorders","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.11 4.10 Security Group変更
+
+確認する分岐:
+- `AuthorizeSecurityGroupIngress`
+- `AuthorizeSecurityGroupEgress`
+- `RevokeSecurityGroupIngress`
+- `RevokeSecurityGroupEgress`
+- `CreateSecurityGroup`
+- `DeleteSecurityGroup`
+- `ModifySecurityGroupRules`
+
+一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"AuthorizeSecurityGroupIngress","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"AuthorizeSecurityGroupEgress","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"RevokeSecurityGroupIngress","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"RevokeSecurityGroupEgress","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"CreateSecurityGroup","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"DeleteSecurityGroup","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"ModifySecurityGroupRules","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"DescribeSecurityGroups","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.12 4.11 NACL変更
+
+確認する分岐:
+- `CreateNetworkAcl`
+- `DeleteNetworkAcl`
+- `CreateNetworkAclEntry`
+- `DeleteNetworkAclEntry`
+- `ReplaceNetworkAclEntry`
+- `ReplaceNetworkAclAssociation`
+
+一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"CreateNetworkAcl","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"DeleteNetworkAcl","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"CreateNetworkAclEntry","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"DeleteNetworkAclEntry","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"ReplaceNetworkAclEntry","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"ReplaceNetworkAclAssociation","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"DescribeNetworkAcls","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.13 4.12 Network Gateway変更
+
+確認する分岐:
+- `CreateInternetGateway`
+- `DeleteInternetGateway`
+- `AttachInternetGateway`
+- `DetachInternetGateway`
+- `CreateCustomerGateway`
+- `DeleteCustomerGateway`
+
+一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"CreateInternetGateway","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"DeleteInternetGateway","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"AttachInternetGateway","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"DetachInternetGateway","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"CreateCustomerGateway","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"DeleteCustomerGateway","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"DescribeInternetGateways","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.14 4.13 Route Table変更
+
+確認する分岐:
+- `CreateRoute`
+- `DeleteRoute`
+- `ReplaceRoute`
+- `CreateRouteTable`
+- `DeleteRouteTable`
+- `AssociateRouteTable`
+- `DisassociateRouteTable`
+- `ReplaceRouteTableAssociation`
+
+一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"CreateRoute","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"DeleteRoute","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"ReplaceRoute","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"CreateRouteTable","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"DeleteRouteTable","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"AssociateRouteTable","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"DisassociateRouteTable","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"ReplaceRouteTableAssociation","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"DescribeRouteTables","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.15 4.14 VPC変更
+
+確認する分岐:
+- `CreateVpc`
+- `DeleteVpc`
+- `ModifyVpcAttribute`
+- `AcceptVpcPeeringConnection`
+- `CreateVpcPeeringConnection`
+- `DeleteVpcPeeringConnection`
+- `RejectVpcPeeringConnection`
+
+一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"CreateVpc","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"DeleteVpc","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"ModifyVpcAttribute","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"AcceptVpcPeeringConnection","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"CreateVpcPeeringConnection","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"DeleteVpcPeeringConnection","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"ec2.amazonaws.com","eventName":"RejectVpcPeeringConnection","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"ec2.amazonaws.com","eventName":"DescribeVpcs","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+### 5.16 4.15 AWS Organizations変更
+
+確認する条件:
+- `eventSource = organizations.amazonaws.com`
+
+一致サンプル:
+
+```text
+{"eventSource":"organizations.amazonaws.com","eventName":"CreateAccount","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"organizations.amazonaws.com","eventName":"MoveAccount","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"organizations.amazonaws.com","eventName":"AttachPolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+{"eventSource":"organizations.amazonaws.com","eventName":"DetachPolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+不一致サンプル:
+
+```text
+{"eventSource":"iam.amazonaws.com","eventName":"CreatePolicy","userIdentity":{"type":"IAMUser","arn":"arn:aws:iam::123456789012:user/test-user"}}
+```
+
+## 6. 要件別補足
 
 | 要件 | 補足確認 |
 | :--- | :--- |
@@ -181,7 +589,7 @@ GitHub表示でCloudWatch LogsのJSON Filter Patternが数式扱いされるこ�
 | 4.14 | VPC Peeringを含める。VPC EndpointやSubnet変更まで含めるかは要確認 |
 | 4.15 | Organizationsは管理アカウント側での確認が必要な場合がある |
 
-## 6. 設定確定前チェック
+## 7. 設定確定前チェック
 
 | No. | 確認項目 | 状態 |
 | :--- | :--- | :--- |
