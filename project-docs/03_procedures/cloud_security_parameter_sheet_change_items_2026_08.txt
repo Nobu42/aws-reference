@@ -1,0 +1,530 @@
+クラウドセキュリティ対応 パラメータシート変更対象一覧
+
+目的:
+今回のクラウドセキュリティ対応で、パラメータシートへ追加、更新、または実環境値との突合が必要になる項目を整理する。
+
+前提:
+実際の列名は現場のパラメータシート正式名称に合わせて読み替える。
+パラメータシートに該当列がない場合は、新規列追加、備考欄記載、または別紙管理のいずれかを確認する。
+A-gate、EventBridge、既存監視で対応済みの要件は、設定値を新規作成しない場合でも「対応区分」「既存設定名」「根拠証跡」を記録する。
+
+対象:
+A3
+A4
+3.4
+3.5
+3.6
+3.7
+4.1
+4.2
+4.3
+4.4
+4.5
+4.6
+4.7
+4.8
+4.9
+4.10
+4.11
+4.12
+4.13
+4.14
+4.15
+
+1. 全体共通パラメータ
+
+対象環境
+対象AWSアカウント名
+対象AWSアカウントID
+対象リージョン
+対象システム名
+対象要件番号
+対応区分
+設定変更有無
+新規作成有無
+既存設定利用有無
+A-gate対応有無
+EventBridge既存対応有無
+対応不要理由
+設定変更予定日
+テスト実施予定日
+本番反映予定日
+作業者
+確認者
+承認者
+作業証跡保存先
+設定前証跡保存先
+設定後証跡保存先
+テスト証跡保存先
+切り戻し要否
+切り戻し手順書保存先
+
+2. CloudTrail共通パラメータ
+
+CloudTrail Trail名
+CloudTrail Trail ARN
+CloudTrail Home Region
+CloudTrail Multi-region Trail有無
+CloudTrail Global Service Event記録有無
+CloudTrail Management Event記録有無
+CloudTrail Read / Write Event設定
+CloudTrail Log File Validation有無
+CloudTrail S3ログ保存先Bucket名
+CloudTrail S3ログ保存先Prefix
+CloudTrail KMS Key ID
+CloudTrail KMS Key ARN
+CloudTrail CloudWatch Logs連携有無
+CloudTrail CloudWatch Logs Log Group名
+CloudTrail CloudWatch Logs Log Group ARN
+CloudTrail CloudWatch Logs IAM Role名
+CloudTrail CloudWatch Logs IAM Role ARN
+CloudTrail CloudWatch Logs連携設定日
+CloudTrail CloudWatch Logs連携設定者
+CloudTrail CloudWatch Logs連携方式
+CloudTrail Event Selector設定
+CloudTrail Advanced Event Selector有無
+CloudTrail Insights有無
+
+3. CloudWatch Logs共通パラメータ
+
+CloudTrail連携先Log Group名
+CloudTrail連携先Log Group ARN
+Log Group Class
+Retention Days
+KMS Key ID
+KMS Key ARN
+Stored Bytes確認日
+Log Stream名
+Log Stream最終イベント時刻
+CloudTrailイベント到達確認結果
+Metric Filter作成対象Log Group名
+Metric Filter作成対象Log Group ARN
+
+4. CloudWatch Metric Filter共通パラメータ
+
+要件番号
+Metric Filter名
+Filter Pattern
+Metric Namespace
+Metric Name
+Metric Value
+Default Value
+Unit
+Dimension有無
+Dimension Name
+Dimension Value
+Pattern Test実施有無
+Pattern Test一致サンプル
+Pattern Test不一致サンプル
+Pattern Test結果
+Pattern Test証跡
+Metric Filter作成日
+Metric Filter作成者
+Metric Filter最終確認日
+
+5. CloudWatch Alarm共通パラメータ
+
+要件番号
+Alarm名
+Alarm Description
+Metric Namespace
+Metric Name
+Statistic
+Period
+Evaluation Periods
+Datapoints to Alarm
+Threshold
+Comparison Operator
+Treat Missing Data
+Alarm Action有無
+Alarm Action SNS Topic名
+Alarm Action SNS Topic ARN
+OK Action有無
+OK Action SNS Topic ARN
+Insufficient Data Action有無
+Insufficient Data Action SNS Topic ARN
+Actions Enabled
+Alarm状態
+Alarm History確認結果
+手動ALARMテスト実施有無
+手動ALARMテスト結果
+通知到達確認結果
+Alarm作成日
+Alarm作成者
+Alarm最終確認日
+
+6. 通知共通パラメータ
+
+通知方式
+SNS Topic名
+SNS Topic ARN
+SNS Subscription Protocol
+SNS Subscription Endpoint
+SNS Subscription Status
+メール通知先
+Teams通知先
+監視基盤通知先
+SIEM連携先
+EventBridge Rule名
+EventBridge Rule ARN
+EventBridge Event Bus名
+EventBridge Event Bus ARN
+EventBridge Target種別
+EventBridge Target ARN
+A-gate連携有無
+A-gate連携先
+A-gate対応要件番号
+A-gate通知経路証跡
+通知テスト実施日
+通知確認者
+通知到達証跡
+通知未達時の確認先
+
+7. 要件4番台 個別パラメータ
+
+4.1 不正なAPI呼び出し監視
+対応区分
+Filter Pattern
+監視対象errorCode
+UnauthorizedOperation系一致サンプル
+AccessDenied系一致サンプル
+不一致サンプル
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.2 MFAなし管理コンソールサインイン監視
+対応区分
+Filter Pattern
+ConsoleLogin Success条件
+MFAUsed No条件
+MFA強制済み確認結果
+不要判断有無
+不要判断理由
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.3 rootアカウント使用監視
+対応区分
+Filter Pattern
+Root条件
+invokedBy除外条件
+AwsServiceEvent除外条件
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.4 IAMポリシー変更監視
+対応区分
+Filter Pattern
+対象eventSource
+対象eventName一覧
+IAM Policy変更範囲
+IAM User / Group / Role変更を含めるか
+既存EventBridge / A-gate対応有無
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.5 CloudTrail設定変更監視
+対応区分
+Filter Pattern
+対象eventSource
+対象eventName一覧
+CloudTrail CloudWatch Logs連携有効化イベント利用有無
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.6 AWS Management Console認証失敗監視
+対応区分
+Filter Pattern
+ConsoleLogin Failure条件
+通知閾値
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.7 CMK無効化または削除予約監視
+対応区分
+Filter Pattern
+対象eventSource
+DisableKey監視有無
+ScheduleKeyDeletion監視有無
+対象CMK範囲
+テスト専用CMK利用有無
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.8 S3バケットポリシー変更監視
+対応区分
+Filter Pattern
+対象eventSource
+PutBucketPolicy監視有無
+DeleteBucketPolicy監視有無
+対象Bucket範囲
+対象Bucket限定条件
+既存EventBridge / A-gate対応有無
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.9 AWS Config設定変更監視
+対応区分
+Filter Pattern
+対象eventSource
+対象eventName一覧
+Configuration Recorder対象有無
+Delivery Channel対象有無
+Config Rule対象有無
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.10 Security Group変更監視
+対応区分
+Filter Pattern
+対象eventSource
+対象eventName一覧
+Security Group作成削除対象有無
+Ingress変更対象有無
+Egress変更対象有無
+既存EventBridge / A-gate対応有無
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.11 NACL変更監視
+対応区分
+Filter Pattern
+対象eventSource
+対象eventName一覧
+Network ACL作成削除対象有無
+Network ACL Entry変更対象有無
+Network ACL Association変更対象有無
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.12 Network Gateway変更監視
+対応区分
+Filter Pattern
+対象eventSource
+対象eventName一覧
+Internet Gateway対象有無
+Customer Gateway対象有無
+NAT Gateway対象有無
+Transit Gateway対象有無
+VPN Gateway対象有無
+正式資料との差分確認結果
+既存EventBridge / A-gate対応有無
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.13 Route Table変更監視
+対応区分
+Filter Pattern
+対象eventSource
+対象eventName一覧
+Route作成削除変更対象有無
+Route Table作成削除対象有無
+Route Table Association変更対象有無
+既存EventBridge / A-gate対応有無
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.14 VPC変更監視
+対応区分
+Filter Pattern
+対象eventSource
+対象eventName一覧
+VPC作成削除対象有無
+VPC属性変更対象有無
+VPC Peering対象有無
+Subnet変更を含めるか
+VPC Endpoint変更を含めるか
+既存EventBridge / A-gate対応有無
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+4.15 AWS Organizations変更監視
+対応区分
+Filter Pattern
+対象eventSource
+対象管理アカウント
+対象メンバーアカウント
+対象OU
+対象SCP
+監視対象eventName範囲
+Metric Filter名
+Metric Name
+Alarm名
+Threshold
+通知先SNS Topic ARN
+
+8. 要件3.4 S3 Server Access Loggingパラメータ
+
+対象CloudTrailログ保存先Bucket名
+対象CloudTrailログ保存先Bucket ARN
+Server Access Logging有効化有無
+Server Access Logging Target Bucket名
+Server Access Logging Target Bucket ARN
+Server Access Logging Target Prefix
+Target Bucket既存 / 新規
+Target BucketアカウントID
+Target Bucketリージョン
+Target Bucket Object Ownership
+Target Bucket Block Public Access
+Target Bucket暗号化方式
+Target Bucket KMS Key ID
+Target Bucketライフサイクル設定
+Target Bucket保持期間
+S3 Log Delivery権限設定
+Bucket Policy変更有無
+ログ配送確認結果
+ログ配送確認証跡
+
+9. 要件3.5 CloudTrailログCMK暗号化パラメータ
+
+CloudTrail KMS暗号化有無
+CloudTrail KMS Key ID
+CloudTrail KMS Key ARN
+CloudTrail KMS Alias
+CMK既存 / 新規
+CMK Key Spec
+CMK Key Usage
+CMK Multi-Region有無
+CMK管理者
+CMK利用者
+CloudTrailサービス向けKey Policy
+ログ参照者向けDecrypt権限
+KMS Key Policy変更有無
+KMS Grant利用有無
+Trail更新有無
+Trail KmsKeyId設定後確認結果
+CloudTrailログ配送確認結果
+CMK利用CloudTrailイベント確認結果
+
+10. 要件3.6 CMKローテーションパラメータ
+
+対象CMK Key ID
+対象CMK Key ARN
+対象CMK Alias
+Key Rotation有効化有無
+Rotation Period Days
+Rotation有効化日
+Rotation確認結果
+KeyRotationEnabled確認結果
+自動ローテーション対象外理由
+
+11. 要件3.7 VPC Flow Logsパラメータ
+
+対象VPC名
+対象VPC ID
+対象VPC環境
+対象VPCアカウントID
+対象VPCリージョン
+Flow Logs有効化有無
+Flow Log ID
+Resource Type
+Resource ID
+Traffic Type
+Log Destination Type
+Log Destination ARN
+CloudWatch Logs Log Group名
+CloudWatch Logs Log Group ARN
+S3 Destination Bucket名
+S3 Destination Prefix
+Flow Logs配信用IAM Role名
+Flow Logs配信用IAM Role ARN
+Log Format
+Maximum Aggregation Interval
+Destination暗号化方式
+Destination KMS Key ID
+Retention Days
+Tags
+Flow Logs作成日
+Flow Logs作成者
+Flow Logs配送確認結果
+Flow Logs証跡保存先
+
+12. A3 / A4 運用手順パラメータ
+
+セキュリティアラート監視手順書名
+セキュリティアラート監視手順書保存先
+セキュリティアラート監視手順書版数
+監視頻度
+監視対象サービス
+GuardDuty確認対象
+Security Hub確認対象
+CloudWatch Alarm確認対象
+EventBridge / A-gate確認対象
+異常判定基準
+重要度判定基準
+一次対応者
+二次エスカレーション先
+エスカレーション基準
+対応記録様式
+対応記録保存先
+証跡保存先
+月次報告要否
+日次確認要否
+運用開始日
+運用確認結果
+
+13. 作業結果反映パラメータ
+
+作業前値
+作業後値
+変更差分
+作業実施日時
+作業実施者
+作業確認者
+レビュー実施者
+レビュー結果
+テスト方式
+実イベントテスト有無
+Pattern Test実施有無
+手動ALARMテスト実施有無
+通知到達確認有無
+証跡ファイル名
+証跡保存場所
+未実施項目
+未実施理由
+残課題
+A-gate回答待ち有無
+本番反映対象有無
+本番反映予定日
