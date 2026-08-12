@@ -24,15 +24,88 @@
 本番または業務利用中リソースに対して、停止、削除、無効化、経路変更、認証方式変更を伴う実イベントテストは行わない。
 通知経路の確認は、原則としてCloudWatch Alarmの手動状態変更で行う。
 検知条件の確認は、CloudWatch LogsのMetric Filter Pattern Testまたは既存CloudTrailログで行う。
-実イベントが必要な場合は、承認済みの検証環境またはテスト専用リソースだけを使用する。
-テスト用リソースで実イベントを起こした場合は、確認直後に必ず戻しまたは削除を行う。
+停止、削除予約、無効化、通信経路変更など危険を伴う実イベントテストは、承認済みの検証環境だけで行う。
+検証環境でも、業務検証に使用中のリソースではなく、既存処理から分離したテスト専用リソースを使用する。
+テスト用変更の戻しまたは削除は、Alarm表示だけで判断せず、通知到達と必要証跡の取得を完了した後に行う。
+
+実施環境の定義:
+本手順でいう検証環境は、実際のAWSアカウント上に存在する承認済みの開発・検証用アカウントまたは検証用領域を指す。
+危険を伴う実イベントテストは検証環境だけを対象とし、本番環境では実施しない。
+本番環境では、検証環境のEnd-to-Endテスト証跡、設定値の一致、CloudTrailからCloudWatch Logsへの配信、Metric Filter、Alarm Action、通知先SNS Topicの設定を確認して判定する。
+本番環境で危険操作による実イベントテストを求められた場合は、通常の本番リリースとは分け、個別の変更承認、影響確認、専用リソース、切り戻し手順、立会者をそろえた別作業として扱う。本手順の対象外とする。
+
+検証環境で実施する場合の前提:
+1. 検証環境が他チームの結合試験、性能試験、運用試験に使用されていない時間帯を選ぶ。
+2. アカウント、リージョン、VPC、Trail、KMS Key、SNS Topicなどの対象を変更申請と突合する。
+3. 既存業務リソースではなく、未関連付け、未アタッチ、未使用のテスト専用リソースを使用する。
+4. A-gate、SCP、Permission Boundary、AWS Config、Security Hub、EventBridge、監視製品による拒否、自動修復、自動起票の有無を確認する。
+5. 通知確認者へ、作成イベントと削除イベントの両方でテスト通知が届く可能性を事前連絡する。
+6. テスト用リソースの作成、変更、戻し、削除に必要な権限を作業前に確認する。
+7. テスト専用リソースを作れない場合は、危険な実イベントを実施せず、方式A、方式B、方式Cの組合せへ切り替える。
+
+テスト専用リソースの粒度:
+要件ごとに専用AWSアカウントや専用VPCを新設する必要はない。
+IAM Policy、KMS Key、S3 Bucket、Config Ruleは、検証環境内に要件別の未使用リソースを作成する。
+Security Group、NACL、Route Tableは、既存の検証VPC内に未関連付けのテスト専用リソースを作成できる。ただし4.10から4.14を連続して確認する場合は、空のテスト専用VPCにまとめる方が誤関連付けを防ぎやすい。
+CloudTrailからCloudWatch Logsへの連携有効化など、承認済みの是正作業そのものが監視対象eventNameを発生させる場合は、その実イベントをEnd-to-End確認に使用し、発報だけを目的とする追加変更を行わない。
+
+検証環境でも想定される影響:
+1. 共用影響
+検証環境も共用環境である。既存リソースを誤って選択すると、他チームの試験、バッチ、疎通確認、運用確認へ影響する。
+
+2. 通知および運用影響
+SNS、メール、Teams、A-gate、監視製品、インシデント管理システムへテスト通知が送信される。自動起票、電話連絡、エスカレーション、重複通知が発生する可能性がある。
+テスト用リソースの削除や設定の戻しも監視対象eventNameに一致し、追加通知を発生させる場合がある。
+
+3. CloudTrailおよびCloudWatch影響
+CloudTrailからCloudWatch Logsへの配信、Metric Filter、Alarm評価には反映遅延がある。Alarm画面にALARMが表示された時点で通知先への到達が完了しているとは限らない。
+テスト用Trailを追加すると、ログの重複、S3およびCloudWatch Logsへのログ量増加、少額の料金増加が発生する場合がある。既存Trailの停止、削除、Event Selector変更は行わない。
+
+4. IAM影響
+テスト用IAM PolicyをUser、Role、Groupへ誤ってアタッチすると権限が変化する。テスト用PolicyはどのPrincipalにもアタッチしない。
+
+5. KMS影響
+業務用KMS Keyを無効化または削除予約すると、暗号化、復号、CloudTrailログ配信、アプリケーション処理が失敗する可能性がある。テスト専用Keyだけを使用する。
+KMS Keyは即時削除できない。ScheduleKeyDeletionには7日から30日の待機期間があり、CancelKeyDeletion後のKeyはDisabledのままとなるため、継続利用する場合はEnableKeyが必要となる。
+
+6. S3影響
+業務BucketのBucket Policyを誤って変更するとアクセス拒否または意図しない公開につながる。空のテスト専用Bucketだけを使用し、Block Public Accessを維持する。
+
+7. ネットワーク影響
+Route Table、Security Group、NACL、Internet Gateway、VPCを既存SubnetやENIへ誤って関連付けると、通信断または意図しない通信許可が発生する。未関連付けのテスト専用リソースだけを使用する。
+
+8. 統制および自動修復影響
+A-gate、SCP、AWS Config Rule、Control Tower相当の統制により操作が拒否される、作成直後に修復される、または違反として記録される場合がある。拒否を回避する変更は行わない。
+
+9. 料金、クォータおよび残存リソース
+CloudWatch Logs、カスタムメトリクス、Alarm、S3、KMS Key、Config Ruleなどに少額の料金が発生する場合がある。VPC、Internet Gateway、Route Tableなどのクォータも一時的に消費する。
+削除漏れ、タグ漏れ、依存関係の残存があると、後続試験やリソース管理へ影響する。
+
+テスト用設定およびリソースの削除開始条件:
+次の確認がすべて完了してから、テスト用設定の戻しまたはリソース削除を開始する。
+1. CloudTrailで対象eventName、eventTime、userIdentity、対象リソースIDを確認した。
+2. CloudWatch Logsの連携先Log Groupで同一イベントを確認した。
+3. 対象カスタムメトリクスにデータポイントが生成されたことを確認した。
+4. Alarm履歴でOKからALARMへの遷移を確認した。
+5. SNS、メール、Teams、A-gateまたは監視基盤で通知到達を確認した。
+6. 上記の必要証跡を保存した。
+
+削除および切り戻し時の注意:
+1. AlarmがALARMになったことだけを理由に、ただちにテスト用設定を削除しない。通知先への到達と証跡保存を先に完了する。
+2. 通知確認後は、作業計画で定めた順序に従い、テスト目的だけで追加した設定またはリソースを速やかに戻し、または削除する。
+3. DeletePolicy、DeleteTrail、DeleteBucketPolicy、DeleteConfigRule、DeleteRouteなど、削除操作自体がMetric Filterに一致する場合は、追加通知を正常なテスト結果として記録する。
+4. 削除後も、評価期間と欠損データの扱いによりAlarmが一定時間ALARMのまま残る場合がある。リソース削除はAlarm状態を強制的にOKへ戻す操作ではない。
+5. 欠損データがnotBreachingの場合は次回評価後にOKへ戻ることを確認する。手動でOKへ戻す場合は、実データによる評価結果と混同しないよう理由を記録する。
+6. KMS Keyは即時削除できない。ScheduleKeyDeletionをCancelKeyDeletionした後、継続利用しない場合は、廃止承認に従って再度削除予約し、削除予定日と確認担当者を管理する。
+7. 共用のテストVPCを複数要件で使用する場合は、各要件固有のRuleやRouteだけを都度削除し、VPC本体は全ネットワーク要件の確認完了後に依存リソースとともに削除する。
+8. 削除後は、対象一覧、関連付け、アタッチメント、Alarm状態、通知履歴を確認し、テスト用リソースが残っていないことを証跡として保存する。
 
 テスト方式の採用順:
 1. 手動ALARM遷移で通知到達を確認する。
 2. Metric Filter Pattern Testで検知条件を確認する。
 3. 既存CloudTrailログで過去イベントの検知条件を確認する。
 4. テスト専用リソースで軽微な実イベントを発生させる。
-5. 業務リソースでの実イベントは、明示承認がある場合のみ実施する。
+5. 本番環境または業務リソースでの危険な実イベントは採用しない。例外要求は別作業として承認を取り直す。
 
 方式A: 手動ALARM遷移による通知到達確認
 用途:
@@ -121,7 +194,27 @@ CloudWatch Logs連携が未設定またはA-gate側制御で拒否されてい�
 テスト用リソース名に「test」「rehearsal」など識別子を付けること。
 業務用リソース、既存通信、既存鍵、既存Trail、既存Organizations設定に触れないこと。
 作業前に承認者、実施者、確認者、戻し方法を決めること。
-作業後にテスト用リソースを削除または元に戻すこと。
+通知到達と必要証跡の取得後に、テスト用リソースを削除または元に戻すこと。
+
+実イベント確認の成立条件:
+1. 対象Alarmがテスト開始前にOKであることを確認する。
+2. 実AWS操作を1回だけ実行する。
+3. CloudTrailイベント履歴で対象eventName、eventTime、userIdentity、対象リソースIDを確認する。
+4. CloudWatch Logsの連携先Log Groupで同一イベントを確認する。
+5. Metric Filterのカスタムメトリクスにデータポイントが作成されたことを確認する。
+6. AlarmがALARMへ遷移したことをAlarm履歴で確認する。
+7. SNS、メール、Teams、監視基盤の通知到達を確認する。
+8. テスト用変更を元に戻し、リソース状態を確認する。
+9. 欠損データの扱いがnotBreachingの場合、次の評価後にAlarmがOKへ戻ることを確認する。
+
+待機時の注意:
+CloudTrailからCloudWatch Logs、Metric、Alarmまでの反映は同時ではない。
+Alarmが直ちにALARMにならなくても、同じ危険操作を繰り返さない。
+最初にCloudTrailイベント、次にCloudWatch Logs、次にMetric、最後にAlarmの順で詰まり箇所を確認する。
+待機上限は作業計画で定める。Periodが5分の場合の目安は15分とし、超過時は再操作せず中止条件に従う。
+同じAlarmがALARM中に追加イベントを発生させても、新しい通知が出ない場合がある。複数eventNameの網羅確認はPattern Testで行い、実イベントは要件ごとに代表1件とする。
+AlarmがALARMへ遷移しても、通知先への到達を確認する前にテスト用リソースを削除しない。
+通知到達と証跡取得後は、削除操作による追加通知を想定した上で、速やかに切り戻しへ進む。
 
 4.2 MFAなしコンソールログイン監視
 危険理由:
@@ -176,7 +269,7 @@ CloudTrail設定変更を伴った場合、CloudWatch Logs連携先、IAM Role�
 方式A 手動ALARM遷移で通知到達を確認する。
 方式B DisableKey、ScheduleKeyDeletionのサンプルJSONでPattern Testを行う。
 方式D テスト専用CMKを作成し、DisableKey後すぐEnableKeyする。
-方式D 承認済みの場合のみ、テスト専用CMKでScheduleKeyDeletion後すぐCancelKeyDeletionする。
+方式D 承認済みの場合のみ、テスト専用CMKでScheduleKeyDeletionを行い、通知到達と必要証跡の取得後に速やかにCancelKeyDeletionする。
 
 テスト専用CMK DisableKey手順:
 1. KMSを開く。
@@ -190,7 +283,7 @@ CloudTrail設定変更を伴った場合、CloudWatch Logs連携先、IAM Role�
 9. CloudTrail Event historyでDisableKeyを確認する。
 10. CloudWatch Logsへ届いたDisableKeyイベントを確認する。
 11. Metric、Alarm、通知を確認する。
-12. 確認直後に同じテスト専用CMKを有効化する。
+12. 通知到達と必要証跡の取得後、速やかに同じテスト専用CMKを有効化する。
 13. 有効化後のKey stateを確認する。
 
 テスト専用CMK ScheduleKeyDeletion手順:
@@ -203,9 +296,9 @@ CloudTrail設定変更を伴った場合、CloudWatch Logs連携先、IAM Role�
 7. CloudTrail Event historyでScheduleKeyDeletionを確認する。
 8. CloudWatch Logsへ届いたScheduleKeyDeletionイベントを確認する。
 9. Metric、Alarm、通知を確認する。
-10. 確認直後に「キーの削除をキャンセル」を実行する。
-11. Key stateがPendingDeletionから戻ったことを確認する。
-12. 必要に応じてテスト専用CMKを再度削除予約し、検証用リソース整理方針に従う。
+10. 通知到達と必要証跡の取得後、速やかに「キーの削除をキャンセル」を実行する。
+11. Key stateがPendingDeletionからDisabledへ変わったことを確認する。
+12. 継続利用する場合はEnableKeyを実行する。廃止する場合は承認済みのリソース整理方針に従って再度削除予約し、削除予定日を記録する。
 
 原則禁止:
 業務用CMKのDisableKey。
@@ -290,7 +383,7 @@ IAM変更は権限付与、権限剥奪、運用停止につながる。
 実イベントを行う場合:
 業務User、Role、GroupへAttachしない。
 テスト用Policyは権限なしまたは最小権限のダミー内容にする。
-作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、直後に削除する。
+作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、必要証跡の取得後に速やかに削除する。
 
 4.8 S3バケットポリシー変更監視
 危険理由:
@@ -299,7 +392,7 @@ Bucket Policy変更は公開範囲、通信制御、サービス連携、ログ�
 採用可能なテスト:
 方式A 手動ALARM遷移で通知到達を確認する。
 方式B PutBucketPolicy、DeleteBucketPolicyのサンプルJSONでPattern Testを行う。
-方式D 承認済みのテスト用S3 BucketだけでBucket Policyを一時変更し、直後に戻す。
+方式D 承認済みのテスト用S3 BucketだけでBucket Policyを一時変更し、通知到達と必要証跡の取得後に速やかに戻す。
 
 原則禁止:
 業務BucketのPolicy削除。
@@ -318,7 +411,7 @@ Security Group変更は通信許可、遮断、不要公開につながる。
 実イベントを行う場合:
 業務ENIやEC2へ紐づけない。
 0.0.0.0/0の広い許可を入れない。
-作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、直後に削除する。
+作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、必要証跡の取得後に速やかに削除する。
 
 4.11 NACL変更監視
 危険理由:
@@ -332,7 +425,7 @@ NACL変更はSubnet単位の通信許可、遮断に影響する。
 実イベントを行う場合:
 業務Subnetへ関連付けない。
 既存NACL Entryを変更しない。
-作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、直後に削除する。
+作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、必要証跡の取得後に速やかに削除する。
 
 4.13 Route Table変更監視
 危険理由:
@@ -347,7 +440,353 @@ Route Table変更は通信経路、外部接続、閉域接続に影響する。
 業務Subnetへ関連付けない。
 既存Routeを変更しない。
 0.0.0.0/0や閉域向けRouteを追加しない。
-作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、直後に削除する。
+作成後、CloudTrail、CloudWatch Logs、Metric、Alarm、通知を確認し、必要証跡の取得後に速やかに削除する。
+
+実AWS環境で実イベントを発生させる場合の詳細手順:
+
+共通事前確認:
+1. 変更申請番号、承認者、作業対象アカウント、リージョン、実施時間帯を確認する。
+2. A-gate、SCP、Permission Boundary、IAM Policyによる明示的拒否の有無を確認する。
+3. CloudTrailがManagement EventのWriteを記録していることを確認する。
+4. CloudTrailから対象CloudWatch Logs Log Groupへの配信が正常であることを確認する。
+5. 対象Metric Filter、Metric Namespace、Metric Name、Alarm名、SNS Topicを変更パラメータ一覧と突合する。
+6. AlarmのActions enabledが有効、開始状態がOK、欠損データの扱いがnotBreachingであることを確認する。
+7. 通知確認者へ、テスト通知が複数回届く可能性とテスト用リソース名を連絡する。
+8. テスト用リソースの作成権限、削除権限、タグ付与権限を確認する。
+9. 各操作後にCloudTrailイベントを確認できるまで次の危険操作へ進まない。
+10. 実イベント1件の成功で、そのFilter Patternに含まれる全eventNameを実操作したことにはしない。残りのOR条件はPattern Testで確認する。
+11. IAMなどのグローバルサービスイベントはus-east-1へ記録される場合がある。イベント履歴で見つからない場合はus-east-1を確認し、対象TrailでGlobal service eventsが有効であることを確認する。
+12. Metric Filter作成前に到着済みの過去ログからは新しいMetric datapointが生成されないため、実イベントはMetric FilterとAlarmの作成後に実施する。
+
+テスト用リソースの共通命名例:
+Purposeタグ: alarm-test
+ChangeIdタグ: <変更申請番号>
+DeleteAfterタグ: <YYYY-MM-DD>
+IAM Policy: <システム略称>-alarm-test-policy-<YYYYMMDD>
+S3 Bucket: <システム略称>-alarm-test-<AccountId>-<YYYYMMDD>
+Trail: <システム略称>-alarm-test-trail-<YYYYMMDD>
+Config Rule: <システム略称>-alarm-test-rule-<YYYYMMDD>
+VPC: <システム略称>-alarm-test-vpc-<YYYYMMDD>
+Subnet: <システム略称>-alarm-test-subnet-<YYYYMMDD>
+Internet Gateway: <システム略称>-alarm-test-igw-<YYYYMMDD>
+Route Table: <システム略称>-alarm-test-rtb-<YYYYMMDD>
+Security Group: <システム略称>-alarm-test-sg-<YYYYMMDD>
+Network ACL: <システム略称>-alarm-test-nacl-<YYYYMMDD>
+
+4.2 MFAなしコンソールログイン監視の実イベント:
+対象の業務アカウントでは実施しない。
+WinAuth、SAML、IAM Identity Center、A-gateなどの認証経路では、AWSへ到達する前に認証失敗となり、想定するConsoleLoginイベントが対象Trailへ記録されない場合がある。
+実イベントが必須の場合は、認証統制担当が用意した専用サンドボックスアカウントと無権限の一時テストIDだけを使用する。
+既存ユーザーからMFAを外す方法、業務アカウントにMFAなしIAMユーザーを新規作成する方法は採用しない。
+実施可否、ログが記録されるアカウント、リージョン、Trail、認証方式を先に認証統制担当へ確認する。
+
+4.3 rootアカウント使用監視の実イベント:
+本番、検証、サンドボックスを問わず、通知テスト目的のrootログインまたはroot API操作は採用しない。
+方式Aの手動ALARM遷移、方式BのPattern Test、方式Cの既存イベントで確認する。
+root実イベントを要求された場合は、セキュリティ責任者の書面承認とroot利用手順を別途必要とし、本手順の対象外とする。
+
+4.4 IAMポリシー変更監視の実イベント:
+目的:
+業務User、Role、Groupへ一切アタッチしないカスタマー管理ポリシーを作成し、CreatePolicyを発生させる。
+
+手順:
+1. IAMコンソールを開く。
+2. 左メニューで「ポリシー」を開く。
+3. 「ポリシーを作成」を選択する。
+4. JSONエディタを選択する。
+5. 次のテスト用Policyを入力する。Resourceのバケット名は、実在しないことを確認したテスト名へ置き換える。
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "NoEffectivePermissionForAlarmTest",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::<存在しないテスト用バケット名>/*"
+    }
+  ]
+}
+6. Policy名に共通命名例のIAM Policy名を入力し、Purpose、ChangeId、DeleteAfterタグを付ける。
+7. 「ポリシーの作成」を選択する。User、Role、Groupへはアタッチしない。
+8. CloudTrailイベント履歴でEvent nameをCreatePolicyとして検索し、作成したPolicy ARNを確認する。
+9. CloudWatch Logs、Metric、Alarm、通知の順で確認する。
+10. IAMのPolicy詳細で「アタッチされたエンティティ」が0であることを再確認する。
+11. Policyを削除する。削除時のDeletePolicyも監視対象であるため、テスト通知として記録する。
+12. IAM Policy一覧に残っていないことを確認する。
+
+中止条件:
+既存Policyと同名である。
+PolicyがUser、Role、Groupへアタッチされている。
+Permission BoundaryまたはA-gate管理Policyを変更する必要がある。
+
+4.5 CloudTrail設定変更監視の実イベント:
+推奨方法:
+承認済みのCloudTrail設定変更が作業計画に含まれている場合、そのUpdateTrailを代表実イベントとして使用する。
+CloudWatch Logs連携有効化、KMS CMK設定、ログファイル検証設定など、是正作業そのものから発生したUpdateTrailを利用し、テストだけを目的とした追加変更は行わない。
+
+手順:
+1. CloudTrailコンソールで「証跡」を開き、対象Trailを選択する。
+2. S3 Bucket、Prefix、KMS Key、Log file validation、CloudWatch Logs Log Group、IAM Role、Management Event、Data Eventを変更前証跡として保存する。
+3. 承認済み作業手順書に従い、対象項目だけを変更して保存する。
+4. CloudTrailイベント履歴でEvent nameをUpdateTrailとして検索する。
+5. requestParametersを開き、承認した変更項目と一致することを確認する。
+6. CloudWatch Logs、Metric、Alarm、通知の順で確認する。
+7. 恒久設定変更の場合は元に戻さず、変更後パラメータとTrail statusを確認する。
+8. テスト一時変更の場合だけ、承認済み切り戻し手順で変更前設定へ戻す。
+
+代替方法:
+承認済みの検証アカウントで、テスト専用S3 Bucketとテスト専用Trailを作成する。
+1. S3でテスト専用Bucketを作成し、Block Public Accessをすべて有効にする。
+2. CloudTrailの「証跡」から「証跡の作成」を選択する。
+3. Trail名に共通命名例のTrail名を入力し、作成したテスト専用S3 Bucketを指定する。
+4. 組織の証跡、Insights、Data Event、CloudWatch Logs連携は無効のままとする。
+5. 管理イベントはReadとWriteを対象として作成する。
+6. CreateTrailをCloudTrailイベント履歴で確認し、Alarmと通知を確認する。
+7. 確認後、テスト専用Trailを削除する。DeleteTrailもテスト通知として記録する。
+8. S3 Bucket内のテストログを削除し、Bucketを削除する。
+
+中止条件:
+対象がOrganization Trailである。
+Security Lake、A-gate、ログ集約アカウントなどの中央統制と競合する。
+テストTrail追加によりリージョン上限、二重記録、想定外課金が生じる。
+
+4.7 CMK無効化または削除予約監視の実イベント:
+前項の「テスト専用CMK DisableKey手順」と「テスト専用CMK ScheduleKeyDeletion手順」を使用する。
+追加確認:
+1. Key typeがCustomer managed key、Key usageがEncrypt and decrypt、Key specがSYMMETRIC_DEFAULTであることを確認する。
+2. Alias、Description、Purpose、ChangeId、DeleteAfterからテスト専用キーであることを確認する。
+3. CloudTrail、S3、EBS、RDS、Secrets Manager、CloudWatch LogsなどのAWSリソースから参照されていないことを確認する。
+4. DisableKeyによるAlarm通知到達と必要証跡の取得後は、速やかにEnableKeyを実行する。
+5. ScheduleKeyDeletionによるAlarm通知到達と必要証跡の取得後は、速やかにCancelKeyDeletionを実行する。
+6. CancelKeyDeletion後のキーはDisabledになるため、必要な場合はEnableKeyを実行する。
+7. テスト終了後のキーを削除する場合は、検証用リソース廃止方針に従って改めてScheduleKeyDeletionを行い、削除予定日を管理台帳へ記録する。
+
+4.8 S3バケットポリシー変更監視の実イベント:
+目的:
+空のテスト専用Bucketへ安全側のDeny Policyを追加し、PutBucketPolicyを発生させる。
+
+手順:
+1. S3コンソールで対象リージョンを確認する。
+2. 共通命名例のS3 Bucket名で汎用Bucketを作成する。
+3. Object OwnershipはBucket owner enforced、Block Public Accessは4項目すべて有効、Versioningは無効、Default encryptionは既定値とする。
+4. Bucketが空であり、CloudTrail、Config、ログ保存先などに使用されていないことを確認する。
+5. 「アクセス許可」タブの「バケットポリシー」で「編集」を選択する。
+6. 次のPolicyを入力する。2か所のBucket名をテスト専用Bucket名へ置き換える。
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyInsecureTransportForAlarmTest",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::<テスト専用Bucket名>",
+        "arn:aws:s3:::<テスト専用Bucket名>/*"
+      ],
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
+      }
+    }
+  ]
+}
+7. 変更を保存する。Public Allowが含まれていないことをPolicy内容とBlock Public Accessで再確認する。
+8. CloudTrailイベント履歴でPutBucketPolicyを検索し、requestParameters.bucketNameがテスト専用Bucketであることを確認する。
+9. CloudWatch Logs、Metric、Alarm、通知の順で確認する。
+10. 「バケットポリシー」で「削除」を選択し、DeleteBucketPolicyを発生させる。
+11. Bucket Policyが「なし」であることを確認する。
+12. 空のテスト専用Bucketを削除する。
+
+中止条件:
+Bucket名が業務Bucket、CloudTrailログBucket、ログ集約Bucketと似ており誤認の可能性がある。
+Policy StatusがPublicとなる。
+VPC Endpoint Policy、A-gate、Config Ruleによる統制違反が表示される。
+
+4.9 AWS Config変更監視の実イベント:
+目的:
+既存RecorderやDelivery Channelを変更せず、テスト専用Config RuleのPutConfigRuleを発生させる。
+
+前提:
+対象リージョンでAWS Config Recorderが既に稼働していること。
+Config Ruleの追加がA-gateまたはOrganizationsで中央管理されていないこと。
+テスト用S3 Bucketなど、評価対象に限定できるテストリソースが存在すること。
+
+手順:
+1. AWS Configコンソールを開き、対象リージョンを確認する。
+2. 「設定」でRecorderとDelivery Channelが稼働中であることを確認する。停止、再作成、変更は行わない。
+3. 左メニューで「ルール」を開き、「ルールを追加」を選択する。
+4. AWS Managed Ruleからrequired-tagsを選択する。
+5. Rule名に共通命名例のConfig Rule名を入力する。
+6. Scopeは「特定のリソース」を選択し、Resource typeにAWS::S3::Bucket、Resource IDにテスト専用Bucket名を指定する。
+7. Parametersはtag1KeyをPurpose、tag1Valueをalarm-testとする。
+8. 設定内容を確認し、Ruleを追加する。
+9. CloudTrailイベント履歴でPutConfigRuleを検索し、configRuleNameがテスト専用Rule名であることを確認する。
+10. CloudWatch Logs、Metric、Alarm、通知の順で確認する。
+11. テスト専用Ruleだけを削除し、DeleteConfigRuleを確認する。
+12. Recorder、Delivery Channel、既存Ruleに変更がないことを確認する。
+
+中止条件:
+AWS Configが未設定または停止中である。
+Recorderを有効化しなければRuleを追加できない。
+Organization Config RuleまたはConformance Packで管理されている。
+テスト専用リソースだけにScopeを限定できない。
+
+4.10から4.14 ネットワーク系実イベント用の隔離テスト基盤:
+目的:
+既存VPC、業務Subnet、既存通信経路に触れず、空のテスト専用VPC内だけでイベントを発生させる。
+
+テスト値例:
+VPC IPv4 CIDR: <承認済みで既存ネットワークと重複しない/28 CIDR>
+参考値: 10.254.255.0/28
+Subnet IPv4 CIDR: VPCと同じ/28を使用する場合は、そのVPC内に他Subnetを作成しない。
+Route destination: 198.51.100.0/24
+Security Group source: 192.0.2.0/24
+Security Group protocol/port: TCP 65535
+NACL source: 192.0.2.0/24
+NACL rule: Inbound、Rule number 200、TCP 65535、Allow
+
+注意:
+192.0.2.0/24と198.51.100.0/24はドキュメント用アドレスである。
+それでも現場のアドレス管理ルールを優先し、承認済みの値へ置き換える。
+テストVPCにはEC2、ENI、Load Balancer、NAT Gateway、VPC Endpoint、Transit Gateway Attachment、VPC Peeringを作成しない。
+
+4.14 VPC変更監視の代表実イベント:
+1. VPCコンソールを開く。
+2. 「VPC」から「VPCを作成」を選択する。
+3. 「VPCのみ」を選択する。
+4. Name tagに共通命名例のVPC名を入力する。
+5. IPv4 CIDR manual inputを選択し、承認済み/28 CIDRを入力する。
+6. IPv6 CIDRなし、Tenancy defaultを選択する。
+7. Purpose、ChangeId、DeleteAfterタグを付け、VPCを作成する。
+8. 作成したVPC IDを記録する。
+9. CloudTrailイベント履歴でCreateVpcを検索し、VPC IDを確認する。
+10. CloudWatch Logs、Metric、4.14 Alarm、通知の順で確認する。
+11. VPC削除は4.10から4.13のテストと後片付けがすべて完了した最後に行う。
+
+4.12 Network Gateway変更監視の代表実イベント:
+1. VPCコンソールの「インターネットゲートウェイ」を開く。
+2. 「インターネットゲートウェイの作成」を選択する。
+3. Name tagに共通命名例のInternet Gateway名を入力し、タグを付けて作成する。
+4. 作成したInternet Gatewayだけを選択し、「アクション」から「VPCにアタッチ」を選択する。
+5. 前項で作成したテスト専用VPCを選択してアタッチする。
+6. 業務VPCへアタッチされていないことをInternet Gateway詳細のVPC IDで確認する。
+7. CloudTrailイベント履歴でCreateInternetGatewayまたはAttachInternetGatewayを検索する。
+8. CloudWatch Logs、Metric、4.12 Alarm、通知の順で確認する。
+9. Customer Gateway系イベントは実イベントを起こさず、Pattern Testで確認する。
+10. Internet Gatewayは4.13 Route Tableテストが完了するまでアタッチ状態を維持する。
+
+4.13 Route Table変更監視の代表実イベント:
+目的:
+テスト専用VPC内の未使用Route Tableにテスト用Routeを追加し、CreateRouteを検知させる。
+
+準備:
+1. VPCコンソールの「サブネット」を開く。
+2. 「サブネットを作成」を選択し、テスト専用VPC、任意のAvailability Zone、承認済みSubnet CIDRを指定する。
+3. Name tagに共通命名例のSubnet名を入力する。
+4. Subnet作成後、EC2やENIが存在しないことを確認する。
+5. 「ルートテーブル」を開き、「ルートテーブルを作成」を選択する。
+6. Nameに共通命名例のRoute Table名、VPCにテスト専用VPCを指定して作成する。
+7. CreateRouteTableが4.13 Alarmを先にALARMへ遷移させた場合は、その通知を記録する。CreateRouteを個別確認する場合はAlarmがOKへ戻るまで待つ。
+
+CreateRouteテスト:
+1. 作成したテスト専用Route Tableを選択する。
+2. 「ルート」タブで「ルートを編集」を選択する。
+3. 「ルートを追加」を選択する。
+4. Destinationに198.51.100.0/24を入力する。
+5. TargetでInternet Gatewayを選択し、テスト専用Internet Gateway IDを選択する。
+6. 保存前にRoute Table ID、VPC ID、Destination、Targetがすべてテスト値であることを確認する。
+7. 「変更を保存」を選択する。
+8. Route Table詳細で198.51.100.0/24のStateがactiveであることを確認する。
+9. CloudTrailイベント履歴でCreateRouteを検索する。
+10. requestParameters.routeTableId、destinationCidrBlock、gatewayIdがテスト値と一致することを確認する。
+11. CloudWatch Logsで同じCreateRouteイベントを確認する。
+12. Metricにデータポイントが作成されたことを確認する。
+13. 4.13 AlarmがALARMへ遷移したことをAlarm履歴で確認する。
+14. SNS、メール、Teams、監視基盤の通知を確認する。
+
+任意のAssociationイベント確認:
+1. テスト専用Route Tableの「サブネットの関連付け」タブを開く。
+2. 「サブネットの関連付けを編集」を選択する。
+3. テスト専用Subnetだけを選択して保存する。
+4. AssociateRouteTableをCloudTrailで確認する。
+5. 確認後、テスト専用Subnetの明示的関連付けを解除し、DisassociateRouteTableを確認する。
+6. テスト専用SubnetがテストVPCのMain Route Tableへ戻ったことを確認する。
+
+Route Table切り戻し:
+1. テスト専用Route Tableの「ルート」タブで「ルートを編集」を選択する。
+2. 198.51.100.0/24のテスト用Routeだけを削除し、変更を保存する。
+3. Local Routeだけになったことを確認する。
+4. 明示的なSubnet associationが0であることを確認する。
+5. テスト専用Route Tableを削除する。
+6. DeleteRouteとDeleteRouteTableも監視対象であるため、発生した通知をテスト通知として記録する。
+
+絶対に行わない操作:
+既存Route Tableへの0.0.0.0/0追加。
+既存RouteのReplaceRoute。
+業務SubnetへのテストRoute Table関連付け。
+Direct Connect、Transit Gateway、NAT Gateway、VPC Endpoint、VPNをTargetにしたテストRoute追加。
+
+4.10 Security Group変更監視の代表実イベント:
+1. VPCコンソールの「セキュリティグループ」を開く。
+2. 「セキュリティグループを作成」を選択する。
+3. NameとDescriptionに共通命名例のSecurity Group名、VPCにテスト専用VPCを指定する。
+4. Inbound ruleなしで作成する。
+5. 作成したSecurity GroupがEC2、ENI、Load Balancerへ関連付いていないことを確認する。
+6. 「インバウンドルールを編集」を選択し、Custom TCP、Port 65535、Source 192.0.2.0/24を追加する。
+7. 保存し、AuthorizeSecurityGroupIngressをCloudTrailで確認する。
+8. CloudWatch Logs、Metric、4.10 Alarm、通知の順で確認する。
+9. 追加したInbound ruleだけを削除し、RevokeSecurityGroupIngressを確認する。
+10. 関連リソースが0であることを再確認し、テスト専用Security Groupを削除する。
+
+4.11 NACL変更監視の代表実イベント:
+1. VPCコンソールの「ネットワークACL」を開く。
+2. 「ネットワークACLを作成」を選択する。
+3. Nameに共通命名例のNetwork ACL名、VPCにテスト専用VPCを指定して作成する。
+4. 「サブネットの関連付け」が0であることを確認する。
+5. 「インバウンドルール」から「インバウンドルールを編集」を選択する。
+6. Rule number 200、Type Custom TCP、Protocol TCP、Port 65535、Source 192.0.2.0/24、Allowを追加する。
+7. 保存し、CreateNetworkAclEntryをCloudTrailで確認する。
+8. CloudWatch Logs、Metric、4.11 Alarm、通知の順で確認する。
+9. Rule number 200だけを削除し、DeleteNetworkAclEntryを確認する。
+10. Subnet associationが0であることを再確認し、テスト専用Network ACLを削除する。
+
+ネットワーク系テスト基盤の削除順序:
+1. Security GroupのテストRuleを削除し、Security Groupを削除する。
+2. Network ACLのテストEntryを削除し、Network ACLを削除する。
+3. Route TableのテストRouteを削除する。
+4. テストSubnetとのRoute Table associationを解除する。
+5. テスト専用Route Tableを削除する。
+6. テスト専用Subnetを削除する。
+7. テスト専用Internet GatewayをテストVPCからデタッチする。
+8. テスト専用Internet Gatewayを削除する。
+9. テスト専用VPCの依存リソースが、Main Route Table、Default NACL、Default Security Groupだけであることを確認する。
+10. テスト専用VPCを削除する。
+11. VPC、Subnet、Internet Gateway、Route Table、Security Group、Network ACLの各一覧でテスト用リソースが残っていないことを確認する。
+12. 削除操作により発生したAlarm通知を異常通知と誤認しないよう、変更申請番号と削除時刻を通知確認者へ連絡する。
+
+4.15 AWS Organizations変更監視の実イベント:
+実施可能な環境:
+Organizations管理アカウントとして分離された専用サンドボックスだけとする。
+業務Organizationsの管理アカウント、A-gate管理組織、メンバーアカウントでは実施しない。
+
+例外的に実施する場合の手順:
+1. Organizationsコンソールを管理アカウントで開く。
+2. 変更承認で指定された親OUまたはRootを確認する。
+3. 「AWSアカウント」画面で親を選択し、「アクション」から「新しい組織単位を作成」を選択する。
+4. OU名を<システム略称>-alarm-test-ou-<YYYYMMDD>とする。
+5. OUを作成し、CreateOrganizationalUnitをCloudTrailで確認する。
+6. CloudWatch Logs、Metric、4.15 Alarm、通知の順で確認する。
+7. テストOUにAccount、子OU、SCP、Tag Policy、Backup Policyなどを一切関連付けていないことを確認する。
+8. 空のテストOUを削除し、DeleteOrganizationalUnitをCloudTrailで確認する。
+9. Organizationsの構成、Account所属、Policy attachmentに変更がないことを確認する。
+
+中止条件:
+管理アカウントではない。
+空のOU作成がOrganizations設計またはA-gate統制で禁止されている。
+対象CloudTrailがOrganizationsのグローバルサービスイベントをCloudWatch Logsへ配信していない。
+OU作成時にPolicy attachmentまたはAccount移動が必要になる。
 
 証跡名:
 01_危険要件_対象Alarm一覧_202608XX.png
@@ -375,6 +814,36 @@ Route Table変更は通信経路、外部接続、閉域接続に影響する。
 23_4.13_テスト用RouteTable作成削除確認_202608XX.png
 24_危険要件_未実施理由記録_202608XX.png
 25_危険要件_テスト結果一覧_202608XX.png
+26_4.4_テスト用IAMPolicy詳細_202608XX.png
+27_4.4_CloudTrail_CreatePolicy_202608XX.png
+28_4.4_Alarm通知受信_202608XX.png
+29_4.4_テスト用IAMPolicy削除後_202608XX.png
+30_4.5_Trail変更前設定_202608XX.png
+31_4.5_CloudTrail_UpdateTrail_202608XX.png
+32_4.5_Alarm通知受信_202608XX.png
+33_4.5_Trail変更後設定_202608XX.png
+34_4.8_テスト用BucketPolicy設定_202608XX.png
+35_4.8_CloudTrail_PutBucketPolicy_202608XX.png
+36_4.8_Alarm通知受信_202608XX.png
+37_4.8_テスト用Bucket削除後_202608XX.png
+38_4.9_テスト用ConfigRule詳細_202608XX.png
+39_4.9_CloudTrail_PutConfigRule_202608XX.png
+40_4.9_Alarm通知受信_202608XX.png
+41_4.9_テスト用ConfigRule削除後_202608XX.png
+42_4.14_テスト用VPC詳細_202608XX.png
+43_4.14_CloudTrail_CreateVpc_Alarm通知_202608XX.png
+44_4.12_テスト用InternetGateway詳細_202608XX.png
+45_4.12_CloudTrail_AttachInternetGateway_Alarm通知_202608XX.png
+46_4.13_テスト用RouteTable_Route設定_202608XX.png
+47_4.13_CloudTrail_CreateRoute_Alarm通知_202608XX.png
+48_4.10_テスト用SecurityGroup_Rule設定_202608XX.png
+49_4.10_CloudTrail_AuthorizeSecurityGroupIngress_Alarm通知_202608XX.png
+50_4.11_テスト用NACL_Entry設定_202608XX.png
+51_4.11_CloudTrail_CreateNetworkAclEntry_Alarm通知_202608XX.png
+52_4.10から4.14_テスト用ネットワークリソース削除後_202608XX.png
+53_4.15_テスト用OU詳細_202608XX.png
+54_4.15_CloudTrail_CreateOrganizationalUnit_Alarm通知_202608XX.png
+55_4.15_テスト用OU削除後_202608XX.png
 
 未実施理由の記録例:
 業務リソースへの影響があるため実イベント未実施。通知到達は手動ALARM遷移で確認。検知条件はMetric Filter Pattern Testで確認。
@@ -403,6 +872,9 @@ https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/alarm-actio
 Alarm変更時の通知、状態変更、EventBridge連携に関する説明が記載されている。
 https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/Acting_Alarm_Changes.html
 
+CloudWatch Alarmで欠落データをnotBreachingとして扱う場合、欠落データポイントがしきい値を超過していないものとして評価される旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/monitoring/alarms-and-missing-data.html
+
 方式B Metric Filter Pattern Test:
 CloudWatch LogsのMetric Filter作成手順には、Test Pattern欄へログイベントを入力してFilter Patternをテストできる旨が記載されている。
 https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/CreateMetricFilterProcedure.html
@@ -429,6 +901,9 @@ https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/view-cloudtrail
 CloudTrailコンソールで最近の管理イベントを確認し、フィルタリングや詳細表示ができる旨が記載されている。
 https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/view-cloudtrail-events-console.html
 
+IAMなどのグローバルサービスイベントは、グローバルサービスイベントを含むTrailへ配信され、IAM、AWS STS、CloudFrontのイベントはus-east-1へ記録される旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/cloudtrail-concepts.html
+
 方式D テスト専用リソースでの実イベント確認:
 CloudTrailがAPIやコンソール操作をイベントとして記録する仕組みに基づき、承認済みのテスト専用リソースで実APIイベントを発生させた場合は、CloudTrailイベントとして確認できる。
 https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/cloudtrail-events.html
@@ -441,10 +916,83 @@ ScheduleKeyDeletion APIはKMSキー削除をスケジュールし、待機期間
 https://docs.aws.amazon.com/kms/latest/APIReference/API_ScheduleKeyDeletion.html
 
 KMSキー削除のスケジュールとキャンセル手順、削除操作の危険性、CloudTrailログへの記録について記載されている。
-https://docs.aws.amazon.com/kms/latest/developerguide/deleting-keys-scheduling-key-deletion.html
+https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/deleting-keys-scheduling-key-deletion.html
+
+KMSキーの削除予約をキャンセルすると、キー状態がPending deletionからDisabledへ変わる旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/deleting-keys-cancelling-key-deletion.html
 
 KMSキーの有効化、無効化に関する手順が記載されている。
 https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/enabling-keys.html
+
+4.4 IAMポリシー変更:
+IAMコンソールでカスタマー管理ポリシーを作成する手順が記載されている。
+https://docs.aws.amazon.com/ja_jp/IAM/latest/UserGuide/access_policies_create-console.html
+
+IAMコンソールでカスタマー管理ポリシーを削除する手順が記載されている。
+https://docs.aws.amazon.com/ja_jp/IAM/latest/UserGuide/access_policies_manage-delete-console.html
+
+4.5 CloudTrail設定変更:
+CloudTrailコンソールで証跡を作成、更新、削除でき、証跡作成時にS3へのログ記録が開始される旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/cloudtrail-create-and-update-a-trail-by-using-the-console.html
+
+CloudTrailコンソールで既存Trailを更新する手順と、CloudWatch Logs、KMS、ログファイル検証などの変更項目が記載されている。
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/cloudtrail-update-a-trail-console.html
+
+4.8 S3バケットポリシー変更:
+S3コンソールでBucket Policyを追加または編集する手順が記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/add-bucket-policy.html
+
+テスト専用Bucketを削除する手順と、Bucket削除時の注意事項が記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/delete-bucket.html
+
+4.9 AWS Config変更:
+AWS ConfigコンソールでManaged Ruleを追加し、Rule名、Scope、Parametersを設定する手順が記載されている。
+https://docs.aws.amazon.com/ja_jp/config/latest/developerguide/evaluate-config_add-rules.html
+
+required-tagsの対象Resource typeと入力Parameterが記載されている。
+https://docs.aws.amazon.com/ja_jp/config/latest/developerguide/required-tags.html
+
+4.10 Security Group変更:
+Security Groupの作成、Rule設定、削除に関する手順と、関連リソースへRule変更が適用される旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/vpc-security-groups.html
+
+Security Group Ruleの追加、更新、削除時の動作が記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/security-group-rules.html
+
+4.11 NACL変更:
+Network ACLを作成し、Ruleを追加し、Subnetへ関連付ける手順が記載されている。本手順では業務影響を避けるためSubnet関連付けを行わない。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/create-network-acl.html
+
+Network ACL Ruleの評価順序と、関連SubnetへRule変更が反映される旨が記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/nacl-rules.html
+
+4.12 Network Gateway変更:
+Internet GatewayをVPCへアタッチしてRouteを設定する必要があることが記載されている。本手順ではテスト専用VPCだけへアタッチする。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/VPC_Internet_Gateway.html
+
+Internet GatewayをVPCからデタッチし、削除するコンソール手順が記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/delete-igw.html
+
+4.13 Route Table変更:
+追加Route Tableの作成、Routeの追加、関連付けなどの設定手順が記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/VPC_Route_Tables.html
+
+Main Route Table、Custom Route Table、Destination、Targetの概念が記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/RouteTables.html
+
+4.14 VPC変更:
+VPCのみを作成する手順と、VPC、Subnet、Route Table、Internet Gatewayなどを作成する方法が記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/create-vpc.html
+
+VPC削除前に依存リソースを削除する必要がある旨と削除手順が記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/delete-vpc.html
+
+4.15 AWS Organizations変更:
+OrganizationsのチュートリアルにOUを作成するコンソール手順が記載されている。
+https://docs.aws.amazon.com/ja_jp/organizations/latest/userguide/orgs_tutorials_basic.html
+
+空のOUを削除する手順と、OU削除に必要な条件が記載されている。
+https://docs.aws.amazon.com/ja_jp/organizations/latest/userguide/delete-ou.html
 
 擬似ログ投入の技術的根拠:
 CloudWatch LogsのPutLogEvents APIには、指定したLog Streamへログイベントをアップロードできる旨が記載されている。
