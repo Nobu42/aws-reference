@@ -1,9 +1,14 @@
-危険度高め要件 CloudWatch Alarmテスト手順
+要件3番台設定および危険度高め要件 CloudWatch Alarmテスト手順
 
 目的:
+要件3.4から3.7について、検証環境で実施する恒久設定、事前準備、影響確認、配信確認、切り戻し、証跡を整理する。
 危険度の高い監視要件について、実業務リソースへ影響する操作を避けながら、CloudWatch Alarmの通知到達、Metric Filterの検知条件、CloudTrailイベントの確認方法を整理する。
 
 対象:
+3.4 CloudTrailログ保存先S3のServer Access Logging
+3.5 CloudTrailログのカスタマー管理KMSキー暗号化
+3.6 カスタマー管理KMSキーの自動ローテーション
+3.7 全対象VPCのVPC Flow Logs
 4.2 MFAなしコンソールログイン監視
 4.3 rootアカウント使用監視
 4.5 CloudTrail設定変更監視
@@ -27,6 +32,7 @@
 停止、削除予約、無効化、通信経路変更など危険を伴う実イベントテストは、承認済みの検証環境だけで行う。
 検証環境でも、業務検証に使用中のリソースではなく、既存処理から分離したテスト専用リソースを使用する。
 テスト用変更の戻しまたは削除は、Alarm表示だけで判断せず、通知到達と必要証跡の取得を完了した後に行う。
+この基本方針の「テスト専用リソース」は、主に4番台のアラーム発報試験へ適用する。3番台の恒久是正では、承認済みの対象Trail、Source Bucket、CMK、VPCへ正式設定を反映する。
 
 実施環境の定義:
 本手順でいう検証環境は、実際のAWSアカウント上に存在する承認済みの開発・検証用アカウントまたは検証用領域を指す。
@@ -65,11 +71,13 @@ CloudTrailからCloudWatch Logsへの配信、Metric Filter、Alarm評価には�
 テスト用IAM PolicyをUser、Role、Groupへ誤ってアタッチすると権限が変化する。テスト用PolicyはどのPrincipalにもアタッチしない。
 
 5. KMS影響
-業務用KMS Keyを無効化または削除予約すると、暗号化、復号、CloudTrailログ配信、アプリケーション処理が失敗する可能性がある。テスト専用Keyだけを使用する。
+業務用KMS Keyを無効化または削除予約すると、暗号化、復号、CloudTrailログ配信、アプリケーション処理が失敗する可能性がある。4.7の発報試験ではテスト専用Keyだけを使用する。
+3.5および3.6の恒久是正では、承認済みのCloudTrail用CMKへ暗号化と自動ローテーションを設定する。対象CMKをテスト目的で無効化または削除予約しない。
 KMS Keyは即時削除できない。ScheduleKeyDeletionには7日から30日の待機期間があり、CancelKeyDeletion後のKeyはDisabledのままとなるため、継続利用する場合はEnableKeyが必要となる。
 
 6. S3影響
-業務BucketのBucket Policyを誤って変更するとアクセス拒否または意図しない公開につながる。空のテスト専用Bucketだけを使用し、Block Public Accessを維持する。
+業務BucketのBucket Policyを誤って変更するとアクセス拒否または意図しない公開につながる。4.8の発報試験では空のテスト専用Bucketだけを使用し、Block Public Accessを維持する。
+3.4の恒久是正では、承認済みのCloudTrailログ保存先Source BucketとServer Access Log用Target Bucketを使用する。Target Bucket Policyの変更前後差分を確認する。
 
 7. ネットワーク影響
 Route Table、Security Group、NACL、Internet Gateway、VPCを既存SubnetやENIへ誤って関連付けると、通信断または意図しない通信許可が発生する。未関連付けのテスト専用リソースだけを使用する。
@@ -81,7 +89,7 @@ A-gate、SCP、AWS Config Rule、Control Tower相当の統制により操作が�
 CloudWatch Logs、カスタムメトリクス、Alarm、S3、KMS Key、Config Ruleなどに少額の料金が発生する場合がある。VPC、Internet Gateway、Route Tableなどのクォータも一時的に消費する。
 削除漏れ、タグ漏れ、依存関係の残存があると、後続試験やリソース管理へ影響する。
 
-テスト用設定およびリソースの削除開始条件:
+4番台テスト用設定およびリソースの削除開始条件:
 次の確認がすべて完了してから、テスト用設定の戻しまたはリソース削除を開始する。
 1. CloudTrailで対象eventName、eventTime、userIdentity、対象リソースIDを確認した。
 2. CloudWatch Logsの連携先Log Groupで同一イベントを確認した。
@@ -90,7 +98,7 @@ CloudWatch Logs、カスタムメトリクス、Alarm、S3、KMS Key、Config Ru
 5. SNS、メール、Teams、A-gateまたは監視基盤で通知到達を確認した。
 6. 上記の必要証跡を保存した。
 
-削除および切り戻し時の注意:
+4番台テスト用設定の削除および切り戻し時の注意:
 1. AlarmがALARMになったことだけを理由に、ただちにテスト用設定を削除しない。通知先への到達と証跡保存を先に完了する。
 2. 通知確認後は、作業計画で定めた順序に従い、テスト目的だけで追加した設定またはリソースを速やかに戻し、または削除する。
 3. DeletePolicy、DeleteTrail、DeleteBucketPolicy、DeleteConfigRule、DeleteRouteなど、削除操作自体がMetric Filterに一致する場合は、追加通知を正常なテスト結果として記録する。
@@ -99,6 +107,584 @@ CloudWatch Logs、カスタムメトリクス、Alarm、S3、KMS Key、Config Ru
 6. KMS Keyは即時削除できない。ScheduleKeyDeletionをCancelKeyDeletionした後、継続利用しない場合は、廃止承認に従って再度削除予約し、削除予定日と確認担当者を管理する。
 7. 共用のテストVPCを複数要件で使用する場合は、各要件固有のRuleやRouteだけを都度削除し、VPC本体は全ネットワーク要件の確認完了後に依存リソースとともに削除する。
 8. 削除後は、対象一覧、関連付け、アタッチメント、Alarm状態、通知履歴を確認し、テスト用リソースが残っていないことを証跡として保存する。
+
+要件3番台の作業方針:
+要件3.4から3.7は、アラーム発報だけを目的とする一時変更ではなく、監査指摘を是正するための設定変更である。
+検証環境へ正式に反映したServer Access Logging、CloudTrail SSE-KMS、CMK自動ローテーション、VPC Flow Logsは、テスト完了後も原則として残す。
+作業後に削除するのは、発報確認や手順検証だけを目的として作成したテスト専用Bucket、KMS Key、Log Group、IAM Roleなどに限定する。
+恒久設定を切り戻す場合は、障害、配信失敗、権限不備などの切り戻し条件に該当し、承認者が切り戻しを判断した場合だけとする。
+
+要件3番台の実施順序:
+1. 対象アカウント、対象環境、対象リージョン、対象リソース一覧を確定する。
+2. A-gate、SCP、Permission Boundary、既存基盤統制と作業分担を確認する。
+3. 変更前設定と既存Policyを証跡保存する。
+4. 3.4のServer Access Logging送信先を確定する。
+5. 3.5のCloudTrail暗号化用CMKを確定または作成する。
+6. 3.6の自動ローテーションを同じCMKで有効化する。
+7. 3.5の対象TrailへCMKを設定し、新規CloudTrailログの配信と暗号化を確認する。
+8. 3.4のServer Access Loggingを有効化し、送信先への配信を確認する。
+9. 3.7の対象VPCごとにVPC Flow Logsを作成し、送信先への配信を確認する。
+10. 変更後設定、配信結果、エラーの有無を証跡保存する。
+
+要件3番台の共通事前準備:
+1. 変更申請番号、承認者、実施者、確認者、実施日時、切り戻し判断者を確認する。
+2. 検証、Prod、OPERのどの環境が対象かを確認する。
+3. 対象AWSアカウントIDと対象リージョンを一覧化する。
+4. 対象Trail名、Trail ARN、Home Region、S3保存先Bucket、Prefixを確認する。
+5. 対象S3 Bucket、対象KMS Key、対象VPCをリソースIDで一覧化する。
+6. 既存のログ集約Bucket、KMS Key、CloudWatch Logs Log Group、VPC Flow Logs用IAM Roleを再利用できるか確認する。
+7. 新規リソースが必要な場合は、命名規則、タグ、管理部署、費用配賦、保持期間、廃止方法を確定する。
+8. パラメータシート、CloudTrail設計書、S3設計書、KMS設計書、VPC構成図、Flow Logs設計書を準備する。
+9. 変更前のBucket Policy、KMS Key Policy、Trail設定、Flow Log一覧を保存する。
+10. 設定変更後のログ到達確認に必要な待機時間を作業計画へ組み込む。
+11. A-gateまたは基盤側が設定主体の場合は、業務側が直接変更せず、設定値と確認観点を依頼票へ記載する。
+
+要件3番台で確認するパラメータ:
+
+3.4 Server Access Logging:
+Source Bucket名
+Source Bucket ARN
+Source Bucketリージョン
+Server Access Logging有効または無効
+Target Bucket名
+Target Bucket ARN
+Target Prefix
+Log object key format
+Target Bucket暗号化方式
+Target Bucket Object Ownership
+Target Bucket Public Access Block
+Target Bucket Policy
+Lifecycle Rule
+保持期間
+タグ
+
+3.5 CloudTrail SSE-KMS:
+Trail名
+Trail ARN
+Home Region
+Organization TrailまたはAccount Trail
+Multi-Region設定
+CloudTrailログ保存先Bucket
+S3 Bucket Key有効または無効
+現在のKMS Key設定
+使用予定KMS Key ARN
+KMS Alias
+Key spec
+Key usage
+Key origin
+Key state
+Multi-Region KeyまたはSingle-Region Key
+Key administrators
+Key usersおよびログ参照Role
+Key Policy
+Log file validation
+タグ
+
+3.6 CMK自動ローテーション:
+対象KMS Key ARN
+KMS Alias
+Automatic key rotation有効または無効
+Rotation period
+Next rotation date
+Key state
+Key origin
+
+3.7 VPC Flow Logs:
+対象環境
+対象リージョン
+対象VPC ID
+対象VPC名
+既存Flow Log ID
+Traffic type
+Maximum aggregation interval
+Destination type
+CloudWatch Logs Log GroupまたはS3 Bucket ARN
+VPC Flow Logs配信用IAM Role ARN
+Log format
+追加メタデータ
+Log Group retention
+Log GroupまたはS3のKMS設定
+タグ
+
+要件3番台の共通権限確認:
+参照権限と変更権限の両方が必要となる。Webコンソールで画面が表示できても、保存操作だけ明示的に拒否される場合がある。
+
+3.4で必要になり得る権限:
+s3:ListAllMyBuckets
+s3:GetBucketLocation
+s3:GetBucketLogging
+s3:PutBucketLogging
+s3:GetBucketPolicy
+s3:PutBucketPolicy
+s3:GetBucketOwnershipControls
+s3:GetEncryptionConfiguration
+s3:GetBucketPublicAccessBlock
+s3:GetBucketVersioning
+s3:GetBucketTagging
+s3:GetLifecycleConfiguration
+s3:CreateBucket。Target Bucketを新規作成する場合だけ必要
+s3:PutBucketOwnershipControls。新規Target BucketのObject Ownership設定時だけ必要
+s3:PutBucketPublicAccessBlock。新規Target BucketのPublic Access Block設定時だけ必要
+s3:PutBucketVersioning。新規Target BucketのVersioning設定時だけ必要
+s3:PutEncryptionConfiguration。新規Target Bucketの設定時だけ必要
+s3:PutLifecycleConfiguration。Lifecycleを設定する場合だけ必要
+s3:PutBucketTagging。タグ設定時だけ必要
+
+3.5および3.6で必要になり得る権限:
+cloudtrail:DescribeTrails
+cloudtrail:GetTrail
+cloudtrail:GetTrailStatus
+cloudtrail:UpdateTrail
+kms:ListAliases
+kms:DescribeKey
+kms:GetKeyPolicy
+kms:GetKeyRotationStatus
+kms:CreateKey。新規CMK作成時だけ必要
+kms:CreateAlias。新規Alias作成時だけ必要
+kms:TagResource。新規CMKへタグを設定する場合だけ必要
+kms:PutKeyPolicy。Key Policy変更時だけ必要
+kms:EnableKeyRotation
+kms:DisableKeyRotation。切り戻し時だけ必要
+kms:Decrypt。新規CloudTrailログを読み取る確認者に必要
+s3:GetObject。新規CloudTrailログを読み取る確認者に必要
+
+3.7で必要になり得る権限:
+ec2:DescribeVpcs
+ec2:DescribeFlowLogs
+ec2:CreateFlowLogs
+ec2:DeleteFlowLogs。切り戻し時だけ必要
+ec2:CreateTags。Flow Log作成時にタグを設定する場合だけ必要
+ec2:DeleteTags。テスト専用Flow Logタグの切り戻し時だけ必要
+iam:GetRole
+iam:GetRolePolicy
+iam:GetPolicy
+iam:GetPolicyVersion
+iam:ListPolicies
+iam:PassRole。CloudWatch Logs配信用Roleを指定する場合に必要
+iam:CreateRole。配信用Roleを新規作成する場合だけ必要
+iam:CreatePolicy。配信用Managed Policyを新規作成する場合だけ必要
+iam:PutRolePolicy。新規RoleへInline Policyを設定する場合だけ必要
+iam:AttachRolePolicy。承認済みManaged Policyを使用する場合だけ必要
+iam:DetachRolePolicyおよびiam:DeletePolicy。テスト専用Managed Policyの切り戻し時だけ必要
+iam:UpdateAssumeRolePolicy。作成後に信頼ポリシーを配信元Flow Log ARNへ限定する場合だけ必要
+iam:TagRole。新規Roleへタグを設定する場合だけ必要
+iam:DeleteRolePolicyおよびiam:DeleteRole。テスト専用Roleの切り戻し時だけ必要
+logs:DescribeLogGroups
+logs:DescribeLogStreams
+logs:GetLogEvents
+logs:CreateLogGroup。新規Log Group作成時だけ必要
+logs:PutRetentionPolicy。保持期間設定時だけ必要
+logs:AssociateKmsKey。作成後のLog GroupへKMS Keyを関連付ける場合だけ必要
+logs:TagResource。新規Log Groupへタグを設定する場合だけ必要
+s3:GetBucketPolicy。S3配信先を使用する場合に必要
+s3:PutBucketPolicy。S3配信先Policyを自動更新または変更する場合に必要
+
+共通作業前確認 Webコンソール手順:
+1. AWS Management Consoleへログインする。
+2. 画面右上でアカウントIDとリージョンを確認する。
+3. CloudTrailコンソールを開く。
+4. 左メニューの「証跡」を開き、対象Trailを選択する。
+5. Trail名、Home Region、Multi-Region、Organization Trail、S3 Bucket、Prefix、KMS Key、Log file validationを確認する。
+6. CloudTrailの「証跡のステータス」を開き、Loggingが有効で、最新配信エラーがないことを確認する。
+7. S3コンソールでCloudTrailログ保存先Bucketを開き、リージョン、暗号化、Bucket Policy、Server Access Loggingを確認する。
+8. KMSコンソールで既存のCloudTrail用CMK候補を確認する。
+9. VPCコンソールで対象VPC一覧と既存Flow Logを確認する。
+10. 変更対象と変更しないリソースを作業記録へ記載する。
+
+3.4 CloudTrailログ保存先S3 Server Access Logging:
+
+目的:
+CloudTrailログ保存先のSource Bucketに対するアクセスを、別のS3 Target BucketへServer Access Logとして保存する。
+
+事前確認:
+1. Source Bucketが対象Trailのログ保存先と一致することを確認する。
+2. 既存のServer Access Logging用Target Bucketがあるか確認する。
+3. 既存Target Bucketを使用するか、新規作成するか承認を得る。
+4. 承認済みの既存Target Bucketが後続条件を満たす場合、新規Bucket作成は不要とする。
+5. Source BucketとTarget Bucketが同一AWSアカウントかつ同一リージョンであることを確認する。
+6. Target BucketをSource Bucket自身にしない。
+7. Target Bucket自身のServer Access Loggingを無効のままとする。
+8. Target BucketでObject Lockおよびデフォルト保持期間が設定されていないことを確認する。
+9. Target BucketでRequester Paysが無効であることを確認する。
+10. Target Bucketのデフォルト暗号化をSSE-S3とする。S3 Bucket宛てServer Access Log配信ではSSE-KMSを使用しない。
+11. Target BucketのObject OwnershipがBucket owner enforcedの場合、ACLではなくBucket Policyでログ配信を許可する。
+12. Target Prefix、Log object key format、Lifecycle、保持期間を確認する。
+13. 既存Bucket Policyを変更前証跡として保存する。
+
+既存Target Bucketを使用する場合:
+1. S3コンソールでTarget Bucketを開く。
+2. 「プロパティ」でAWSリージョン、デフォルト暗号化、Object Lock、Requester Paysを確認する。
+3. 「アクセス許可」でObject Ownership、Public Access Block、Bucket Policyを確認する。
+4. 「管理」でLifecycle Ruleを確認する。
+5. 他のSource Bucketも同じTarget Bucketを使用しているか確認する。
+6. Target Prefixが他環境または他Bucketと衝突しないことを確認する。
+
+新規Target Bucketを作成する場合:
+1. S3コンソールの「汎用バケット」から「バケットを作成」を選択する。
+2. 現場命名規則に沿ったBucket名を入力する。
+3. Source Bucketと同じAWSリージョンを選択する。
+4. Object Ownershipは「ACL無効 Bucket owner enforced」を選択する。
+5. Block Public Accessはすべて有効にする。
+6. Bucket Versioningはパラメータシートに従う。
+7. デフォルト暗号化はSSE-S3を選択する。
+8. Object Lockは有効化しない。
+9. 承認済みタグを設定して作成する。
+10. 「管理」タブで承認済みのLifecycle Ruleを設定する。
+11. 「アクセス許可」タブで作成後のBucket Policyを確認する。
+
+Target Bucket Policyの確認項目:
+Principalはlogging.s3.amazonaws.comとする。
+Actionはs3:PutObjectとする。
+Resourceはarn:aws:s3:::<TargetBucket>/<TargetPrefix>*とする。
+aws:SourceAccountはSource Bucket所有アカウントIDに限定する。
+aws:SourceArnはarn:aws:s3:::<SourceBucket>に限定する。
+既存Policy Statementを削除または上書きしない。
+S3コンソールからServer Access Loggingを有効化すると、Target Bucket Policyへログ配信許可が自動追加される。保存前後のPolicy差分を確認する。
+
+Server Access Logging有効化手順:
+1. S3コンソールでSource Bucketを開く。
+2. 「プロパティ」タブを開く。
+3. 「サーバーアクセスのログ記録」まで移動する。
+4. 変更前状態を証跡保存する。
+5. 「編集」を選択する。
+6. Server Access Loggingを「有効にする」へ変更する。
+7. 送信先は、承認済みのS3汎用Target Bucketを指定する。
+8. Target Prefixをパラメータシートどおりに入力する。
+9. Log object key formatをパラメータシートどおりに選択する。
+10. 保存前にSource Bucket、Target Bucket、Target Prefixを再確認する。
+11. 「変更の保存」を選択する。
+12. Source Bucketの「サーバーアクセスのログ記録」が有効になったことを確認する。
+13. Target Bucket Policyに必要なログ配信許可だけが追加されたことを確認する。
+
+配信確認手順:
+1. Source Bucketに対して、承認済みの読み取り操作を1回実施する。S3コンソールでSource Bucketの「オブジェクト」一覧を開いて更新する操作でよい。
+2. Target Bucketを開く。
+3. Target Prefix配下にログオブジェクトが作成されるまで待機する。
+4. ログオブジェクト名、更新時刻、サイズを確認する。
+5. 権限がある場合はログを開き、Source Bucketへのリクエストが記録されていることを確認する。
+6. 設定直後にログがない場合は失敗と断定しない。Server Access Logの配信には数時間かかる場合がある。
+7. 当日中に届かない場合は、配信待ちとして設定値と確認時刻を記録し、後続確認を設定する。
+
+3.4の影響:
+Source Bucketへの業務アクセスは変更しないが、Target Bucketへのログオブジェクト書き込みとS3保存量が増える。
+Target Bucket Policy変更により、設定を誤るとログ配信が拒否される。
+Target BucketをSource Bucket自身にするとログ配信が新たなアクセスログを生成し続けるため、使用しない。
+Server Access Logはベストエフォート配信であり、即時性および完全性を前提としない。
+
+3.4の切り戻し:
+1. 配信失敗または承認済み切り戻し条件を確認する。
+2. Source Bucketの「プロパティ」から「サーバーアクセスのログ記録」を編集する。
+3. 「無効にする」を選択して保存する。
+4. 無効化後の画面を証跡保存する。
+5. Target Bucket PolicyからStatementを削除する前に、他のSource Bucketが使用していないことを確認する。
+6. テスト専用Target Bucketを削除する場合は、遅延配信がないことを確認し、ログと証跡の保管判断後に空にして削除する。
+7. 恒久是正として設定したTarget BucketおよびServer Access Loggingは、テスト完了を理由に削除しない。
+
+3.4のトラブルシューティング:
+ログが届かない場合は、同一アカウント、同一リージョン、Target Prefix、Bucket Policy、SSE-S3、Object Lock、Requester Pays、Source Bucketへのアクセス発生、配信待ち時間を順に確認する。
+AccessDeniedの場合は、Bucket Policyのlogging.s3.amazonaws.com、s3:PutObject、aws:SourceAccount、aws:SourceArn、A-gateまたはSCPの明示的拒否を確認する。
+保存操作で既存Bucket Policyが意図せず変更される表示が出た場合は保存せず中止する。
+
+3.5 CloudTrailログのカスタマー管理KMSキー暗号化:
+
+目的:
+対象Trailが新たに配信するCloudTrailログファイルとダイジェストファイルを、承認済みのカスタマー管理対称KMS KeyでSSE-KMS暗号化する。
+
+事前確認:
+1. 既存のCloudTrail用CMKを再利用するか、新規CMKを作成するか確認する。
+2. KMS KeyとCloudTrailログ保存先S3 Bucketが同じAWSリージョンであることを確認する。
+3. KMS KeyがCustomer managed keyであることを確認する。
+4. Key specがSYMMETRIC_DEFAULT、Key usageがEncrypt and decryptであることを確認する。
+5. Key originがAWS_KMSであることを確認する。
+6. Key stateがEnabledであることを確認する。
+7. Trail ARN、Trail所有アカウント、Organization Trail管理アカウントを確認する。
+8. CloudTrailログを参照する運用Role、監査Role、ログ集約Roleを確認する。
+9. S3 Bucket Keyの有無を確認する。既存S3 BucketでS3 Bucket Keyを使用する場合は、CloudTrailに必要なkms:Decryptも確認する。
+10. 現在のTrail設定、KMS Key設定、Key Policyを証跡保存する。
+
+既存CMKを使用する場合:
+1. KMSコンソールで「カスタマー管理型のキー」を開く。
+2. パラメータシートのAliasまたはKey ARNで検索する。
+3. Key type、Key usage、Origin、Key state、Regionを確認する。
+4. 「キーポリシー」タブを開く。
+5. CloudTrail暗号化、CloudTrailによるKey参照、ログ参照者の復号許可があることを確認する。
+6. 既存Statementを変更する必要がある場合は、レビュー済みPolicyと完全一致することを確認する。
+
+新規CMKを作成する場合:
+1. KMSコンソールを対象リージョンで開く。
+2. 「カスタマー管理型のキー」から「キーの作成」を選択する。
+3. Key typeは「対称」を選択する。
+4. Key usageは「暗号化および復号化」を選択する。
+5. Single-RegionまたはMulti-Regionはパラメータシートに従う。要件がなければ勝手にMulti-Region Keyへ変更しない。
+6. 現場命名規則に沿ったAlias、Description、タグを入力する。
+7. Key administratorsを承認済みRoleに限定する。
+8. Key deletion権限を付与する管理者を承認済みRoleに限定する。
+9. Key usersへ、CloudTrailログ参照に必要な承認済みRoleだけを指定する。
+10. Keyを作成し、Key ARNとKey IDを証跡保存する。
+11. Key Policyをレビュー済みPolicyへ更新する。
+
+CloudTrail用Key Policyの必須確認項目:
+1. CloudTrailサービスプリンシパルcloudtrail.amazonaws.comへkms:GenerateDataKey*を許可する。
+2. aws:SourceArnを対象Trail ARNへ限定する。
+3. kms:EncryptionContext:aws:cloudtrail:arnを対象アカウントのTrail ARNへ限定する。
+4. CloudTrailがKeyのプロパティを確認するためのkms:DescribeKeyを許可する。
+5. CloudTrailログを読む承認済みRoleへkms:Decryptを許可する。
+6. Organization Trailまたはクロスアカウントログ集約の場合は、管理アカウント、メンバーアカウント、ログ参照Roleの設計を確認する。
+7. 既存の管理者Statement、Root委任、ログ参照者Statementを削除しない。
+8. Principal、Account ID、Region、Trail名にプレースホルダーが残っていないことを確認する。
+
+CloudTrail SSE-KMS有効化手順:
+1. CloudTrailコンソールを開く。
+2. 対象TrailのHome Regionへ切り替える。
+3. 左メニューの「証跡」を開く。
+4. 対象Trailを選択する。
+5. Trail詳細、S3 Bucket、最新配信状態を変更前証跡として保存する。
+6. 「編集」を選択する。
+7. 「ログファイルのSSE-KMS暗号化」を有効にする。
+8. 「既存」を選択し、承認済みKMS Key AliasまたはKey ARNを指定する。
+9. 表示されたKey ARNがパラメータシートと一致することを確認する。
+10. S3 Bucket、Prefix、Multi-Region、Log file validation、Event Selectorなど、今回変更しない項目が変更前と同じであることを確認する。
+11. 「変更の保存」を選択する。
+12. Trail詳細でKMS Key IDまたはKMS Key ARNが設定されたことを確認する。
+
+3.5の配信および暗号化確認:
+1. CloudTrailの対象Trailを開く。
+2. 「証跡のステータス」でLoggingが有効であることを確認する。
+3. Latest delivery errorまたは配信エラーがないことを確認する。
+4. 新しい管理イベントが発生し、CloudTrailログがS3へ配信されるまで待機する。
+5. S3コンソールでCloudTrailログ保存先BucketとPrefixを開く。
+6. 変更後に作成された新規CloudTrailログオブジェクトを選択する。
+7. 「プロパティ」でServer-side encryptionがAWS-KMSであることを確認する。
+8. KMS Key ARNまたはKey IDが3.5の対象CMKと一致することを確認する。
+9. 承認済みログ参照Roleで新規ログを開けることを確認する。
+10. CloudTrailイベント履歴でUpdateTrailを確認する。
+11. KMS関連イベントでGenerateDataKeyが記録されていることを必要に応じて確認する。
+
+3.5の影響:
+Key Policy不備、Key無効化、Key削除予約、Region不一致があるとCloudTrailログをS3へ配信できない可能性がある。
+S3読取権限だけではログを読めず、ログ参照者にkms:Decryptが必要となる。
+設定変更前にSSE-S3で保存された既存ログは、自動的にSSE-KMSへ再暗号化されない。
+設定後の新規ログだけが指定CMKで暗号化される。
+KMS Key ARNまたはAliasを参照するアプリケーション変更は不要だが、ログ読取Roleの権限確認が必要となる。
+KMS Key保有料金とログ参照時のKMS利用料金が発生する。
+
+3.5の切り戻し:
+1. 配信エラー、UpdateTrail失敗、ログ参照不可などの切り戻し条件を確認する。
+2. 変更後にSSE-KMSで保存されたログオブジェクトの有無を確認する。
+3. CloudTrailの対象Trailを編集し、変更前のKMS設定へ戻す。
+4. KMS未設定が変更前である場合は、承認済み手順に従いSSE-KMS設定を解除する。
+5. TrailのS3 Bucket、Prefix、Event Selectorなど他の設定が変わっていないことを確認する。
+6. Trail statusでログ配信が復旧したことを確認する。
+7. Key Policyを変更した場合は、保存済みの変更前Policyへ戻す。ただし新規SSE-KMSログの復号に必要なStatementを削除しない。
+8. SSE-KMSで保存されたログが1件でも存在する場合、CMKを無効化または削除予約しない。
+9. 恒久是正用CMKは、テスト完了を理由に削除しない。
+
+3.5のトラブルシューティング:
+Trail保存時にAccessDeniedが出る場合は、KMS KeyのRegion、Key state、kms:GenerateDataKey*、kms:DescribeKey、aws:SourceArn、Encryption Context、S3 Bucket Key、A-gateまたはSCPを確認する。
+Trail statusに配信エラーが出る場合は、KMS Key PolicyとS3 Bucket Policyの両方を確認する。
+ログをダウンロードできない場合は、S3読取権限とkms:Decrypt権限を分けて確認する。
+既存Key Policyを上書きする必要がある表示が出た場合は保存せず中止する。
+
+3.6 カスタマー管理KMSキーの自動ローテーション:
+
+目的:
+3.5でCloudTrailログ暗号化に使用するカスタマー管理対称KMS Keyの自動ローテーションを有効にする。
+
+事前確認:
+1. 3.5の対象CMKと同じKey ARNであることを確認する。
+2. Customer managed keyであることを確認する。
+3. 対称暗号化Keyであることを確認する。
+4. Key originがAWS_KMSであることを確認する。
+5. Key stateがEnabledであることを確認する。
+6. Pending deletionではないことを確認する。
+7. 監査要件のローテーション周期が1年であることを確認する。
+8. 変更前のAutomatic key rotation、Rotation period、Next rotation dateを証跡保存する。
+
+自動ローテーション有効化手順:
+1. KMSコンソールを対象リージョンで開く。
+2. 左メニューの「カスタマー管理型のキー」を開く。
+3. 対象AliasまたはKey IDを選択する。
+4. 「キーローテーション」タブを開く。
+5. 対象Key ARNが3.5のCMKと一致することを再確認する。
+6. 「自動キーローテーション」の「編集」を選択する。
+7. Key rotationを「有効」にする。
+8. Rotation periodは監査要件およびパラメータシートに従う。1年要件では365日とする。
+9. 「保存」を選択する。
+10. Automatic key rotationが有効であることを確認する。
+11. Rotation periodが365日であることを確認する。
+12. Next rotation dateが表示されていることを確認する。
+
+3.6のテストおよび確認:
+自動ローテーション設定が有効であること、Rotation period、Next rotation dateを確認すれば設定試験は成立する。
+1年後の実ローテーションを待つ必要はない。
+監査要件3.6の確認だけを目的として、オンデマンドローテーションを実行しない。
+CloudTrailイベント履歴でEnableKeyRotationを確認する。
+自動ローテーション後もKey ID、Key ARN、Alias、Key Policy、アクセス許可は変わらない。
+
+3.6の影響:
+自動ローテーションはKey materialを更新するが、既存暗号文の復号はAWS KMSが適切な旧Key materialを選択する。
+Key IDおよびKey ARNは変わらないため、CloudTrail側のKMS設定変更は不要となる。
+KeyがDisabledまたはPending deletionの場合はローテーションされない。
+KMS料金への影響は最新料金表と現場の費用見積で確認する。
+
+3.6の切り戻し:
+1. 誤ったKeyまたは誤ったRotation periodへ設定した場合に限り切り戻す。
+2. 対象CMKの「キーローテーション」タブを開く。
+3. Automatic key rotationを変更前設定へ戻す。
+4. 変更後状態を証跡保存する。
+5. Rotationを無効化しても、既に生成されたKey materialは削除されない。
+6. 恒久是正として有効化した自動ローテーションは、テスト完了を理由に無効化しない。
+
+3.6のトラブルシューティング:
+「キーローテーション」タブが表示されない場合は、Key type、Key usage、Origin、Custom key store、Key stateを確認する。
+Multi-Region KeyではPrimary Key側の設定か確認する。
+保存時にAccessDeniedが出る場合は、kms:EnableKeyRotation、Key Policy、Permission Boundary、A-gate、SCPを確認する。
+
+3.7 全対象VPCのVPC Flow Logs:
+
+目的:
+承認済み対象VPCのネットワークインターフェイスを通過するIPトラフィックのメタデータを、CloudWatch LogsまたはS3へ配信する。
+
+対象範囲の事前確認:
+1. Prod、OPER、検証の対象VPC一覧をVPC IDで確定する。
+2. 削除予定VPC、未使用VPC、別システムVPCを除外する場合は承認根拠を記録する。
+3. 既存Flow LogがVPC、Subnet、ENIのどの単位で作成されているか確認する。
+4. 要件が「すべてのVPC」であるため、SubnetまたはENI単位のFlow Logだけで全ENIを網羅できるか確認する。
+5. 同じVPCへ同等のFlow Logを重複作成しない。
+6. 送信先をCloudWatch Logs、S3、Data Firehoseのどれにするか確認する。本手順ではパラメータシートのCloudWatch LogsまたはS3を使用する。
+7. Traffic type、Maximum aggregation interval、Log format、保持期間、KMS、タグを確認する。
+
+CloudWatch Logs送信先を使用する場合の事前準備:
+1. 既存Log Groupを使用するか、新規作成するか確認する。
+2. Log Group名、リージョン、Retention、KMS Key、Log class、タグを確認する。
+3. VPC Flow Logs配信用IAM Role ARNを確認する。
+4. IAM Roleの信頼ポリシーでvpc-flow-logs.amazonaws.comを許可していることを確認する。
+5. IAM Roleにlogs:CreateLogGroup、logs:CreateLogStream、logs:PutLogEvents、logs:DescribeLogGroups、logs:DescribeLogStreamsがあることを確認する。
+6. 作業者に対象IAM Roleへのiam:PassRoleがあることを確認する。
+
+CloudWatch Logs配信用IAM Roleを新規作成する場合:
+1. IAMコンソールを開く。
+2. 左メニューの「ポリシー」から「ポリシーを作成」を選択する。
+3. JSONエディタへ、logs:CreateLogGroup、logs:CreateLogStream、logs:PutLogEvents、logs:DescribeLogGroups、logs:DescribeLogStreamsをAllowする承認済みPolicyを入力する。
+4. Resource範囲は承認済み設計値に従う。AWS公式例のResourceは*だが、現場設計で対象Log Group ARNへ限定できるActionは限定する。
+5. Policy名、Description、タグを現場命名規則どおりに設定し、Policyを作成する。
+6. 左メニューの「ロール」から「ロールを作成」を選択する。
+7. Trusted entity typeで「カスタム信頼ポリシー」を選択する。
+8. Principal Serviceをvpc-flow-logs.amazonaws.com、Actionをsts:AssumeRoleとする。
+9. 混乱した使節対策としてaws:SourceAccountを対象アカウントIDへ限定する。
+10. aws:SourceArnはarn:aws:ec2:<Region>:<AccountId>:vpc-flow-log/*へ限定する。Flow Log ID確定後に個別ARNへ限定する設計の場合は、作成後に信頼ポリシーを更新する。
+11. 手順3から5で作成したPolicyを選択する。
+12. Role名、Description、タグを現場命名規則どおりに設定し、Roleを作成する。
+13. Role ARN、信頼ポリシー、許可Policyを証跡保存する。
+14. 作業者がこのRoleをVPC Flow Logsへ渡せるiam:PassRoleを持つことを確認する。
+
+CloudWatch Logs Log Groupを新規作成する場合:
+1. CloudWatchコンソールを対象リージョンで開く。
+2. 「ロググループ」を開く。
+3. 「ロググループを作成」を選択する。
+4. 現場命名規則に沿ったLog Group名を入力する。
+5. Retentionをパラメータシートどおりに設定する。
+6. KMS暗号化が必要な場合は承認済みKMS Keyを指定する。
+7. KMS暗号化を使用する場合は、KMS Key Policyでlogs.<Region>.amazonaws.comへ必要な暗号化操作を許可し、kms:EncryptionContext:aws:logs:arnを対象Log Group ARNへ限定する。
+8. Log classとタグをパラメータシートどおりに設定する。
+9. 作成後のLog Group ARNを記録する。
+
+S3送信先を使用する場合の事前準備:
+1. 既存S3 Bucket ARNとOptional prefixを確認する。
+2. Bucketのリージョン、暗号化、Lifecycle、Public Access Block、Bucket Policyを確認する。
+3. CloudWatch Logsを送信先とする場合、3.7のためのS3 Bucket作成は不要とする。
+4. Flow Log作成者がBucket所有者で、s3:GetBucketPolicyおよびs3:PutBucketPolicyを持つ場合、Flow Log作成時にAWSの配信Policyが自動アタッチされる。
+5. この自動アタッチは既存Bucket Policyを上書きする。共有Bucketまたは既存PolicyがあるBucketでは、そのままFlow Logを作成せず、Bucket所有者および基盤担当と対応方式を確定する。
+6. 既存Policyを維持する場合は、Bucket所有者または基盤担当がAWSLogDeliveryWriteおよびAWSLogDeliveryAclCheckの必要Statementを既存Policyへマージする。
+7. Flow Log作成者がBucketを所有しない、またはPolicy更新権限を持たない場合、必要StatementをBucket所有者が事前追加しなければFlow Log作成は失敗する。
+8. aws:SourceAccountおよびaws:SourceArnで配信元を限定する。
+9. S3 Bucket ARNのOptional prefixにAWSLogsを直接指定しない。
+10. Target Bucketのデフォルト暗号化がSSE-S3の場合、追加のKMS設定は不要となる。
+11. Target Bucketのデフォルト暗号化がSSE-KMSの場合、カスタマー管理KMS Key ARNを使用する。Key IDだけを指定した設定ではLogDestination undeliverableとなる可能性がある。
+12. SSE-KMSの場合、ログ配信サービスがS3へ書き込めるよう、対象CMKのKey Policyへ承認済みのログ配信許可を追加する。
+
+VPC Flow Log作成手順:
+1. VPCコンソールを対象リージョンで開く。
+2. 左メニューの「お使いのVPC」を開く。
+3. 対象VPC IDを検索する。
+4. VPC名、CIDR、環境タグを確認し、対象VPCであることを再確認する。
+5. 対象VPCを選択し、「フローログ」タブを開く。
+6. 変更前のFlow Log一覧を証跡保存する。
+7. 「フローログを作成」を選択する。
+8. Nameを現場命名規則に従って入力する。
+9. Filterはパラメータシートに従う。監査要件で全通信を対象とする場合は「すべて」を選択する。
+10. Maximum aggregation intervalをパラメータシートどおりに選択する。
+11. DestinationでCloudWatch LogsまたはS3を選択する。
+12. CloudWatch Logsの場合は、送信先Log GroupとサービスアクセスIAM Roleを指定する。
+13. S3の場合は、承認済みS3 Bucket ARNとOptional prefixを指定する。
+14. Log record formatはパラメータシートどおりに、AWS default formatまたはCustom formatを選択する。
+15. 追加メタデータを使用する場合は設計値に従う。
+16. 承認済みタグを設定する。
+17. 作成前確認画面でVPC ID、Filter、Destination、IAM Role、Log formatを再確認する。
+18. 「フローログを作成」を選択する。
+19. VPCの「フローログ」タブでFlow Log IDとStatusを確認する。
+20. 対象VPCが複数ある場合は、対象一覧と突合しながら1VPCずつ繰り返す。
+
+3.7の配信確認:
+1. Flow Log StatusがActiveであることを確認する。
+2. CloudWatch Logsの場合は、対象Log Groupを開く。
+3. 対象ENIに対応するLog Streamが作成されていることを確認する。
+4. Log eventを開き、account-id、interface-id、srcaddr、dstaddr、srcport、dstport、protocol、action、log-statusなどを確認する。
+5. S3の場合は、対象BucketとPrefixを開く。
+6. AWSLogs配下にVPC Flow Logsのログオブジェクトが作成されていることを確認する。
+7. 既存トラフィックがあるVPCでは、CloudWatch Logsへ通常約5分、S3へ通常約10分を目安に待機する。
+8. 対象VPCにアクティブなネットワークトラフィックがない場合、ログが表示されなくても直ちに設定失敗と判断しない。
+9. 安全な通信確認が承認されている場合だけ、既存の検証用ENIから既存の許可済み接続先へ疎通を1回行う。
+10. Flow Log確認だけを目的としてSecurity Group、NACL、Route Tableを変更しない。
+11. log-statusがOKであることを確認する。NODATAは対象期間に通信がなかったことを示し、SKIPDATAは一部レコード欠落の可能性を示す。
+
+3.7の影響:
+VPC Flow Logsはトラフィック経路外で収集されるため、作成または削除してもネットワークのスループットやレイテンシーには影響しない。
+CloudWatch LogsまたはS3へのログ取込量、保存量、検索量が増え、料金が発生する。
+IPアドレス、Port、Protocol、Actionなどの通信メタデータが保存されるため、閲覧権限と保管期間を管理する。
+IAM Role、Log Group、S3 Bucket Policy、KMS Keyの設定不備により配信失敗となる可能性がある。
+Flow Log作成後はDestination、IAM Role、Log formatなどを変更できない。設定誤りの場合はFlow Logを削除して再作成する。
+
+3.7の切り戻し:
+1. 配信失敗または誤設定などの切り戻し条件を確認する。
+2. VPCの「フローログ」タブで対象Flow Log IDを選択する。
+3. 対象VPC ID、Destination、作成日時を再確認する。
+4. 「アクション」から「フローログを削除」を選択する。
+5. 削除後、対象Flow Log IDが一覧から消えたことを確認する。
+6. Flow Logを削除しても、CloudWatch LogsまたはS3に既に配信されたログは削除されない。
+7. テスト専用Log Group、IAM Role、S3 Bucketを削除する場合は、他のFlow Logが使用していないことを確認する。
+8. 恒久是正として作成したVPC Flow Logは、テスト完了を理由に削除しない。
+
+3.7のトラブルシューティング:
+StatusがFailedの場合は、Delivery error、Log Group、IAM Role、Trust policy、iam:PassRole、S3 Bucket Policy、KMS Key、A-gateまたはSCPを確認する。
+StatusがActiveでもログがない場合は、対象VPCのトラフィック有無、Log GroupまたはS3 Prefix、リージョン、待機時間を確認する。
+CloudWatch Logs配信でAccessDeniedの場合は、vpc-flow-logs.amazonaws.comの信頼、CreateLogStream、PutLogEvents、DescribeLogStreamsを確認する。
+S3配信でAccessDeniedの場合は、delivery.logs.amazonaws.com、aws:SourceAccount、aws:SourceArn、Bucket Policyを確認する。
+パラメータ誤りが判明した場合は、Flow Logをその場で重複作成せず、既存の誤設定Flow Logを切り戻してから正しい設定で再作成する。
+
+要件3番台の作業後確認:
+1. 3.4 Source BucketのServer Access Loggingが有効で、Target BucketとTarget Prefixが設計値と一致することを確認する。
+2. 3.4 Target Bucketへアクセスログが配信されたこと、または配信待ち記録があることを確認する。
+3. 3.5 TrailのKMS Key ARNが設計値と一致し、Trail statusに配信エラーがないことを確認する。
+4. 3.5 変更後の新規CloudTrailログが対象CMKでSSE-KMS暗号化されていることを確認する。
+5. 3.5 承認済みログ参照Roleで新規ログを読めることを確認する。
+6. 3.6 Automatic key rotationが有効で、Rotation periodが365日であることを確認する。
+7. 3.7 全対象VPCにFlow Logが存在し、StatusがActiveであることを確認する。
+8. 3.7 Log GroupまたはS3へログが配信されたこと、またはNODATAの理由が記録されていることを確認する。
+9. 変更前後のパラメータシート、設計書、作業記録を更新する。
+10. A-gateまたは基盤側作業が残る場合は、未完了項目、担当、期限を記録する。
+
+要件3番台の共通中止条件:
+対象アカウント、対象リージョン、対象環境が変更申請と一致しない。
+対象Trail、Source Bucket、KMS Key、VPCを一意に特定できない。
+パラメータシートにTarget Bucket、KMS Key、Flow Logs Destinationなどの必須値がない。
+既存Bucket PolicyまたはKey Policyを保存できない。
+保存時に既存Policyを意図せず上書きする可能性がある。
+必要なIAM権限またはiam:PassRoleがない。
+A-gate、SCP、Permission Boundaryによる明示的拒否が発生する。
+ログ参照者、保持期間、費用負担、運用担当が未決定である。
+切り戻し手順または切り戻し判断者が未確定である。
+既存業務リソースへの想定外変更が必要となる。
 
 テスト方式の採用順:
 1. 手動ALARM遷移で通知到達を確認する。
@@ -844,6 +1430,36 @@ OU作成時にPolicy attachmentまたはAccount移動が必要になる。
 53_4.15_テスト用OU詳細_202608XX.png
 54_4.15_CloudTrail_CreateOrganizationalUnit_Alarm通知_202608XX.png
 55_4.15_テスト用OU削除後_202608XX.png
+56_3番台_対象アカウント_リージョン_リソース一覧_202608XX.png
+57_3.4_パラメータシート設定値_202608XX.png
+58_3.4_SourceBucket_ServerAccessLogging変更前_202608XX.png
+59_3.4_TargetBucketプロパティ_202608XX.png
+60_3.4_TargetBucketPolicy変更前_202608XX.png
+61_3.4_TargetBucket暗号化_Lifecycle_202608XX.png
+62_3.4_SourceBucket_ServerAccessLogging変更後_202608XX.png
+63_3.4_TargetBucketPolicy変更後_202608XX.png
+64_3.4_TargetPrefixログ配信確認_202608XX.png
+65_3.5_CMK詳細_KeyARN_202608XX.png
+66_3.5_CMK_KeyPolicy_202608XX.png
+67_3.5_CloudTrail_KMS設定変更前_202608XX.png
+68_3.5_CloudTrail_KMS設定変更後_202608XX.png
+69_3.5_CloudTrail配信ステータス_202608XX.png
+70_3.5_新規CloudTrailログ_SSEKMS確認_202608XX.png
+71_3.5_承認済みRole_ログ復号確認_202608XX.png
+72_3.6_CMK自動ローテーション変更前_202608XX.png
+73_3.6_CMK自動ローテーション変更後_202608XX.png
+74_3.7_対象VPC一覧_FlowLogs変更前_202608XX.png
+75_3.7_VPCID_FlowLog設定値_202608XX.png
+76_3.7_送信先LogGroup詳細_202608XX.png
+77_3.7_配信用IAMRole信頼_PolicyまたはS3BucketPolicy_202608XX.png
+78_3.7_VPCID_FlowLog作成後_202608XX.png
+79_3.7_VPCID_FlowLog配信確認_202608XX.png
+80_3.4_CloudTrail_PutBucketLogging_202608XX.png
+81_3.5_CloudTrail_UpdateTrail_202608XX.png
+82_3.6_CloudTrail_EnableKeyRotation_202608XX.png
+83_3.7_CloudTrail_CreateFlowLogs_202608XX.png
+84_3番台_権限エラー_AgateDeny_202608XX.png
+85_3番台_作業結果_パラメータ反映_202608XX.png
 
 未実施理由の記録例:
 業務リソースへの影響があるため実イベント未実施。通知到達は手動ALARM遷移で確認。検知条件はMetric Filter Pattern Testで確認。
@@ -861,6 +1477,61 @@ CloudTrailからCloudWatch Logsへの連携が未設定またはA-gate等で明�
 承認されていない実イベントが必要になった。
 
 公式ドキュメント根拠:
+
+要件3.4 S3 Server Access Logging:
+S3 Server Access Loggingの有効化、同一アカウント・同一リージョンのTarget Bucket、ログ配信サービスへのBucket Policy、SSE-S3、Object Lock、Requester Pays、配信確認について記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/enable-server-access-logging.html
+
+Server Access LogのS3配信はベストエフォートであり、設定変更の反映とログ配信に時間がかかること、S3 Bucket宛てではSSE-S3を使用することが記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/ServerLogs.html
+
+Server Access Loggingの配信エラー、同一リージョン、Bucket Policyなどの確認方法が記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/userguide/troubleshooting-server-access-logging.html
+
+要件3.5 CloudTrail SSE-KMS:
+CloudTrailログをカスタマー管理KMS KeyでSSE-KMS暗号化する手順、KMS KeyとS3 Bucketのリージョン条件、ログ参照者の復号権限について記載されている。
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/encrypting-cloudtrail-log-files-with-aws-kms.html
+
+CloudTrail用KMS Key Policyに必要なkms:GenerateDataKey、kms:DescribeKey、kms:Decrypt、aws:SourceArn、Encryption Contextについて記載されている。
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/create-kms-key-policy-for-cloudtrail.html
+
+CloudTrailとS3が対称KMS Keyだけをサポートすること、SSE-KMS利用時のKMS動作について記載されている。
+https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/how-kms-works-with-cloudtrail.html
+
+要件3.6 CMK自動ローテーション:
+Customer managed keyの自動ローテーション対象、365日のデフォルト周期、Key IDとKey ARNを維持したままKey materialを更新する動作について記載されている。
+https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/rotate-keys.html
+
+KMSコンソールで自動ローテーションを有効化し、90日から2560日のRotation periodを指定する手順について記載されている。
+https://docs.aws.amazon.com/ja_jp/kms/latest/developerguide/rotating-keys-enable.html
+
+要件3.7 VPC Flow Logs:
+VPC Flow Logsの対象、送信先、料金、ネットワークのスループットやレイテンシーへ影響しないことが記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/flow-logs.html
+
+VPC、Subnet、ENIを対象にFlow Logを作成する基本動作と、Flow Log削除後も既存ログが残ることが記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/flow-logs-basics.html
+
+CloudWatch Logs送信先、Traffic type、Aggregation interval、Log Group、IAM Role、Log formatを指定するコンソール手順が記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/flow-logs-cwl-create-flow-log.html
+
+CloudWatch Logs配信用IAM Roleの権限とvpc-flow-logs.amazonaws.comの信頼ポリシーについて記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/flow-logs-iam-role.html
+
+S3へVPC Flow Logsを配信するためのBucket Policy、aws:SourceAccount、aws:SourceArn、および条件を満たす作成者がFlow Logを作成した際に既存Bucket Policyが上書きされる動作について記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/flow-logs-s3-permissions.html
+
+VPC Flow LogsをSSE-KMSのS3 Bucketへ配信する場合、カスタマー管理KMS Key ARNとログ配信に必要なKey Policyを使用することが記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/flow-logs-s3-cmk-policy.html
+
+CloudWatch Logs Log GroupをKMS Keyで暗号化する場合のKey Policy、CloudWatch Logsサービスプリンシパル、Encryption Contextについて記載されている。
+https://docs.aws.amazon.com/ja_jp/AmazonCloudWatch/latest/logs/encrypt-log-data-kms.html
+
+Flow Log作成後に設定を変更できないこと、アクティブなトラフィックがないとログが表示されないことなどの制限が記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/flow-logs-limitations.html
+
+Flow LogのActiveだがログがない場合、LogDestinationNotFound、AccessDeniedなどの確認方法が記載されている。
+https://docs.aws.amazon.com/ja_jp/vpc/latest/userguide/flow-logs-troubleshooting.html
 
 方式A 手動ALARM遷移:
 CloudWatchのSetAlarmState APIには、テスト目的でAlarm状態を一時的に変更でき、ALARM状態へ変更した場合に設定済みActionが実行される旨が記載されている。
