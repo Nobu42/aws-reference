@@ -8,6 +8,7 @@
 
 | 用途 | 資料 |
 | :--- | :--- |
+| 要件3.4のServer Access Logging送信先として、専用S3バケットを新規作成してよいかPMへ確認する | [要件3.4 S3 Server Access Logging 保存先バケット確認事項](./project-docs/03_procedures/requirement_3_4_s3_server_access_logging_pm_confirmation_2026_08.md) |
 | 要件4.1～4.15について、検証環境で実AWSイベントを発生させ、CloudTrailから通知受信までEnd-to-Endで確認する | [要件4.1～4.15 検証環境End-to-Endアラーム発報手順書](./project-docs/03_procedures/requirements_4_x_validation_environment_end_to_end_alarm_test_runbook_2026_08.md) |
 | 全21要件のテスト方法、代替候補、実通知の要否、採用理由を関係者へ説明する | [クラウドセキュリティ対応 全要件テスト方法説明資料](./project-docs/03_procedures/all_requirements_test_method_explanation_for_stakeholders_2026_08.md) |
 
