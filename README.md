@@ -4,6 +4,12 @@
 
 現場向けに文書化済みの旧資料リンクはREADMEから外す。READMEには、直近で追加または更新した資料だけを掲載する。
 
+## 2026-08-25 更新資料
+
+| 用途 | 資料 |
+| :--- | :--- |
+| 要件3.4のServer Access Loggingターゲットバケットを新規作成し、ソース側の有効化、実ログ到着確認、切り戻しまで実施する | [要件3.4 S3 Server Access Logging ターゲットバケット作成・設定手順書](./project-docs/03_procedures/requirement_3_4_s3_server_access_logging_target_bucket_creation_runbook_2026_08.md) |
+
 ## 2026-08-17 更新資料
 
 | 用途 | 資料 |
