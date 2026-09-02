@@ -8,6 +8,8 @@
 
 | 用途 | 資料 |
 | :--- | :--- |
+| 現行WBSへデグレードテストと運用テストの2行だけを追加する | [WBS追加用CSV デグレードテスト・運用テスト](./project-docs/01_plan/wbs_additional_rows_degradation_and_operational_test_2026_09.csv) |
+| デグレードテストと運用テストの詳細を別シートへ貼り付ける | [デグレード・運用テスト詳細CSV](./project-docs/01_plan/degradation_and_operational_test_details_2026_09.csv) |
 | 要件4.15のAWS Organizations変更監視を実施する。追補として、要件4.9のAWS Config Metric Filter、テスト用Config Rule、Alarm・SNS通知確認、切り戻しも収録する | [要件4.15 AWS Organizations変更監視 設定・テスト手順書（要件4.9追補）](./project-docs/03_procedures/requirement_4_15_organizations_change_monitoring_runbook_2026_09.md) |
 
 ## 2026-08-25 更新資料
